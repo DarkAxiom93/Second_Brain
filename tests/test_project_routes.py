@@ -1,0 +1,143 @@
+"""Unit tests for Project routes without PostgreSQL."""
+
+import uuid
+from collections.abc import Generator
+from datetime import UTC, datetime
+from unittest.mock import Mock
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
+
+from app.api.routes import projects as project_routes
+from app.db.dependencies import get_db_session
+from app.main import create_app
+from app.models.project import Project
+
+
+@pytest.fixture
+def project() -> Project:
+    timestamp = datetime.now(UTC)
+    return Project(
+        id=uuid.uuid4(),
+        name="Pure Axiom",
+        description="Interactive mathematics platform",
+        created_at=timestamp,
+        updated_at=timestamp,
+    )
+
+
+@pytest.fixture
+def route_client() -> tuple[TestClient, Mock]:
+    session = Mock()
+
+    def override_session() -> Generator[Mock, None, None]:
+        yield session
+
+    application = create_app()
+    application.dependency_overrides[get_db_session] = override_session
+    return TestClient(application), session
+
+
+def test_post_projects_returns_201_and_exact_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    route_client: tuple[TestClient, Mock],
+    project: Project,
+) -> None:
+    client, session = route_client
+    monkeypatch.setattr(
+        project_routes.project_repository, "create_project", Mock(return_value=project)
+    )
+
+    response = client.post(
+        "/projects",
+        json={"name": project.name, "description": project.description},
+    )
+
+    assert response.status_code == 201
+    assert set(response.json()) == {
+        "id",
+        "name",
+        "description",
+        "created_at",
+        "updated_at",
+    }
+    session.commit.assert_called_once_with()
+    session.refresh.assert_called_once_with(project)
+
+
+@pytest.mark.parametrize("name", ["", "   ", "x" * 201])
+def test_post_projects_rejects_invalid_name(
+    name: str,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, session = route_client
+    response = client.post("/projects", json={"name": name})
+    assert response.status_code == 422
+    session.commit.assert_not_called()
+
+
+def test_get_projects_uses_default_pagination(
+    monkeypatch: pytest.MonkeyPatch,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, session = route_client
+    repository_call = Mock(return_value=[])
+    monkeypatch.setattr(
+        project_routes.project_repository, "list_projects", repository_call
+    )
+
+    response = client.get("/projects")
+
+    assert response.status_code == 200
+    assert response.json() == []
+    repository_call.assert_called_once_with(session, limit=50, offset=0)
+    session.commit.assert_not_called()
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
+def test_get_projects_rejects_invalid_pagination(
+    query: str,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, _ = route_client
+    assert client.get(f"/projects?{query}").status_code == 422
+
+
+@pytest.mark.parametrize("method", ["post", "get"])
+def test_project_database_failure_returns_generic_503(
+    method: str,
+    monkeypatch: pytest.MonkeyPatch,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, session = route_client
+    failure = OperationalError("sensitive SQL", {}, Exception("password=secret"))
+    if method == "post":
+        monkeypatch.setattr(
+            project_routes.project_repository,
+            "create_project",
+            Mock(side_effect=failure),
+        )
+        response = client.post("/projects", json={"name": "Pure Axiom"})
+        session.rollback.assert_called_once_with()
+    else:
+        monkeypatch.setattr(
+            project_routes.project_repository,
+            "list_projects",
+            Mock(side_effect=failure),
+        )
+        response = client.get("/projects")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "sensitive" not in response.text
+    assert "secret" not in response.text
+
+
+def test_existing_routes_and_only_public_project_paths_remain_present(
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, _ = route_client
+    paths = client.app.openapi()["paths"]
+    assert set(paths) == {"/health", "/ready", "/projects"}
+    assert set(paths["/projects"]) == {"get", "post"}

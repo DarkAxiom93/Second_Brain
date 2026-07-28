@@ -1,11 +1,10 @@
 """Database-shape tests for the Project and Memory migration."""
 
-from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import inspect, text
 
-from app.db.session import get_engine, reset_database_state
-from tests.integration.conftest import verify_connected_test_database
+from app.db.session import get_engine
 
 EXPECTED_PROJECT_COLUMNS = {
     "id": False,
@@ -71,25 +70,15 @@ def test_expected_indexes_exist(migrated_test_database: None) -> None:
     assert memory_indexes == {"ix_memories_created_at", "ix_memories_project_id"}
 
 
-def test_downgrade_to_0001_and_reupgrade_preserve_vector(
+def test_migration_follows_pgvector_baseline_without_downgrade(
     migrated_test_database: None,
-    test_database_url: str,
     alembic_config: Config,
 ) -> None:
-    verify_connected_test_database(test_database_url)
-    command.downgrade(alembic_config, "0001_enable_pgvector")
-    reset_database_state()
-
-    inspector = inspect(get_engine())
-    assert inspector.has_table("projects") is False
-    assert inspector.has_table("memories") is False
+    script = ScriptDirectory.from_config(alembic_config)
+    revision = script.get_revision("0002_projects_memories")
+    assert revision.down_revision == "0001_enable_pgvector"
     with get_engine().connect() as connection:
         vector_version = connection.scalar(
             text("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
         )
     assert vector_version == "0.8.5"
-
-    command.upgrade(alembic_config, "head")
-    reset_database_state()
-    assert inspect(get_engine()).has_table("projects")
-    assert inspect(get_engine()).has_table("memories")

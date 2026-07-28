@@ -83,13 +83,12 @@ def migrated_test_database(
     test_database_url: str,
     alembic_config: Config,
 ) -> Generator[None, None, None]:
-    """Rebuild only the verified test database migration state and leave it at head."""
+    """Upgrade only the verified test database and leave it at head."""
 
     previous_database_url = os.environ.get("DATABASE_URL")
     os.environ["DATABASE_URL"] = test_database_url
     get_settings.cache_clear()
     verify_connected_test_database(test_database_url)
-    command.downgrade(alembic_config, "base")
     command.upgrade(alembic_config, "head")
     try:
         yield

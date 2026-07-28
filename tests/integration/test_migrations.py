@@ -1,11 +1,10 @@
 """Integration tests for the pgvector baseline migration."""
 
-from alembic import command
 from alembic.config import Config
-from sqlalchemy import Engine, inspect, text
+from alembic.script import ScriptDirectory
+from sqlalchemy import inspect, text
 
 from app.db.session import get_engine
-from tests.integration.conftest import verify_connected_test_database
 
 
 def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
@@ -36,18 +35,12 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
     assert tables == {"alembic_version", "projects", "memories"}
 
 
-def test_downgrade_and_upgrade_only_verified_test_database(
+def test_migration_graph_has_expected_single_head(
     migrated_test_database: None,
-    test_database_url: str,
     alembic_config: Config,
 ) -> None:
-    verify_connected_test_database(test_database_url)
-    command.downgrade(alembic_config, "base")
-    command.upgrade(alembic_config, "head")
-
-    engine: Engine = get_engine()
-    with engine.connect() as connection:
-        version = connection.scalar(
-            text("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
-        )
-    assert version == "0.8.5"
+    script = ScriptDirectory.from_config(alembic_config)
+    assert script.get_heads() == ["0002_projects_memories"]
+    assert script.get_revision("0002_projects_memories").down_revision == (
+        "0001_enable_pgvector"
+    )

@@ -189,9 +189,43 @@ Integration tests accept only the exact database `second_brain_test`. The API
 still runs locally, Docker Compose remains database-only, and there are no
 Project or Memory API endpoints yet.
 
+## Checkpoint 6: Project API
+
+The locally run API now supports `POST /projects` and `GET /projects`. Project
+names are trimmed at their edges, must contain at least one character, and may
+not exceed 200 characters. Internal whitespace and letter casing are preserved,
+the description is optional, and duplicate names are allowed.
+
+Create a Project from PowerShell:
+
+```powershell
+$body = @{
+    name = "Pure Axiom"
+    description = "Interactive mathematics platform"
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/projects -ContentType application/json -Body $body
+```
+
+List Projects as a bare JSON array, optionally using the validated pagination
+parameters (`limit` defaults to 50 and accepts 1 through 100; `offset` defaults
+to 0 and must be nonnegative):
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/projects
+Invoke-RestMethod 'http://127.0.0.1:8000/projects?limit=25&offset=50'
+```
+
+Repository functions use an existing SQLAlchemy session, apply pagination in
+SQL, and never commit. The API owns the single write transaction for Project
+creation. Database errors produce a generic HTTP 503 response without exposing
+connection details.
+
+Checkpoint 6 required no schema change or migration. Docker Compose remains
+database-only and the API continues to run locally. There is no Memory API,
+Project update endpoint, or Project delete endpoint yet.
+
 ## Current scope
 
-Only liveness and database readiness endpoints are implemented. Project and
-Memory persistence models exist, but their API schemas, repositories, services,
-and CRUD endpoints do not. Authentication, agent workflows, and frontend code
-are also not implemented.
+Liveness, database readiness, and Project creation/listing are implemented.
+Memory persistence exists without an API. Project updates and deletion,
+authentication, agent workflows, and frontend code are not implemented.
