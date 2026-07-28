@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.31.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,10 +8,25 @@ version = "0.1.0"
 description = "A foundation for the Second Brain application."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = ["pydantic-settings>=2.10,<3"]
+dependencies = [
+    "alembic==1.18.5",
+    "fastapi==0.140.7",
+    "pgvector==0.5.0",
+    "psycopg[binary]==3.3.4",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.2",
+    "sqlalchemy==2.0.51",
+    "uvicorn[standard]==0.51.0",
+]
 
 [project.optional-dependencies]
-dev = ["mypy>=1.17,<2", "pytest>=8.4,<9", "ruff>=0.12,<1"]
+dev = [
+    "httpx==0.28.1",
+    "mypy==1.20.2",
+    "pytest==8.4.2",
+    "pytest-cov==7.1.0",
+    "ruff==0.16.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
