@@ -1,4 +1,4 @@
-"""Unit tests for the Memory creation route."""
+"""Unit tests for Memory routes."""
 
 import uuid
 from collections.abc import Generator
@@ -102,13 +102,79 @@ def test_database_failure_returns_generic_503(
     session.rollback.assert_called_once_with()
 
 
-def test_only_post_memory_path_is_registered(
+def test_get_memories_uses_filter_and_default_pagination(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    project_id = uuid.uuid4()
+    repository_call = Mock(return_value=[])
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "list_memories", repository_call
+    )
+
+    response = client.get(f"/memories?project_id={project_id}")
+
+    assert response.status_code == 200
+    assert response.json() == []
+    repository_call.assert_called_once_with(
+        session, project_id=project_id, limit=50, offset=0
+    )
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
+def test_get_memories_rejects_invalid_pagination(
+    query: str, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, _ = route_client
+    assert client.get(f"/memories?{query}").status_code == 422
+
+
+def test_get_existing_memory_and_unknown_and_malformed_uuid(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, _ = route_client
+    stored = memory()
+    repository_call = Mock(return_value=stored)
+    monkeypatch.setattr(memory_routes.memory_repository, "get_memory", repository_call)
+    assert client.get(f"/memories/{stored.id}").status_code == 200
+    repository_call.return_value = None
+    missing = client.get(f"/memories/{uuid.uuid4()}")
+    assert missing.status_code == 404
+    assert missing.json() == {"detail": "memory not found"}
+    assert client.get("/memories/not-a-uuid").status_code == 422
+
+
+@pytest.mark.parametrize("endpoint", ["/memories", f"/memories/{uuid.uuid4()}"])
+def test_memory_retrieval_database_failure_returns_generic_503(
+    endpoint: str,
+    monkeypatch: pytest.MonkeyPatch,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, _ = route_client
+    failure = OperationalError("sensitive SQL", {}, Exception("password=secret"))
+    name = "list_memories" if endpoint == "/memories" else "get_memory"
+    monkeypatch.setattr(
+        memory_routes.memory_repository, name, Mock(side_effect=failure)
+    )
+    response = client.get(endpoint)
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "sensitive" not in response.text and "secret" not in response.text
+
+
+def test_memory_paths_and_existing_endpoints_are_registered(
     route_client: tuple[TestClient, Mock],
 ) -> None:
     client, _ = route_client
     paths = client.app.openapi()["paths"]
-    assert set(paths) == {"/health", "/ready", "/projects", "/memories"}
+    assert set(paths) == {
+        "/health",
+        "/ready",
+        "/projects",
+        "/memories",
+        "/memories/{memory_id}",
+    }
     assert set(paths["/projects"]) == {"get", "post"}
-    assert set(paths["/memories"]) == {"post"}
-    assert client.get("/memories").status_code == 405
+    assert set(paths["/memories"]) == {"get", "post"}
+    assert set(paths["/memories/{memory_id}"]) == {"get"}
     assert client.get("/api/memories").status_code == 404

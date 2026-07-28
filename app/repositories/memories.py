@@ -25,3 +25,29 @@ def create_memory(session: Session, memory_data: MemoryCreate) -> Memory:
     session.flush()
     session.refresh(memory)
     return memory
+
+
+def list_memories(
+    session: Session,
+    *,
+    project_id: uuid.UUID | None,
+    limit: int,
+    offset: int,
+) -> list[Memory]:
+    """Return a deterministic, optionally project-filtered page of memories."""
+
+    statement = select(Memory)
+    if project_id is not None:
+        statement = statement.where(Memory.project_id == project_id)
+    statement = (
+        statement.order_by(Memory.created_at.desc(), Memory.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list(session.scalars(statement).all())
+
+
+def get_memory(session: Session, memory_id: uuid.UUID) -> Memory | None:
+    """Return a memory by identifier, or None when it does not exist."""
+
+    return session.scalar(select(Memory).where(Memory.id == memory_id))

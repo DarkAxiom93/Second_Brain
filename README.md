@@ -241,8 +241,25 @@ return HTTP 404. Database failures return a generic HTTP 503 response. The
 Memory repository does not commit; the route owns its single successful commit.
 There is no Memory listing, update, or deletion endpoint.
 
+## Checkpoint 8: Memory retrieval API
+
+The API now supports `GET /memories` and `GET /memories/{memory_id}`. Memory
+listings are returned as a bare JSON array ordered by newest creation time and
+then UUID. Pagination uses `limit` (default 50, range 1 through 100) and
+nonnegative `offset`; an optional `project_id` UUID filters the list to assigned
+memories for that Project. Unknown Project filters return an empty array.
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/memories
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?project_id=<project-uuid>&limit=25&offset=0'
+Invoke-RestMethod http://127.0.0.1:8000/memories/<memory-uuid>
+```
+
+An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
+503 response. Checkpoint 8 adds no migration, search, update, or delete behavior.
+
 ## Current scope
 
-Liveness, database readiness, Project creation/listing, and Memory creation are
-implemented. Project updates and deletion, Memory listing/update/deletion,
-authentication, agent workflows, and frontend code are not implemented.
+Liveness, database readiness, Project creation/listing, and Memory creation and
+retrieval are implemented. Project updates and deletion, Memory update/deletion,
+search, authentication, agent workflows, and frontend code are not implemented.

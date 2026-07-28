@@ -139,6 +139,12 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
 ) -> None:
     client, _ = route_client
     paths = client.app.openapi()["paths"]
-    assert set(paths) == {"/health", "/ready", "/projects", "/memories"}
+    assert set(paths) == {
+        "/health",
+        "/ready",
+        "/projects",
+        "/memories",
+        "/memories/{memory_id}",
+    }
     assert set(paths["/projects"]) == {"get", "post"}
-    assert set(paths["/memories"]) == {"post"}
+    assert set(paths["/memories"]) == {"get", "post"}
