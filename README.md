@@ -267,3 +267,22 @@ and association-object `memory_sources` links while retaining the legacy
 with `python -m alembic upgrade head`; the current revision is `0003_sources`.
 Project updates and deletion, Memory update/deletion, ingestion, search,
 authentication, agent workflows, and frontend code are not implemented.
+
+## Checkpoint 10: Source creation and linking API
+
+Create normalized Sources with `POST /sources`, then link an existing Source to
+an existing Memory with `POST /memories/{memory_id}/sources`. Both endpoints
+return HTTP 201. Unknown parents return HTTP 404, and an existing link returns
+HTTP 409. Source names and checksums are intentionally not unique.
+
+```powershell
+$source = @{ source_type = "note"; name = "Research notes" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/sources -ContentType application/json -Body $source
+
+$link = @{ source_id = "<source-uuid>"; source_location = "page 4" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/<memory-uuid>/sources -ContentType application/json -Body $link
+```
+
+There are no Source listing, linked-Source retrieval, update, or delete
+endpoints. Checkpoint 10 adds no migration; the Alembic head remains
+`0003_sources`.

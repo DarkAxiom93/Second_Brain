@@ -173,6 +173,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/projects",
         "/memories",
         "/memories/{memory_id}",
+        "/memories/{memory_id}/sources",
+        "/sources",
     }
     assert set(paths["/projects"]) == {"get", "post"}
     assert set(paths["/memories"]) == {"get", "post"}

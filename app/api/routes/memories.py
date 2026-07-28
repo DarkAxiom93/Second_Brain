@@ -4,13 +4,16 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_db_session
 from app.models.memory import Memory
+from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
+from app.repositories import sources as source_repository
 from app.schemas.memory import MemoryCreate, MemoryRead
+from app.schemas.source import MemorySourceLinkCreate, MemorySourceRead
 
 router = APIRouter(prefix="/memories", tags=["memories"])
 
@@ -47,6 +50,47 @@ def create_memory(
         session.rollback()
         raise database_unavailable() from None
     return memory
+
+
+@router.post(
+    "/{memory_id}/sources",
+    response_model=MemorySourceRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def link_source_to_memory(
+    memory_id: uuid.UUID,
+    link_data: MemorySourceLinkCreate,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> MemorySource:
+    """Link an existing Source to an existing Memory."""
+    try:
+        if memory_repository.get_memory(session, memory_id) is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="memory not found")
+        if source_repository.get_source(session, link_data.source_id) is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="source not found")
+        if source_repository.memory_source_link_exists(
+            session, memory_id=memory_id, source_id=link_data.source_id
+        ):
+            session.rollback()
+            raise HTTPException(
+                status_code=409, detail="source already linked to memory"
+            )
+        link = source_repository.create_memory_source_link(
+            session, memory_id=memory_id, link_data=link_data
+        )
+        session.commit()
+        session.refresh(link)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=409, detail="source already linked to memory"
+        ) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise database_unavailable() from None
+    return link
 
 
 @router.get("", response_model=list[MemoryRead])
