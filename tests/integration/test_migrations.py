@@ -11,7 +11,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0002_projects_memories"
+    assert revision == "0003_sources"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -32,7 +32,13 @@ def test_vector_extension_is_installed_at_expected_version(
 def test_only_approved_application_tables_exist(migrated_test_database: None) -> None:
     tables = set(inspect(get_engine()).get_table_names(schema="public"))
 
-    assert tables == {"alembic_version", "projects", "memories"}
+    assert tables == {
+        "alembic_version",
+        "projects",
+        "memories",
+        "sources",
+        "memory_sources",
+    }
 
 
 def test_migration_graph_has_expected_single_head(
@@ -40,7 +46,7 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0002_projects_memories"]
+    assert script.get_heads() == ["0003_sources"]
     assert script.get_revision("0002_projects_memories").down_revision == (
         "0001_enable_pgvector"
     )

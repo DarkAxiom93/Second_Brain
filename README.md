@@ -261,5 +261,9 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 ## Current scope
 
 Liveness, database readiness, Project creation/listing, and Memory creation and
-retrieval are implemented. Project updates and deletion, Memory update/deletion,
-search, authentication, agent workflows, and frontend code are not implemented.
+retrieval are implemented. Checkpoint 9 adds normalized `sources` persistence
+and association-object `memory_sources` links while retaining the legacy
+`memories.source` string. Sources have no API endpoints yet. Apply the schema
+with `python -m alembic upgrade head`; the current revision is `0003_sources`.
+Project updates and deletion, Memory update/deletion, ingestion, search,
+authentication, agent workflows, and frontend code are not implemented.

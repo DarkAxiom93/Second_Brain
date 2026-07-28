@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.memory_source import MemorySource
     from app.models.project import Project
 
 
@@ -46,3 +47,8 @@ class Memory(Base):
     )
 
     project: Mapped["Project | None"] = relationship(back_populates="memories")
+    source_links: Mapped[list["MemorySource"]] = relationship(
+        back_populates="memory",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
