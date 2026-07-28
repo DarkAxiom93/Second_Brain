@@ -13,7 +13,11 @@ from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
 from app.repositories import sources as source_repository
 from app.schemas.memory import MemoryCreate, MemoryRead
-from app.schemas.source import MemorySourceLinkCreate, MemorySourceRead
+from app.schemas.source import (
+    LinkedSourceRead,
+    MemorySourceLinkCreate,
+    MemorySourceRead,
+)
 
 router = APIRouter(prefix="/memories", tags=["memories"])
 
@@ -91,6 +95,24 @@ def link_source_to_memory(
         session.rollback()
         raise database_unavailable() from None
     return link
+
+
+@router.get("/{memory_id}/sources", response_model=list[LinkedSourceRead])
+def list_sources_for_memory(
+    memory_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[source_repository.LinkedSource]:
+    """List a validated page of Sources linked to one Memory."""
+    try:
+        if memory_repository.get_memory(session, memory_id) is None:
+            raise HTTPException(status_code=404, detail="memory not found")
+        return source_repository.list_sources_for_memory(
+            session, memory_id=memory_id, limit=limit, offset=offset
+        )
+    except SQLAlchemyError:
+        raise database_unavailable() from None
 
 
 @router.get("", response_model=list[MemoryRead])

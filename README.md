@@ -286,3 +286,19 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/<memory-uuid>
 There are no Source listing, linked-Source retrieval, update, or delete
 endpoints. Checkpoint 10 adds no migration; the Alembic head remains
 `0003_sources`.
+
+## Checkpoint 11: linked Source retrieval
+
+Retrieve Sources linked to a Memory or Memories linked to a Source. Both routes
+return bare JSON arrays ordered by newest link first, with `limit` (default 50,
+range 1 through 100) and nonnegative `offset` pagination:
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:8000/memories/<memory-uuid>/sources?limit=25&offset=0'
+Invoke-RestMethod 'http://127.0.0.1:8000/sources/<source-uuid>/memories?limit=25&offset=0'
+```
+
+Unknown parent UUIDs return HTTP 404. The legacy `memories.source` value is
+returned as `legacy_source` by the second route. There is still no general
+Source listing or individual Source retrieval endpoint. Checkpoint 11 adds no
+migration; the Alembic head remains `0003_sources`.

@@ -85,3 +85,36 @@ class MemorySourceRead(BaseModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("timestamp must be timezone-aware")
         return value
+
+
+class LinkedSourceRead(BaseModel):
+    """A Source returned in the context of its link to a Memory."""
+
+    model_config = ConfigDict(from_attributes=True)
+    link_id: uuid.UUID
+    memory_id: uuid.UUID
+    source_id: uuid.UUID
+    source_location: str | None
+    linked_at: datetime
+    source_type: str
+    name: str
+    reference: str | None
+    checksum: str | None
+    source_created_at: datetime
+    source_updated_at: datetime
+
+
+class LinkedMemoryRead(BaseModel):
+    """A Memory returned in the context of its link to a Source."""
+
+    model_config = ConfigDict(from_attributes=True)
+    link_id: uuid.UUID
+    source_id: uuid.UUID
+    memory_id: uuid.UUID
+    source_location: str | None
+    linked_at: datetime
+    project_id: uuid.UUID | None
+    content: str
+    legacy_source: str | None
+    memory_created_at: datetime
+    memory_updated_at: datetime
