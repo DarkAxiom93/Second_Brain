@@ -224,8 +224,25 @@ Checkpoint 6 required no schema change or migration. Docker Compose remains
 database-only and the API continues to run locally. There is no Memory API,
 Project update endpoint, or Project delete endpoint yet.
 
+## Checkpoint 7: Memory creation API
+
+The API supports `POST /memories` for creating an unassigned Memory or one
+associated with an existing Project. Content is trimmed and must not be blank.
+An optional source is also trimmed, must not be blank when provided, and is
+limited to 100 characters.
+
+```powershell
+$body = @{ content = "A useful fact"; source = "notes" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories -ContentType application/json -Body $body
+```
+
+To associate a Memory, include a Project UUID as `project_id`. Unknown projects
+return HTTP 404. Database failures return a generic HTTP 503 response. The
+Memory repository does not commit; the route owns its single successful commit.
+There is no Memory listing, update, or deletion endpoint.
+
 ## Current scope
 
-Liveness, database readiness, and Project creation/listing are implemented.
-Memory persistence exists without an API. Project updates and deletion,
+Liveness, database readiness, Project creation/listing, and Memory creation are
+implemented. Project updates and deletion, Memory listing/update/deletion,
 authentication, agent workflows, and frontend code are not implemented.
