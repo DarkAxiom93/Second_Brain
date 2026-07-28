@@ -157,8 +157,41 @@ $env:TEST_DATABASE_URL = "postgresql+psycopg://second_brain:change-me@127.0.0.1:
 & '.\.venv\Scripts\python.exe' -m pytest tests/integration
 ```
 
+## Checkpoint 5: Project and Memory persistence
+
+SQLAlchemy persistence models now define `projects` and `memories`, created by
+migration file `0002_create_projects_and_memories.py` with Alembic revision
+`0002_projects_memories`. Project names are not unique. A Memory may exist
+without a Project, and deleting a Project preserves its memories by setting
+`Memory.project_id` to `NULL`.
+
+Both models use application-generated UUIDs, timezone-aware database timestamps,
+and SQLAlchemy ORM-managed `updated_at` updates. pgvector remains installed, but
+neither model has an embedding or vector column.
+
+Apply and inspect the current migration explicitly:
+
+```powershell
+& '.\.venv\Scripts\python.exe' -m alembic upgrade head
+& '.\.venv\Scripts\python.exe' -m alembic current
+```
+
+Run metadata/unit tests normally, or set the guarded test URL to run the real
+PostgreSQL integration suite:
+
+```powershell
+& '.\.venv\Scripts\python.exe' -m pytest tests/test_models.py
+$env:TEST_DATABASE_URL = "postgresql+psycopg://second_brain:change-me@127.0.0.1:5433/second_brain_test"
+& '.\.venv\Scripts\python.exe' -m pytest tests/integration
+```
+
+Integration tests accept only the exact database `second_brain_test`. The API
+still runs locally, Docker Compose remains database-only, and there are no
+Project or Memory API endpoints yet.
+
 ## Current scope
 
 Only liveness and database readiness endpoints are implemented. Project and
-memory models and endpoints, authentication, agent workflows, and frontend code
-are not implemented.
+Memory persistence models exist, but their API schemas, repositories, services,
+and CRUD endpoints do not. Authentication, agent workflows, and frontend code
+are also not implemented.
