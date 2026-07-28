@@ -63,6 +63,26 @@ def test_post_unassigned_memory_commits_once(
     session.commit.assert_called_once_with()
 
 
+def test_memory_api_does_not_accept_or_expose_metadata(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, _ = route_client
+    stored = memory()
+    stored.title = "internal title"
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "create_memory", Mock(return_value=stored)
+    )
+    assert (
+        client.post(
+            "/memories", json={"content": "fact", "title": "not public"}
+        ).status_code
+        == 422
+    )
+    response = client.post("/memories", json={"content": "fact"})
+    assert response.status_code == 201
+    assert "title" not in response.json()
+
+
 def test_post_unknown_project_returns_exact_404(
     monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
 ) -> None:

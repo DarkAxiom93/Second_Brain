@@ -18,6 +18,15 @@ EXPECTED_MEMORY_COLUMNS = {
     "project_id": True,
     "content": False,
     "source": True,
+    "title": True,
+    "summary": True,
+    "memory_type": False,
+    "importance": False,
+    "confidence": False,
+    "status": False,
+    "event_time": True,
+    "expires_at": True,
+    "supersedes_id": True,
     "created_at": False,
     "updated_at": False,
 }
@@ -29,7 +38,7 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0003_sources"
+    assert revision == "0004_memory_metadata"
     assert tables == {
         "alembic_version",
         "projects",
@@ -61,10 +70,11 @@ def test_memory_foreign_key_uses_on_delete_set_null(
 ) -> None:
     foreign_keys = inspect(get_engine()).get_foreign_keys("memories")
 
-    assert len(foreign_keys) == 1
-    assert foreign_keys[0]["referred_table"] == "projects"
-    assert foreign_keys[0]["referred_columns"] == ["id"]
-    assert foreign_keys[0]["options"]["ondelete"] == "SET NULL"
+    by_column = {key["constrained_columns"][0]: key for key in foreign_keys}
+    assert set(by_column) == {"project_id", "supersedes_id"}
+    assert by_column["project_id"]["referred_table"] == "projects"
+    assert by_column["supersedes_id"]["referred_table"] == "memories"
+    assert all(key["options"]["ondelete"] == "SET NULL" for key in by_column.values())
 
 
 def test_expected_indexes_exist(migrated_test_database: None) -> None:
@@ -73,7 +83,14 @@ def test_expected_indexes_exist(migrated_test_database: None) -> None:
     memory_indexes = {index["name"] for index in inspector.get_indexes("memories")}
 
     assert project_indexes == {"ix_projects_created_at"}
-    assert memory_indexes == {"ix_memories_created_at", "ix_memories_project_id"}
+    assert memory_indexes == {
+        "ix_memories_created_at",
+        "ix_memories_project_id",
+        "ix_memories_memory_type",
+        "ix_memories_status",
+        "ix_memories_event_time",
+        "ix_memories_supersedes_id",
+    }
 
 
 def test_migration_follows_pgvector_baseline_without_downgrade(

@@ -302,3 +302,21 @@ Unknown parent UUIDs return HTTP 404. The legacy `memories.source` value is
 returned as `legacy_source` by the second route. There is still no general
 Source listing or individual Source retrieval endpoint. Checkpoint 11 adds no
 migration; the Alembic head remains `0003_sources`.
+
+## Checkpoint 12: structured Memory metadata persistence
+
+Memory persistence now supports optional `title` and `summary`. `memory_type`
+defaults to `semantic` and accepts `working`, `episodic`, `semantic`, `decision`,
+`procedural`, `preference`, or `temporary`. `status` defaults to `active` and
+accepts `active`, `superseded`, `invalid`, or `archived`. `importance` and
+`confidence` range from 0.0 through 1.0, defaulting to 0.5 and 1.0.
+
+`event_time` records when the remembered event occurred and is independent of
+the persistence `created_at` timestamp. `expires_at` records an optional expiry
+time but does not trigger automatic deletion. `supersedes_id` may point to an
+older Memory; setting it does not automatically change either Memory's status.
+
+Existing Memory API request and response shapes remain unchanged; the new
+fields are persistence-only. API support will be added in a later checkpoint.
+The Alembic head is `0004_memory_metadata`. There is no automatic
+classification, expiration, or superseding behavior.

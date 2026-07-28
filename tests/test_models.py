@@ -2,7 +2,7 @@
 
 import importlib
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import RelationshipProperty
 
 from app.db.base import Base
@@ -64,6 +64,52 @@ def test_project_name_is_not_unique() -> None:
 def test_memory_column_nullability() -> None:
     assert Memory.__table__.c.project_id.nullable is True
     assert Memory.__table__.c.content.nullable is False
+
+
+def test_memory_structured_metadata_schema() -> None:
+    columns = Memory.__table__.c
+    assert {
+        "title",
+        "summary",
+        "memory_type",
+        "importance",
+        "confidence",
+        "status",
+        "event_time",
+        "expires_at",
+        "supersedes_id",
+    } <= set(columns.keys())
+    for name in ("memory_type", "importance", "confidence", "status"):
+        assert columns[name].nullable is False
+    for name in ("title", "summary", "event_time", "expires_at", "supersedes_id"):
+        assert columns[name].nullable is True
+
+
+def test_memory_metadata_constraints_foreign_key_and_indexes() -> None:
+    checks = {
+        constraint.name
+        for constraint in Memory.__table__.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+    assert checks == {
+        "ck_memories_memory_type",
+        "ck_memories_importance_range",
+        "ck_memories_confidence_range",
+        "ck_memories_status",
+    }
+    foreign_key = next(iter(Memory.__table__.c.supersedes_id.foreign_keys))
+    assert foreign_key.target_fullname == "memories.id"
+    assert foreign_key.ondelete == "SET NULL"
+    indexed = {
+        tuple(column.name for column in index.columns)
+        for index in Memory.__table__.indexes
+    }
+    assert {
+        ("memory_type",),
+        ("status",),
+        ("event_time",),
+        ("supersedes_id",),
+    } <= indexed
 
 
 def test_models_have_no_embedding_or_vector_columns() -> None:
