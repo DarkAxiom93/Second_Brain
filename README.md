@@ -113,8 +113,52 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 Stop the local development server with `Ctrl+C`. Run the test and quality suite
 with the commands in [Quality checks](#quality-checks).
 
+## Checkpoint 4: database integration and readiness
+
+The application now has a synchronous SQLAlchemy engine and request-scoped
+sessions using Psycopg 3. `GET /health` remains a database-independent liveness
+check, while `GET /ready` executes `SELECT 1` and reports whether PostgreSQL is
+reachable. The API still runs locally rather than in Docker.
+
+Migrations are explicit developer or deployment actions; they do not run during
+application import or startup. The initial migration enables pgvector only. No
+projects or memories tables exist yet.
+
+When host port 5432 is occupied, start the database on temporary port 5433 and
+set the host-accessible application URL for the current PowerShell session:
+
+```powershell
+$env:POSTGRES_PORT = "5433"
+docker compose --env-file .env.example up -d --wait db
+$env:DATABASE_URL = "postgresql+psycopg://second_brain:change-me@127.0.0.1:5433/second_brain"
+```
+
+Apply and inspect migrations explicitly:
+
+```powershell
+& '.\.venv\Scripts\python.exe' -m alembic upgrade head
+& '.\.venv\Scripts\python.exe' -m alembic current
+```
+
+Run the normal unit suite without a test database:
+
+```powershell
+Remove-Item Env:TEST_DATABASE_URL -ErrorAction SilentlyContinue
+& '.\.venv\Scripts\python.exe' -m pytest
+```
+
+Integration tests require the separate database named exactly
+`second_brain_test`. Never point `TEST_DATABASE_URL` at `second_brain`,
+`postgres`, or another database. `.env.test.example` contains placeholders only;
+do not commit a real `.env.test` file.
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql+psycopg://second_brain:change-me@127.0.0.1:5433/second_brain_test"
+& '.\.venv\Scripts\python.exe' -m pytest tests/integration
+```
+
 ## Current scope
 
-Only the liveness endpoint is implemented. Database application integration,
-readiness checks, project and memory endpoints, authentication, agent workflows,
-and frontend code are not implemented.
+Only liveness and database readiness endpoints are implemented. Project and
+memory models and endpoints, authentication, agent workflows, and frontend code
+are not implemented.
