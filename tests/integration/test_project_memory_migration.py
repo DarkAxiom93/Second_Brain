@@ -39,7 +39,7 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0006_memory_embeddings"
+    assert revision == "0007_source_documents"
     assert tables == {
         "alembic_version",
         "projects",
@@ -47,6 +47,8 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
         "sources",
         "memory_sources",
         "memory_embeddings",
+        "source_documents",
+        "source_chunks",
     }
 
 

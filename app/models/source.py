@@ -12,6 +12,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.memory_source import MemorySource
+    from app.models.source_document import SourceDocument
 
 
 class Source(Base):
@@ -40,4 +41,11 @@ class Source(Base):
         back_populates="source",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+    document_record: Mapped["SourceDocument | None"] = relationship(
+        back_populates="source",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        single_parent=True,
+        uselist=False,
     )

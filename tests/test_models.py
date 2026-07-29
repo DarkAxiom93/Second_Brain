@@ -9,7 +9,15 @@ from sqlalchemy.orm import RelationshipProperty
 
 from app.db.base import Base
 from app.db.session import get_engine, reset_database_state
-from app.models import Memory, MemoryEmbedding, MemorySource, Project, Source
+from app.models import (
+    Memory,
+    MemoryEmbedding,
+    MemorySource,
+    Project,
+    Source,
+    SourceChunk,
+    SourceDocument,
+)
 from app.schemas.memory import MemoryCreate, MemoryRead
 
 
@@ -20,6 +28,8 @@ def test_metadata_contains_only_approved_tables() -> None:
         "sources",
         "memory_sources",
         "memory_embeddings",
+        "source_documents",
+        "source_chunks",
     }
 
 
@@ -182,6 +192,111 @@ def test_memory_embedding_indexes_and_relationships() -> None:
     assert "delete" not in child.cascade and "delete-orphan" not in child.cascade
 
 
+def test_source_document_schema_constraints_and_relationships() -> None:
+    columns = SourceDocument.__table__.c
+    assert set(columns.keys()) == {
+        "id",
+        "source_id",
+        "media_type",
+        "original_filename",
+        "byte_size",
+        "extracted_text",
+        "ingestion_status",
+        "error_code",
+        "extracted_at",
+        "created_at",
+        "updated_at",
+    }
+    assert columns.source_id.nullable is False and columns.source_id.unique is True
+    foreign_key = next(iter(columns.source_id.foreign_keys))
+    assert foreign_key.target_fullname == "sources.id"
+    assert foreign_key.ondelete == "CASCADE"
+    assert columns.media_type.nullable is False
+    for name in (
+        "original_filename",
+        "byte_size",
+        "extracted_text",
+        "error_code",
+        "extracted_at",
+    ):
+        assert columns[name].nullable is True
+    checks = {
+        constraint.name: str(constraint.sqltext)
+        for constraint in SourceDocument.__table__.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+    assert checks["ck_source_documents_byte_size_nonnegative"] == "byte_size >= 0"
+    assert all(
+        value in checks["ck_source_documents_ingestion_status"]
+        for value in ("pending", "extracted", "failed")
+    )
+    for name in ("extracted_at", "created_at", "updated_at"):
+        assert isinstance(columns[name].type, DateTime)
+        assert columns[name].type.timezone is True
+    assert Source.document_record.property.uselist is False
+    assert Source.document_record.property.passive_deletes is True
+    assert "delete-orphan" in Source.document_record.property.cascade
+    assert "delete" not in SourceDocument.source.property.cascade
+
+
+def test_source_chunk_schema_constraints_indexes_and_relationships() -> None:
+    columns = SourceChunk.__table__.c
+    assert set(columns.keys()) == {
+        "id",
+        "document_id",
+        "chunk_index",
+        "content",
+        "char_start",
+        "char_end",
+        "content_hash",
+        "locator",
+        "created_at",
+    }
+    assert all(
+        columns[name].nullable is False
+        for name in (
+            "document_id",
+            "chunk_index",
+            "content",
+            "char_start",
+            "char_end",
+            "content_hash",
+            "created_at",
+        )
+    )
+    assert columns.locator.nullable is True
+    foreign_key = next(iter(columns.document_id.foreign_keys))
+    assert foreign_key.target_fullname == "source_documents.id"
+    assert foreign_key.ondelete == "CASCADE"
+    checks = {
+        constraint.name: str(constraint.sqltext)
+        for constraint in SourceChunk.__table__.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+    assert set(checks) == {
+        "ck_source_chunks_chunk_index_nonnegative",
+        "ck_source_chunks_content_nonblank",
+        "ck_source_chunks_char_start_nonnegative",
+        "ck_source_chunks_char_end_after_start",
+        "ck_source_chunks_content_hash_format",
+    }
+    assert "{64}" in checks["ck_source_chunks_content_hash_format"]
+    unique_columns = {
+        tuple(column.name for column in constraint.columns)
+        for constraint in SourceChunk.__table__.constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
+    assert ("document_id", "chunk_index") in unique_columns
+    assert {index.name for index in SourceChunk.__table__.indexes} == {
+        "ix_source_chunks_document_id",
+        "ix_source_chunks_content_hash",
+    }
+    assert SourceDocument.chunks.property.passive_deletes is True
+    assert "delete-orphan" in SourceDocument.chunks.property.cascade
+    assert "delete" not in SourceChunk.document.property.cascade
+    assert "embedding" not in columns and "vector" not in columns
+
+
 def test_embedding_is_not_part_of_public_memory_schemas() -> None:
     for schema in (MemoryCreate, MemoryRead):
         assert "embedding" not in schema.model_fields
@@ -228,5 +343,7 @@ def test_importing_models_does_not_create_engine() -> None:
     importlib.import_module("app.models.memory_embedding")
     importlib.import_module("app.models.memory_source")
     importlib.import_module("app.models.source")
+    importlib.import_module("app.models.source_document")
+    importlib.import_module("app.models.source_chunk")
 
     assert get_engine.cache_info().currsize == 0

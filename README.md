@@ -554,3 +554,18 @@ embedding and no fallback to lexical-only results after provider errors.
 `GET /memories?query=...` remains lexical-only. Automated tests use fixed fake
 vectors and make no OpenAI calls. No schema migration is added; the Alembic
 head remains `0006_memory_embeddings`.
+
+## Checkpoint 20: Source document and text-chunk persistence
+
+A Source may now have one optional `SourceDocument` record, and a document may
+contain ordered `SourceChunk` rows. Document metadata includes media type,
+optional original filename and byte size, ingestion status, and optional
+`extracted_text` storage for future parser output. Chunks preserve exact text,
+inclusive/exclusive character offsets, lowercase SHA-256 content hashes, and an
+optional human-readable locator.
+
+This checkpoint provides persistence only. There is no upload endpoint, file
+parsing, automatic extraction or chunking, chunk embedding, or automatic Memory
+creation. Existing Source and Memory APIs and response shapes remain unchanged.
+The next checkpoint will add explicit plain-text ingestion. The Alembic head is
+`0007_source_documents`.

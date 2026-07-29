@@ -11,7 +11,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0006_memory_embeddings"
+    assert revision == "0007_source_documents"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -39,6 +39,8 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "sources",
         "memory_sources",
         "memory_embeddings",
+        "source_documents",
+        "source_chunks",
     }
 
 
@@ -47,7 +49,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0006_memory_embeddings"]
+    assert script.get_heads() == ["0007_source_documents"]
+    assert script.get_revision("0007_source_documents").down_revision == (
+        "0006_memory_embeddings"
+    )
     assert script.get_revision("0006_memory_embeddings").down_revision == (
         "0005_memory_search"
     )
