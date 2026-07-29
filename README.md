@@ -431,3 +431,17 @@ ascending; limit and offset are applied afterward in SQL. Without `query`, the
 existing chronological ordering and all existing behavior remain unchanged.
 The generated column has a GIN index and updates automatically when searchable
 fields change. The Alembic head is `0005_memory_search`.
+
+## Checkpoint 16: Memory embedding persistence
+
+The separate `memory_embeddings` table stores at most one current semantic
+embedding per Memory. It uses `VECTOR(1536)` and a cosine-distance HNSW index,
+and records the provider, exact model identifier, input SHA-256 hash,
+embedding time, and creation/update timestamps. Deleting a Memory cascades only
+to its embedding record; deleting that record leaves the Memory intact.
+
+Existing Memories are not backfilled and creating a Memory does not generate an
+embedding. No external embedding API is called, no API key is required, and no
+semantic-search API or public embedding field exists yet. Embedding generation
+is reserved for the next checkpoint. The Alembic head is
+`0006_memory_embeddings`; PostgreSQL lexical search remains unchanged.

@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.memory_embedding import MemoryEmbedding
     from app.models.memory_source import MemorySource
     from app.models.project import Project
 
@@ -126,4 +127,11 @@ class Memory(Base):
         back_populates="memory",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+    embedding_record: Mapped["MemoryEmbedding | None"] = relationship(
+        back_populates="memory",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+        single_parent=True,
     )

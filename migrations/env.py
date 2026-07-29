@@ -7,9 +7,9 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import Memory, MemorySource, Project, Source
+from app.models import Memory, MemoryEmbedding, MemorySource, Project, Source
 
-_REGISTERED_MODELS = (Memory, MemorySource, Project, Source)
+_REGISTERED_MODELS = (Memory, MemoryEmbedding, MemorySource, Project, Source)
 
 config = context.config
 if config.config_file_name is not None:
