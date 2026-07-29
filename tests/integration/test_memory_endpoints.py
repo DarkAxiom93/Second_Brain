@@ -49,8 +49,28 @@ def test_create_unassigned_and_assigned_memories_with_exact_fields() -> None:
     assert unassigned.json()["content"] == "fact"
     assert unassigned.json()["source"] == "note"
     assert assigned.json()["project_id"] == project.json()["id"]
-    expected = {"id", "project_id", "content", "source", "created_at", "updated_at"}
+    expected = {
+        "id",
+        "project_id",
+        "content",
+        "source",
+        "title",
+        "summary",
+        "memory_type",
+        "importance",
+        "confidence",
+        "status",
+        "event_time",
+        "expires_at",
+        "supersedes_id",
+        "created_at",
+        "updated_at",
+    }
     assert set(unassigned.json()) == expected
+    assert unassigned.json()["memory_type"] == "semantic"
+    assert unassigned.json()["importance"] == 0.5
+    assert unassigned.json()["confidence"] == 1.0
+    assert unassigned.json()["status"] == "active"
     for field in ("created_at", "updated_at"):
         assert datetime.fromisoformat(unassigned.json()[field]).tzinfo is not None
 
@@ -73,6 +93,134 @@ def test_invalid_input_returns_422_and_inserts_nothing() -> None:
         count = session.scalar(select(func.count()).select_from(Memory))
     assert response.status_code == 422
     assert count == 0
+
+
+def test_full_metadata_and_superseding_persist_without_automatic_status_change() -> (
+    None
+):
+    client = TestClient(create_app())
+    older = client.post("/memories", json={"content": "older"}).json()
+    event_time = datetime(2026, 2, 3, 4, 5, tzinfo=UTC)
+    expires_at = datetime(2027, 2, 3, 4, 5, tzinfo=UTC)
+    payload = {
+        "content": "newer",
+        "source": "legacy",
+        "title": " Title ",
+        "summary": " Summary ",
+        "memory_type": "decision",
+        "importance": 0.0,
+        "confidence": 1.0,
+        "status": "archived",
+        "event_time": event_time.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "supersedes_id": older["id"],
+    }
+    response = client.post("/memories", json=payload)
+    assert response.status_code == 201
+    body = response.json()
+    assert body["title"] == "Title"
+    assert body["summary"] == "Summary"
+    assert body["memory_type"] == "decision"
+    assert body["importance"] == 0.0
+    assert body["confidence"] == 1.0
+    assert body["status"] == "archived"
+    assert body["supersedes_id"] == older["id"]
+    for field, expected in (("event_time", event_time), ("expires_at", expires_at)):
+        parsed = datetime.fromisoformat(body[field])
+        assert parsed.tzinfo is not None
+        assert parsed == expected
+    assert client.get(f"/memories/{older['id']}").json()["status"] == "active"
+    assert client.get(f"/memories/{body['id']}").json() == body
+    assert body in client.get("/memories").json()
+
+    with Session(get_engine()) as session:
+        stored = session.get(Memory, uuid.UUID(body["id"]))
+        assert stored is not None
+        assert stored.title == "Title"
+        assert stored.summary == "Summary"
+        assert stored.supersedes_id == uuid.UUID(older["id"])
+
+
+@pytest.mark.parametrize(
+    ("field", "values"),
+    [
+        (
+            "memory_type",
+            [
+                "working",
+                "episodic",
+                "semantic",
+                "decision",
+                "procedural",
+                "preference",
+                "temporary",
+            ],
+        ),
+        ("status", ["active", "superseded", "invalid", "archived"]),
+        ("importance", [0.0, 1.0]),
+        ("confidence", [0.0, 1.0]),
+    ],
+)
+def test_allowed_metadata_values_work_through_api(
+    field: str, values: list[str] | list[float]
+) -> None:
+    client = TestClient(create_app())
+    for value in values:
+        response = client.post("/memories", json={"content": str(value), field: value})
+        assert response.status_code == 201
+        assert response.json()[field] == value
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("memory_type", "unknown"),
+        ("status", "unknown"),
+        ("importance", -0.01),
+        ("importance", 1.01),
+        ("confidence", -0.01),
+        ("confidence", 1.01),
+        ("event_time", "2026-01-01T00:00:00"),
+        ("expires_at", "2026-01-01T00:00:00"),
+    ],
+)
+def test_invalid_metadata_values_insert_no_rows(field: str, value: object) -> None:
+    response = TestClient(create_app()).post(
+        "/memories", json={"content": "invalid", field: value}
+    )
+    with Session(get_engine()) as session:
+        count = session.scalar(select(func.count()).select_from(Memory))
+    assert response.status_code == 422
+    assert count == 0
+
+
+def test_unknown_supersedes_inserts_no_row() -> None:
+    response = TestClient(create_app()).post(
+        "/memories",
+        json={"content": "new", "supersedes_id": str(uuid.uuid4())},
+    )
+    with Session(get_engine()) as session:
+        count = session.scalar(select(func.count()).select_from(Memory))
+    assert response.status_code == 404
+    assert response.json() == {"detail": "superseded memory not found"}
+    assert count == 0
+
+
+def test_deleting_superseded_memory_sets_reference_to_null() -> None:
+    client = TestClient(create_app())
+    older = client.post("/memories", json={"content": "older"}).json()
+    newer = client.post(
+        "/memories",
+        json={"content": "newer", "supersedes_id": older["id"]},
+    ).json()
+    with Session(get_engine()) as session:
+        stored_older = session.get(Memory, uuid.UUID(older["id"]))
+        assert stored_older is not None
+        session.delete(stored_older)
+        session.commit()
+        stored_newer = session.get(Memory, uuid.UUID(newer["id"]))
+        assert stored_newer is not None
+        assert stored_newer.supersedes_id is None
 
 
 def test_list_memories_filters_orders_and_paginates() -> None:

@@ -34,6 +34,15 @@ def memory(project_id: uuid.UUID | None = None) -> Memory:
         project_id=project_id,
         content="fact",
         source="note",
+        title=None,
+        summary=None,
+        memory_type="semantic",
+        importance=0.5,
+        confidence=1.0,
+        status="active",
+        event_time=None,
+        expires_at=None,
+        supersedes_id=None,
         created_at=timestamp,
         updated_at=timestamp,
     )
@@ -56,31 +65,94 @@ def test_post_unassigned_memory_commits_once(
         "project_id",
         "content",
         "source",
+        "title",
+        "summary",
+        "memory_type",
+        "importance",
+        "confidence",
+        "status",
+        "event_time",
+        "expires_at",
+        "supersedes_id",
         "created_at",
         "updated_at",
     }
+    assert response.json()["memory_type"] == "semantic"
+    assert response.json()["importance"] == 0.5
+    assert response.json()["confidence"] == 1.0
+    assert response.json()["status"] == "active"
     exists.assert_not_called()
     session.commit.assert_called_once_with()
 
 
-def test_memory_api_does_not_accept_or_expose_metadata(
+def test_full_metadata_post_returns_exact_values(
     monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
 ) -> None:
     client, _ = route_client
     stored = memory()
-    stored.title = "internal title"
+    timestamp = datetime.now(UTC)
+    supersedes_id = uuid.uuid4()
+    stored.title = "Title"
+    stored.summary = "Summary"
+    stored.memory_type = "decision"
+    stored.importance = 0.8
+    stored.confidence = 0.9
+    stored.status = "archived"
+    stored.event_time = timestamp
+    stored.expires_at = timestamp
+    stored.supersedes_id = supersedes_id
     monkeypatch.setattr(
         memory_routes.memory_repository, "create_memory", Mock(return_value=stored)
     )
-    assert (
-        client.post(
-            "/memories", json={"content": "fact", "title": "not public"}
-        ).status_code
-        == 422
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "get_memory", Mock(return_value=memory())
     )
-    response = client.post("/memories", json={"content": "fact"})
+    response = client.post(
+        "/memories",
+        json={
+            "content": "fact",
+            "title": "Title",
+            "summary": "Summary",
+            "memory_type": "decision",
+            "importance": 0.8,
+            "confidence": 0.9,
+            "status": "archived",
+            "event_time": timestamp.isoformat(),
+            "expires_at": timestamp.isoformat(),
+            "supersedes_id": str(supersedes_id),
+        },
+    )
     assert response.status_code == 201
-    assert "title" not in response.json()
+    body = response.json()
+    assert body["title"] == "Title"
+    assert body["summary"] == "Summary"
+    assert body["memory_type"] == "decision"
+    assert body["importance"] == 0.8
+    assert body["confidence"] == 0.9
+    assert body["status"] == "archived"
+    assert datetime.fromisoformat(body["event_time"]) == timestamp
+    assert datetime.fromisoformat(body["expires_at"]) == timestamp
+    assert body["supersedes_id"] == str(supersedes_id)
+
+
+def test_post_unknown_supersedes_returns_exact_404_before_write(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    missing_id = uuid.uuid4()
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "get_memory", Mock(return_value=None)
+    )
+    create = Mock()
+    monkeypatch.setattr(memory_routes.memory_repository, "create_memory", create)
+    response = client.post(
+        "/memories", json={"content": "fact", "supersedes_id": str(missing_id)}
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": "superseded memory not found"}
+    create.assert_not_called()
+    session.commit.assert_not_called()
+    session.rollback.assert_called_once_with()
 
 
 def test_post_unknown_project_returns_exact_404(

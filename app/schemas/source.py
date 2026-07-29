@@ -6,6 +6,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
 
+from app.schemas.memory import MemoryStatus, MemoryType
+
 
 class SourceCreate(BaseModel):
     """Validated input for creating a normalized source."""
@@ -116,5 +118,14 @@ class LinkedMemoryRead(BaseModel):
     project_id: uuid.UUID | None
     content: str
     legacy_source: str | None
+    title: str | None
+    summary: str | None
+    memory_type: MemoryType
+    importance: float
+    confidence: float
+    status: MemoryStatus
+    event_time: datetime | None
+    expires_at: datetime | None
+    supersedes_id: uuid.UUID | None
     memory_created_at: datetime
     memory_updated_at: datetime

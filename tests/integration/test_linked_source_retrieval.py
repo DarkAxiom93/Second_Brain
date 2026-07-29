@@ -41,7 +41,19 @@ def test_bidirectional_retrieval_fields_order_pagination_and_empty_parents() -> 
     project = client.post("/projects", json={"name": "P"}).json()
     memory_one = client.post(
         "/memories",
-        json={"project_id": project["id"], "content": "one", "source": "legacy"},
+        json={
+            "project_id": project["id"],
+            "content": "one",
+            "source": "legacy",
+            "title": "One title",
+            "summary": "One summary",
+            "memory_type": "episodic",
+            "importance": 0.7,
+            "confidence": 0.8,
+            "status": "archived",
+            "event_time": datetime.now(UTC).isoformat(),
+            "expires_at": datetime.now(UTC).isoformat(),
+        },
     ).json()
     memory_two = client.post("/memories", json={"content": "two"}).json()
     memory_empty = client.post("/memories", json={"content": "empty"}).json()
@@ -102,6 +114,15 @@ def test_bidirectional_retrieval_fields_order_pagination_and_empty_parents() -> 
     memories = client.get(f"/sources/{source_one['id']}/memories").json()
     assert [item["link_id"] for item in memories] == [links[2]["id"], links[0]["id"]]
     assert memories[1]["legacy_source"] == "legacy"
+    assert memories[1]["title"] == "One title"
+    assert memories[1]["summary"] == "One summary"
+    assert memories[1]["memory_type"] == "episodic"
+    assert memories[1]["importance"] == 0.7
+    assert memories[1]["confidence"] == 0.8
+    assert memories[1]["status"] == "archived"
+    assert memories[1]["event_time"] is not None
+    assert memories[1]["expires_at"] is not None
+    assert memories[1]["supersedes_id"] is None
     assert memories[0]["project_id"] is None
     assert set(memories[0]) == {
         "link_id",
@@ -112,6 +133,15 @@ def test_bidirectional_retrieval_fields_order_pagination_and_empty_parents() -> 
         "project_id",
         "content",
         "legacy_source",
+        "title",
+        "summary",
+        "memory_type",
+        "importance",
+        "confidence",
+        "status",
+        "event_time",
+        "expires_at",
+        "supersedes_id",
         "memory_created_at",
         "memory_updated_at",
     }

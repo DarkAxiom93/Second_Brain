@@ -47,6 +47,15 @@ def create_memory(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="project not found",
             )
+        if (
+            memory_data.supersedes_id is not None
+            and memory_repository.get_memory(session, memory_data.supersedes_id) is None
+        ):
+            session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="superseded memory not found",
+            )
         memory = memory_repository.create_memory(session, memory_data)
         session.commit()
         session.refresh(memory)

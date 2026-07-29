@@ -42,6 +42,15 @@ class LinkedMemory:
     project_id: uuid.UUID | None
     content: str
     legacy_source: str | None
+    title: str | None
+    summary: str | None
+    memory_type: str
+    importance: float
+    confidence: float
+    status: str
+    event_time: datetime | None
+    expires_at: datetime | None
+    supersedes_id: uuid.UUID | None
     memory_created_at: datetime
     memory_updated_at: datetime
 
@@ -122,6 +131,15 @@ def list_memories_for_source(
             Memory.project_id,
             Memory.content,
             Memory.source,
+            Memory.title,
+            Memory.summary,
+            Memory.memory_type,
+            Memory.importance,
+            Memory.confidence,
+            Memory.status,
+            Memory.event_time,
+            Memory.expires_at,
+            Memory.supersedes_id,
             Memory.created_at,
             Memory.updated_at,
         )

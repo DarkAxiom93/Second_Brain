@@ -320,3 +320,60 @@ Existing Memory API request and response shapes remain unchanged; the new
 fields are persistence-only. API support will be added in a later checkpoint.
 The Alembic head is `0004_memory_metadata`. There is no automatic
 classification, expiration, or superseding behavior.
+
+## Checkpoint 13: structured Memory metadata API
+
+The existing Memory creation and retrieval endpoints now accept and return the
+structured metadata introduced in Checkpoint 12. A minimal request containing
+only `content` remains valid and returns `memory_type` `semantic`, `importance`
+`0.5`, `confidence` `1.0`, and `status` `active`.
+
+Allowed `memory_type` values are `working`, `episodic`, `semantic`, `decision`,
+`procedural`, `preference`, and `temporary`. Allowed `status` values are
+`active`, `superseded`, `invalid`, and `archived`. Both `importance` and
+`confidence` accept values from 0.0 through 1.0, inclusive. Optional
+`event_time` and `expires_at` values must include a timezone offset. Expiration
+is stored only; it has no automatic behavior.
+
+When supplied, `supersedes_id` must identify an existing Memory. Creating a
+superseding Memory does not automatically update the older Memory's status.
+There are still no Memory update or delete endpoints.
+
+Create a minimal Memory:
+
+```powershell
+$body = @{ content = "A useful fact" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories -ContentType application/json -Body $body
+```
+
+Create a Memory with all structured metadata:
+
+```powershell
+$body = @{
+    content = "The team selected PostgreSQL"
+    source = "architecture notes"
+    title = "Database decision"
+    summary = "PostgreSQL was selected for durable storage."
+    memory_type = "decision"
+    importance = 0.9
+    confidence = 1.0
+    status = "active"
+    event_time = "2026-07-29T10:00:00+03:00"
+    expires_at = "2027-07-29T10:00:00+03:00"
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories -ContentType application/json -Body $body
+```
+
+Create a Memory that supersedes an existing Memory:
+
+```powershell
+$body = @{
+    content = "The revised decision"
+    memory_type = "decision"
+    supersedes_id = "<older-memory-uuid>"
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories -ContentType application/json -Body $body
+```
+
+Checkpoint 13 adds no migration. The Alembic head remains
+`0004_memory_metadata`.

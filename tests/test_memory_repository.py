@@ -1,6 +1,7 @@
 """Unit tests for Memory repository query and transaction boundaries."""
 
 import uuid
+from datetime import UTC, datetime
 from unittest.mock import Mock
 
 from app.repositories.memories import create_memory, get_memory, list_memories
@@ -9,7 +10,35 @@ from app.schemas.memory import MemoryCreate
 
 def test_create_memory_flushes_and_refreshes_without_committing() -> None:
     session = Mock()
-    memory = create_memory(session, MemoryCreate(content="fact"))
+    supersedes_id = uuid.uuid4()
+    timestamp = datetime.now(UTC)
+    memory = create_memory(
+        session,
+        MemoryCreate(
+            content="fact",
+            source="note",
+            title="Title",
+            summary="Summary",
+            memory_type="procedural",
+            importance=0.7,
+            confidence=0.8,
+            status="superseded",
+            event_time=timestamp,
+            expires_at=timestamp,
+            supersedes_id=supersedes_id,
+        ),
+    )
+    assert memory.content == "fact"
+    assert memory.source == "note"
+    assert memory.title == "Title"
+    assert memory.summary == "Summary"
+    assert memory.memory_type == "procedural"
+    assert memory.importance == 0.7
+    assert memory.confidence == 0.8
+    assert memory.status == "superseded"
+    assert memory.event_time == timestamp
+    assert memory.expires_at == timestamp
+    assert memory.supersedes_id == supersedes_id
     session.add.assert_called_once_with(memory)
     session.flush.assert_called_once_with()
     session.refresh.assert_called_once_with(memory)
