@@ -329,6 +329,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/sources",
         "/sources",
+        "/sources/{source_id}/document/file",
         "/sources/{source_id}/document/text",
         "/sources/{source_id}/memories",
     }

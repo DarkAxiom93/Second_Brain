@@ -217,3 +217,93 @@ def test_ingestion_database_failure_rolls_back_and_is_generic(
     assert response.json() == {"detail": "database unavailable"}
     assert "secret" not in response.text and "password" not in response.text
     session.rollback.assert_called_once_with()
+
+
+def test_file_upload_success_commits_once_and_closes_upload(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    now = datetime.now(UTC)
+    source_id = uuid.uuid4()
+    document = SourceDocument(
+        id=uuid.uuid4(),
+        source_id=source_id,
+        media_type="text/plain",
+        original_filename="note.txt",
+        byte_size=7,
+        extracted_text="content",
+        ingestion_status="extracted",
+        error_code=None,
+        extracted_at=now,
+        created_at=now,
+        updated_at=now,
+    )
+    monkeypatch.setattr(
+        source_routes.source_repository, "get_source", Mock(return_value=Source())
+    )
+    upsert = Mock(return_value=DocumentIngestionResult(document, 1, "created"))
+    monkeypatch.setattr(source_routes.source_repository, "upsert_document", upsert)
+    response = client.put(
+        f"/sources/{source_id}/document/file",
+        files={"file": (" note.txt ", b"content", "text/plain")},
+    )
+    assert response.status_code == 200
+    assert response.json()["generation_status"] == "created"
+    assert "extracted_text" not in response.json()
+    session.commit.assert_called_once_with()
+    assert upsert.call_args.kwargs["byte_size"] == 7
+
+
+@pytest.mark.parametrize(
+    "files,expected",
+    [
+        (
+            {"file": ("note.docx", b"content", "application/octet-stream")},
+            (415, "unsupported document type"),
+        ),
+        (
+            {"file": ("note.txt", b"\xff", "text/plain")},
+            (422, "document extraction failed"),
+        ),
+        (
+            {"file": ("note.txt", b"", "text/plain")},
+            (422, "document extraction failed"),
+        ),
+    ],
+)
+def test_file_upload_exact_validation_errors(
+    files: dict[str, tuple[str, bytes, str]],
+    expected: tuple[int, str],
+    monkeypatch: pytest.MonkeyPatch,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, session = route_client
+    monkeypatch.setattr(
+        source_routes.source_repository, "get_source", Mock(return_value=Source())
+    )
+    response = client.put(f"/sources/{uuid.uuid4()}/document/file", files=files)
+    assert (response.status_code, response.json()["detail"]) == expected
+    session.commit.assert_not_called()
+
+
+def test_file_upload_unknown_source_and_database_failure_are_generic(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    get_source = Mock(return_value=None)
+    monkeypatch.setattr(source_routes.source_repository, "get_source", get_source)
+    url = f"/sources/{uuid.uuid4()}/document/file"
+    missing = client.put(url, files={"file": ("a.txt", b"hello", "text/plain")})
+    assert missing.status_code == 404
+    assert missing.json() == {"detail": "source not found"}
+
+    get_source.return_value = Source()
+    failure = OperationalError("secret SQL", {}, Exception("password=secret"))
+    monkeypatch.setattr(
+        source_routes.source_repository, "upsert_document", Mock(side_effect=failure)
+    )
+    failed = client.put(url, files={"file": ("a.txt", b"hello", "text/plain")})
+    assert failed.status_code == 503
+    assert failed.json() == {"detail": "database unavailable"}
+    assert "secret" not in failed.text and "password" not in failed.text
+    session.rollback.assert_called_once_with()

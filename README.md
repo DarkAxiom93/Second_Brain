@@ -600,5 +600,57 @@ Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' `
   -Body '{"text":"Updated text","chunk_size":1000,"chunk_overlap":100}'
 ```
 
-This checkpoint has no file upload or parser, automatic Memory creation, chunk
-embeddings, or chunk search. Alembic head remains `0007_source_documents`.
+## TXT and PDF Source upload
+
+Checkpoint 22 adds one explicit multipart endpoint for an existing Source:
+
+```text
+PUT /sources/{source_id}/document/file
+```
+
+The required `file` field accepts UTF-8 `.txt` files and `.pdf` files with an
+extractable text layer. Raw uploads are limited to 20,000,000 bytes; extracted
+normalized text is limited to 5,000,000 UTF-8 bytes. PDFs are limited to 1,000
+pages. OCR is not supported, and encrypted, malformed, or image-only PDFs are
+rejected.
+
+The trimmed filename must be 1–255 characters and a filename only: paths,
+drive-qualified names, NUL, `.`, and `..` are rejected. The filename extension,
+declared MIME type, and actual content/signature must agree. An
+`application/octet-stream` declaration is accepted only when the `.txt` UTF-8
+content or `.pdf` signature conclusively identifies a supported format.
+
+TXT decoding accepts UTF-8 only, removes one leading UTF-8 BOM, and normalizes
+CRLF/CR to LF while preserving all other characters. PDF pages are extracted
+once in page order and joined with exactly two LF characters, including around
+blank intermediate pages. Character chunks use the same `chunk_size` (default
+2000, range 1000–10000) and `chunk_overlap` (default 200, range 0–500 and
+smaller than the chunk size) rules as JSON ingestion. PDF chunk locators are
+`page N` or `pages N-M` when chunk content overlaps page text; separator-only
+text does not invent a locator. TXT locators are null.
+
+In PowerShell 7 and later:
+
+```powershell
+$uri = "http://127.0.0.1:8000/sources/$sourceId/document/file"
+Invoke-RestMethod -Method Put -Uri $uri -Form @{
+  file = Get-Item '.\notes.txt'
+  chunk_size = 2000
+  chunk_overlap = 200
+}
+```
+
+Equivalent Windows curl usage:
+
+```powershell
+curl.exe -X PUT -F "file=@notes.txt;type=text/plain" `
+  -F "chunk_size=2000" -F "chunk_overlap=200" `
+  "http://127.0.0.1:8000/sources/$sourceId/document/file"
+```
+
+Responses reuse the existing document schema and report `created`, `updated`,
+or `unchanged`. Repeating an identical upload and chunk settings does not
+rewrite document or chunk rows. Raw bytes are never persisted. No Memory is
+created automatically, and no chunk embeddings or chunk search are added. The
+JSON `PUT /sources/{source_id}/document/text` endpoint remains available and
+unchanged. Alembic head remains `0007_source_documents`.

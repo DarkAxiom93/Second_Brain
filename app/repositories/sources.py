@@ -82,12 +82,14 @@ def get_source(session: Session, source_id: uuid.UUID) -> Source | None:
     return session.scalar(select(Source).where(Source.id == source_id))
 
 
-def upsert_text_document(
+def upsert_document(
     session: Session,
     *,
     source_id: uuid.UUID,
     normalized_text: str,
+    media_type: str,
     original_filename: str | None,
+    byte_size: int,
     chunks: list[TextChunk],
     extracted_at: datetime,
 ) -> DocumentIngestionResult:
@@ -97,11 +99,10 @@ def upsert_text_document(
         .where(SourceDocument.source_id == source_id)
         .options(selectinload(SourceDocument.chunks))
     )
-    byte_size = len(normalized_text.encode("utf-8"))
     if document is None:
         document = SourceDocument(
             source_id=source_id,
-            media_type="text/plain",
+            media_type=media_type,
             original_filename=original_filename,
             byte_size=byte_size,
             extracted_text=normalized_text,
@@ -134,7 +135,7 @@ def upsert_text_document(
         for stored, generated in zip(document.chunks, chunks, strict=True)
     )
     metadata_identical = (
-        document.media_type == "text/plain"
+        document.media_type == media_type
         and document.original_filename == original_filename
         and document.byte_size == byte_size
         and document.extracted_text == normalized_text
@@ -144,7 +145,7 @@ def upsert_text_document(
     if metadata_identical and chunks_identical:
         return DocumentIngestionResult(document, len(chunks), "unchanged")
 
-    document.media_type = "text/plain"
+    document.media_type = media_type
     document.original_filename = original_filename
     document.byte_size = byte_size
     document.extracted_text = normalized_text
@@ -157,6 +158,28 @@ def upsert_text_document(
         document.chunks = [SourceChunk(**chunk.__dict__) for chunk in chunks]
     session.flush()
     return DocumentIngestionResult(document, len(chunks), "updated")
+
+
+def upsert_text_document(
+    session: Session,
+    *,
+    source_id: uuid.UUID,
+    normalized_text: str,
+    original_filename: str | None,
+    chunks: list[TextChunk],
+    extracted_at: datetime,
+) -> DocumentIngestionResult:
+    """Preserve the JSON text-ingestion repository interface."""
+    return upsert_document(
+        session,
+        source_id=source_id,
+        normalized_text=normalized_text,
+        media_type="text/plain",
+        original_filename=original_filename,
+        byte_size=len(normalized_text.encode("utf-8")),
+        chunks=chunks,
+        extracted_at=extracted_at,
+    )
 
 
 def create_memory_source_link(

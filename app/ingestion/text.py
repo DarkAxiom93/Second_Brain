@@ -15,7 +15,7 @@ class TextChunk:
     char_start: int
     char_end: int
     content_hash: str
-    locator: None = None
+    locator: str | None = None
 
 
 def normalize_plain_text(text: str) -> str:
