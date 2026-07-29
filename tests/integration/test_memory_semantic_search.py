@@ -68,11 +68,13 @@ def add_embedded(
     confidence: float = 1.0,
     event_time: datetime | None = None,
     memory_id: uuid.UUID | None = None,
+    title: str | None = None,
 ) -> Memory:
     memory = Memory(
         id=memory_id or uuid.uuid4(),
         project_id=project_id,
         content=content,
+        title=title,
         memory_type=memory_type,
         status=status,
         importance=importance,
@@ -96,6 +98,110 @@ def add_embedded(
             )
         )
     return memory
+
+
+def test_hybrid_fuses_lexical_and_semantic_candidates_without_duplicates(
+    semantic_client: tuple[TestClient, FixedProvider],
+) -> None:
+    client, provider = semantic_client
+    base = datetime(2026, 3, 1, tzinfo=UTC)
+    with Session(get_engine()) as session:
+        both = add_embedded(
+            session,
+            content="fusion needle",
+            embedding=vector(1, 0),
+            created_at=base,
+        )
+        lexical_only = add_embedded(
+            session,
+            content="needle lexical only",
+            embedding=None,
+            created_at=base + timedelta(minutes=1),
+        )
+        semantic_only = add_embedded(
+            session,
+            content="unrelated semantic candidate",
+            embedding=vector(1, 0),
+            created_at=base + timedelta(minutes=2),
+        )
+        session.commit()
+        both_id = both.id
+        before = {
+            row.memory_id: list(row.embedding)
+            for row in session.scalars(select(MemoryEmbedding)).all()
+        }
+        expected_ids = {both_id, lexical_only.id, semantic_only.id}
+
+    response = client.post(
+        "/memories/search", json={"query": " needle ", "mode": "hybrid"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    ids = [uuid.UUID(item["id"]) for item in body]
+    assert ids[0] == both_id
+    assert set(ids) == expected_ids
+    assert len(ids) == len(set(ids)) == 3
+    assert provider.inputs == ["needle"]
+    assert all("score" not in item and "embedding" not in item for item in body)
+    paged = client.post(
+        "/memories/search",
+        json={
+            "query": "needle",
+            "mode": "hybrid",
+            "pagination": {"limit": 1, "offset": 1},
+        },
+    )
+    assert [item["content"] for item in paged.json()] == [
+        "unrelated semantic candidate"
+    ]
+    with Session(get_engine()) as session:
+        after = {
+            row.memory_id: list(row.embedding)
+            for row in session.scalars(select(MemoryEmbedding)).all()
+        }
+    assert after == before
+
+
+def test_hybrid_empty_branches_and_branch_independent_results(
+    semantic_client: tuple[TestClient, FixedProvider],
+) -> None:
+    client, _ = semantic_client
+    assert (
+        client.post(
+            "/memories/search", json={"query": "absent", "mode": "hybrid"}
+        ).json()
+        == []
+    )
+
+    base = datetime(2026, 3, 2, tzinfo=UTC)
+    with Session(get_engine()) as session:
+        add_embedded(
+            session,
+            content="lexicalword",
+            embedding=None,
+            created_at=base,
+        )
+        session.commit()
+    lexical_response = client.post(
+        "/memories/search", json={"query": "lexicalword", "mode": "hybrid"}
+    )
+    assert [item["content"] for item in lexical_response.json()] == ["lexicalword"]
+
+    with Session(get_engine()) as session:
+        session.execute(delete(Memory))
+        add_embedded(
+            session,
+            content="no matching terms",
+            embedding=vector(1, 0),
+            created_at=base,
+        )
+        session.commit()
+    semantic_response = client.post(
+        "/memories/search", json={"query": "lexicalword", "mode": "hybrid"}
+    )
+    assert [item["content"] for item in semantic_response.json()] == [
+        "no matching terms"
+    ]
 
 
 def test_empty_dataset_excludes_unembedded_and_does_not_persist_query(
@@ -190,7 +296,9 @@ def test_distance_ties_pagination_public_shape_and_rows_unchanged(
     assert after == before
 
 
+@pytest.mark.parametrize("mode", ["semantic", "hybrid"])
 def test_every_filter_category_and_multiple_filters_use_and(
+    mode: str,
     semantic_client: tuple[TestClient, FixedProvider],
 ) -> None:
     client, _ = semantic_client
@@ -242,7 +350,8 @@ def test_every_filter_category_and_multiple_filters_use_and(
         "created_at_to": (base + timedelta(minutes=1)).isoformat(),
     }
     response = client.post(
-        "/memories/search", json={"query": "meaning", "filters": filters}
+        "/memories/search",
+        json={"query": "meaning", "mode": mode, "filters": filters},
     )
     assert response.status_code == 200
     assert [item["id"] for item in response.json()] == [str(target_id)]
@@ -250,7 +359,8 @@ def test_every_filter_category_and_multiple_filters_use_and(
     filters["status"] = "active"
     assert (
         client.post(
-            "/memories/search", json={"query": "meaning", "filters": filters}
+            "/memories/search",
+            json={"query": "meaning", "mode": mode, "filters": filters},
         ).json()
         == []
     )

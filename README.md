@@ -475,8 +475,7 @@ provider failures, invalid responses, and database failures produce generic API
 errors without raw exceptions, request identifiers, connection details, input
 text, or vectors.
 
-Memory creation still does not generate embeddings automatically, and semantic
-search is not implemented yet. Existing lexical search, structured filters,
+Memory creation still does not generate embeddings automatically. Existing lexical search, structured filters,
 and Source relationships are unchanged. Automated tests inject a deterministic
 fake provider, never call OpenAI, and incur no API cost. No migration is added;
 the Alembic head remains `0006_memory_embeddings`.
@@ -510,3 +509,48 @@ This checkpoint is semantic-only: the existing `GET /memories?query=...`
 lexical behavior is unchanged, and no hybrid ranking is performed. Automated
 tests use fake providers and make no paid API calls. No schema migration is
 added; the Alembic head remains `0006_memory_embeddings`.
+
+## Checkpoint 19: hybrid Memory search
+
+`POST /memories/search` supports `semantic` and `hybrid` modes. Semantic is the
+default, so omitting `mode` preserves the cosine-distance behavior described
+above; an explicit semantic request is equivalent:
+
+```powershell
+$body = @{ query = "database migration decisions" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/search -ContentType "application/json" -Body $body
+
+$body = @{ query = "database migration decisions"; mode = "semantic" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/search -ContentType "application/json" -Body $body
+```
+
+Hybrid mode combines PostgreSQL full-text ranking over `memories.search_vector`
+with pgvector cosine-distance ranking. It uses equal-weight Reciprocal Rank
+Fusion with a constant of 60:
+
+```powershell
+$body = @{ query = "database migration decisions"; mode = "hybrid" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/search -ContentType "application/json" -Body $body
+
+$body = @{
+  query = "database migration decisions"; mode = "hybrid"
+  filters = @{ project_id = "00000000-0000-0000-0000-000000000001"; memory_type = "decision"; status = "active"; importance_min = 0.6 }
+  pagination = @{ limit = 20; offset = 10 }
+} | ConvertTo-Json -Depth 3
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/search -ContentType "application/json" -Body $body
+```
+
+All structured filters apply independently to both candidate branches. The
+internal candidate pool for each branch is
+`min(1000, max(100, (limit + offset) * 5))`; it is not configurable. Fusion is
+performed in one SQL statement and final pagination occurs after fusion.
+Lexical-only Memories may participate without embedding rows, while semantic
+candidates require embedding rows. The response remains a bare Memory array:
+the RRF score, branch ranks, distances, and vectors are not exposed.
+
+Both modes require the embedding provider, embed the trimmed query exactly
+once, and never persist the query embedding. There is no automatic Memory
+embedding and no fallback to lexical-only results after provider errors.
+`GET /memories?query=...` remains lexical-only. Automated tests use fixed fake
+vectors and make no OpenAI calls. No schema migration is added; the Alembic
+head remains `0006_memory_embeddings`.

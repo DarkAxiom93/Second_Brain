@@ -73,6 +73,57 @@ def test_valid_request_trims_embeds_once_and_passes_filters_and_pagination(
     assert repository_call.call_args.kwargs["offset"] == 2
 
 
+@pytest.mark.parametrize("mode", [None, "semantic"])
+def test_semantic_mode_is_default_and_backward_compatible(
+    mode: str | None,
+    monkeypatch: pytest.MonkeyPatch,
+    search_setup: tuple[TestClient, Mock, FakeProvider, Mock],
+) -> None:
+    client, _, provider, repository_call = search_setup
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "search_memories", repository_call
+    )
+    payload = {"query": "  meaning  "}
+    if mode is not None:
+        payload["mode"] = mode
+    response = client.post("/memories/search", json=payload)
+    assert response.status_code == 200
+    assert provider.inputs == ["meaning"]
+    repository_call.assert_called_once()
+
+
+def test_hybrid_mode_embeds_once_and_passes_trimmed_query(
+    monkeypatch: pytest.MonkeyPatch,
+    search_setup: tuple[TestClient, Mock, FakeProvider, Mock],
+) -> None:
+    client, session, provider, _ = search_setup
+    hybrid_call = Mock(return_value=[])
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "search_memories_hybrid", hybrid_call
+    )
+    response = client.post(
+        "/memories/search",
+        json={"query": "  exact hybrid  ", "mode": "hybrid"},
+    )
+    assert response.status_code == 200
+    assert provider.inputs == ["exact hybrid"]
+    hybrid_call.assert_called_once()
+    assert hybrid_call.call_args.args == (session,)
+    assert hybrid_call.call_args.kwargs["query"] == "exact hybrid"
+    assert hybrid_call.call_args.kwargs["query_vector"] == [0.0] * 1536
+
+
+def test_invalid_mode_returns_422_without_provider_call(
+    search_setup: tuple[TestClient, Mock, FakeProvider, Mock],
+) -> None:
+    client, _, provider, _ = search_setup
+    response = client.post(
+        "/memories/search", json={"query": "valid", "mode": "lexical"}
+    )
+    assert response.status_code == 422
+    assert provider.inputs == []
+
+
 @pytest.mark.parametrize("query", ["   ", "x" * 501])
 def test_invalid_query_returns_422_without_provider_call(
     query: str, search_setup: tuple[TestClient, Mock, FakeProvider, Mock]

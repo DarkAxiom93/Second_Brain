@@ -6,7 +6,12 @@ from unittest.mock import Mock
 
 from sqlalchemy.dialects import postgresql
 
-from app.repositories.memories import create_memory, get_memory, list_memories
+from app.repositories.memories import (
+    create_memory,
+    get_memory,
+    list_memories,
+    search_memories_hybrid,
+)
 from app.schemas.memory import MemoryCreate
 
 
@@ -129,4 +134,45 @@ def test_list_memories_applies_postgresql_search_and_relevance_in_sql() -> None:
     assert "LIMIT" in compiled and "OFFSET" in compiled
     assert 5 in compiled_statement.params.values()
     assert 2 in compiled_statement.params.values()
+    session.commit.assert_not_called()
+
+
+def test_hybrid_search_is_one_filtered_fused_paginated_sql_statement() -> None:
+    session = Mock()
+    session.scalars.return_value.all.return_value = []
+    project_id = uuid.uuid4()
+
+    assert (
+        search_memories_hybrid(
+            session,
+            query="alpha beta",
+            query_vector=[0.0] * 1536,
+            project_id=project_id,
+            status="active",
+            limit=7,
+            offset=23,
+        )
+        == []
+    )
+
+    session.scalars.assert_called_once()
+    statement = session.scalars.call_args.args[0]
+    compiled_statement = statement.compile(dialect=postgresql.dialect())
+    compiled = str(compiled_statement)
+    assert "lexical_candidates AS" in compiled
+    assert "semantic_candidates AS" in compiled
+    assert "fused_candidates AS" in compiled
+    assert "websearch_to_tsquery" in compiled
+    assert "ts_rank_cd" in compiled
+    assert "<=>" in compiled
+    assert "row_number() OVER" in compiled
+    assert "UNION" in compiled
+    assert "coalesce" in compiled
+    assert compiled.count("memories.project_id") >= 2
+    assert compiled.count("memories.status") >= 2
+    assert "ORDER BY fused_candidates.rrf_score DESC" in compiled
+    assert "LIMIT" in compiled and "OFFSET" in compiled
+    values = compiled_statement.params.values()
+    assert 7 in values and 23 in values
+    assert 150 in values  # max(100, (7 + 23) * 5)
     session.commit.assert_not_called()

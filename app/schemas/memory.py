@@ -23,6 +23,7 @@ MemoryType = Literal[
     "temporary",
 ]
 MemoryStatus = Literal["active", "superseded", "invalid", "archived"]
+MemorySearchMode = Literal["semantic", "hybrid"]
 
 
 class MemoryStructuredFilters(BaseModel):
@@ -100,7 +101,7 @@ class MemorySearchPagination(BaseModel):
 
 
 class MemorySearchRequest(BaseModel):
-    """Validated semantic Memory search request."""
+    """Validated semantic or hybrid Memory search request."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -108,6 +109,7 @@ class MemorySearchRequest(BaseModel):
         str,
         StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
     ]
+    mode: MemorySearchMode = "semantic"
     filters: MemoryStructuredFilters = Field(default_factory=MemoryStructuredFilters)
     pagination: MemorySearchPagination = Field(default_factory=MemorySearchPagination)
 

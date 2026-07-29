@@ -64,7 +64,7 @@ def search_memories(
     session: Annotated[Session, Depends(get_db_session)],
     provider: Annotated[EmbeddingProvider, Depends(provider_dependency)],
 ) -> list[Memory]:
-    """Search embedded Memories by cosine distance and structured filters."""
+    """Search Memories with semantic ranking or hybrid rank fusion."""
 
     try:
         query_vector = validate_embedding(provider.embed(request.query), 1536)
@@ -77,12 +77,19 @@ def search_memories(
             status_code=502, detail="embedding provider failed"
         ) from None
     try:
-        return memory_repository.search_memories(
-            session,
-            query_vector=query_vector,
+        search = (
+            memory_repository.search_memories_hybrid
+            if request.mode == "hybrid"
+            else memory_repository.search_memories
+        )
+        arguments = {
+            "query_vector": query_vector,
             **request.filters.model_dump(),
             **request.pagination.model_dump(),
-        )
+        }
+        if request.mode == "hybrid":
+            arguments["query"] = request.query
+        return search(session, **arguments)
     except SQLAlchemyError:
         raise database_unavailable() from None
 
