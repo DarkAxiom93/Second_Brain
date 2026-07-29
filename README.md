@@ -377,3 +377,31 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories -ContentType 
 
 Checkpoint 13 adds no migration. The Alembic head remains
 `0004_memory_metadata`.
+
+## Checkpoint 14: structured Memory filtering
+
+`GET /memories` accepts optional `memory_type` and `status` filters, inclusive
+score ranges (`importance_min`, `importance_max`, `confidence_min`, and
+`confidence_max`), and inclusive timestamp ranges (`event_time_from`,
+`event_time_to`, `created_at_from`, and `created_at_to`). Allowed Memory types
+are `working`, `episodic`, `semantic`, `decision`, `procedural`, `preference`,
+and `temporary`; allowed statuses are `active`, `superseded`, `invalid`, and
+`archived`. Score bounds must be from 0.0 through 1.0. Timestamp bounds must
+include a timezone offset.
+
+All supplied filters, including the existing optional `project_id`, combine
+with AND and are applied in SQL. No status is hidden by default, expired
+Memories are not automatically excluded, and an event-time range does not
+include rows whose `event_time` is null. The endpoint remains a bare JSON array
+ordered by `created_at` descending and then `id` ascending. `limit` still
+defaults to 50 (range 1 through 100), and `offset` still defaults to 0.
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?memory_type=semantic&status=active'
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?importance_min=0.7&confidence_min=0.8&confidence_max=1.0'
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?event_time_from=2026-07-01T00%3A00%3A00%2B03%3A00&event_time_to=2026-08-01T00%3A00%3A00%2B03%3A00'
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?project_id=<project-uuid>&memory_type=decision&status=active&importance_min=0.8'
+```
+
+Checkpoint 14 adds no migration. The Alembic head remains
+`0004_memory_metadata`.

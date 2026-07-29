@@ -50,11 +50,41 @@ def test_list_memories_executes_filtered_paginated_select_without_committing() -
     session.scalars.return_value.all.return_value = []
     project_id = uuid.uuid4()
 
-    assert list_memories(session, project_id=project_id, limit=10, offset=20) == []
+    timestamp = datetime(2026, 1, 1, tzinfo=UTC)
+    assert (
+        list_memories(
+            session,
+            project_id=project_id,
+            memory_type="decision",
+            status="archived",
+            importance_min=0.2,
+            importance_max=0.8,
+            confidence_min=0.3,
+            confidence_max=0.9,
+            event_time_from=timestamp,
+            event_time_to=timestamp,
+            created_at_from=timestamp,
+            created_at_to=timestamp,
+            limit=10,
+            offset=20,
+        )
+        == []
+    )
 
     statement = session.scalars.call_args.args[0]
     compiled = str(statement.compile(compile_kwargs={"literal_binds": True}))
     assert "memories.project_id" in compiled
+    for column in (
+        "memory_type",
+        "status",
+        "importance",
+        "confidence",
+        "event_time",
+        "created_at",
+    ):
+        assert f"memories.{column}" in compiled
+    assert compiled.count("WHERE") == 1
+    assert compiled.count(" AND ") == 10
     assert "ORDER BY memories.created_at DESC, memories.id ASC" in compiled
     assert "LIMIT 10" in compiled
     assert "OFFSET 20" in compiled

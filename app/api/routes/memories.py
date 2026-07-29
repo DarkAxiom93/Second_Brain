@@ -12,7 +12,7 @@ from app.models.memory import Memory
 from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
 from app.repositories import sources as source_repository
-from app.schemas.memory import MemoryCreate, MemoryRead
+from app.schemas.memory import MemoryCreate, MemoryFilters, MemoryRead
 from app.schemas.source import (
     LinkedSourceRead,
     MemorySourceLinkCreate,
@@ -127,18 +127,14 @@ def list_sources_for_memory(
 @router.get("", response_model=list[MemoryRead])
 def list_memories(
     session: Annotated[Session, Depends(get_db_session)],
-    project_id: uuid.UUID | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    filters: Annotated[MemoryFilters, Query()],
 ) -> list[Memory]:
     """List a validated, deterministic page of Memories."""
 
     try:
         return memory_repository.list_memories(
             session,
-            project_id=project_id,
-            limit=limit,
-            offset=offset,
+            **filters.model_dump(),
         )
     except SQLAlchemyError:
         raise database_unavailable() from None

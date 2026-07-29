@@ -278,6 +278,144 @@ def test_deterministic_id_order_for_equal_created_at() -> None:
     assert [item["id"] for item in response.json()] == [str(lower_id), str(higher_id)]
 
 
+@pytest.mark.parametrize(
+    "field,values",
+    [
+        (
+            "memory_type",
+            [
+                "working",
+                "episodic",
+                "semantic",
+                "decision",
+                "procedural",
+                "preference",
+                "temporary",
+            ],
+        ),
+        ("status", ["active", "superseded", "invalid", "archived"]),
+    ],
+)
+def test_list_memories_filters_every_approved_enum(
+    field: str, values: list[str]
+) -> None:
+    client = TestClient(create_app())
+    for value in values:
+        response = client.post("/memories", json={"content": value, field: value})
+        assert response.status_code == 201
+    for value in values:
+        response = client.get("/memories", params={field: value})
+        assert [item["content"] for item in response.json()] == [value]
+
+
+def test_list_memories_score_and_time_ranges_are_inclusive_and_sql_paginated() -> None:
+    client = TestClient(create_app())
+    base = datetime(2026, 1, 1, tzinfo=UTC)
+    rows = [
+        Memory(
+            id=uuid.UUID(int=1),
+            content="lower",
+            importance=0.2,
+            confidence=0.3,
+            event_time=base,
+            created_at=base,
+        ),
+        Memory(
+            id=uuid.UUID(int=3),
+            content="middle",
+            importance=0.5,
+            confidence=0.6,
+            event_time=base + timedelta(days=1),
+            created_at=base + timedelta(days=1),
+        ),
+        Memory(
+            id=uuid.UUID(int=4),
+            content="upper",
+            importance=0.8,
+            confidence=0.9,
+            event_time=base + timedelta(days=2),
+            created_at=base + timedelta(days=2),
+        ),
+        Memory(
+            id=uuid.UUID(int=2),
+            content="null event",
+            event_time=None,
+            created_at=base,
+        ),
+    ]
+    with Session(get_engine()) as session:
+        session.add_all(rows)
+        session.commit()
+
+    cases = [
+        ({"importance_min": 0.5}, ["upper", "middle", "null event"]),
+        ({"importance_max": 0.5}, ["middle", "lower", "null event"]),
+        (
+            {"importance_min": 0.2, "importance_max": 0.8},
+            ["upper", "middle", "lower", "null event"],
+        ),
+        ({"confidence_min": 0.6}, ["upper", "middle", "null event"]),
+        ({"confidence_max": 0.6}, ["middle", "lower"]),
+        ({"confidence_min": 0.3, "confidence_max": 0.9}, ["upper", "middle", "lower"]),
+        ({"event_time_from": base.isoformat()}, ["upper", "middle", "lower"]),
+        (
+            {"event_time_to": (base + timedelta(days=1)).isoformat()},
+            ["middle", "lower"],
+        ),
+        (
+            {"created_at_from": (base + timedelta(days=1)).isoformat()},
+            ["upper", "middle"],
+        ),
+        (
+            {"created_at_to": (base + timedelta(days=1)).isoformat()},
+            ["middle", "lower", "null event"],
+        ),
+        ({"importance_min": 0.2, "limit": 1, "offset": 1}, ["middle"]),
+    ]
+    for params, expected in cases:
+        response = client.get("/memories", params=params)
+        assert response.status_code == 200
+        assert [item["content"] for item in response.json()] == expected
+
+
+def test_list_memories_combines_all_filter_categories_and_no_match() -> None:
+    client = TestClient(create_app())
+    project = client.post("/projects", json={"name": "Filtered"}).json()
+    event_time = datetime(2026, 2, 1, tzinfo=UTC)
+    target = client.post(
+        "/memories",
+        json={
+            "project_id": project["id"],
+            "content": "target",
+            "memory_type": "decision",
+            "status": "archived",
+            "importance": 0.7,
+            "confidence": 0.8,
+            "event_time": event_time.isoformat(),
+        },
+    )
+    assert target.status_code == 201
+    client.post("/memories", json={"content": "other"})
+    params = {
+        "project_id": project["id"],
+        "memory_type": "decision",
+        "status": "archived",
+        "importance_min": 0.7,
+        "importance_max": 0.7,
+        "confidence_min": 0.8,
+        "confidence_max": 0.8,
+        "event_time_from": event_time.isoformat(),
+        "event_time_to": event_time.isoformat(),
+        "created_at_from": target.json()["created_at"],
+        "created_at_to": target.json()["created_at"],
+    }
+    assert [
+        item["content"] for item in client.get("/memories", params=params).json()
+    ] == ["target"]
+    params["status"] = "invalid"
+    assert client.get("/memories", params=params).json() == []
+
+
 def test_get_memory_and_validation_responses() -> None:
     client = TestClient(create_app())
     created = client.post("/memories", json={"content": "retrieve me"}).json()
@@ -292,6 +430,25 @@ def test_get_memory_and_validation_responses() -> None:
 
 @pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
 def test_list_memories_rejects_invalid_pagination(query: str) -> None:
+    assert TestClient(create_app()).get(f"/memories?{query}").status_code == 422
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "memory_type=nope",
+        "status=nope",
+        "importance_min=-0.1",
+        "confidence_max=1.1",
+        "importance_min=0.9&importance_max=0.1",
+        "confidence_min=0.9&confidence_max=0.1",
+        "event_time_from=2026-02-01T00:00:00Z&event_time_to=2026-01-01T00:00:00Z",
+        "created_at_from=2026-02-01T00:00:00Z&created_at_to=2026-01-01T00:00:00Z",
+        "event_time_from=2026-01-01T00:00:00",
+        "created_at_to=2026-01-01T00:00:00",
+    ],
+)
+def test_list_memories_rejects_invalid_filters(query: str) -> None:
     assert TestClient(create_app()).get(f"/memories?{query}").status_code == 422
 
 

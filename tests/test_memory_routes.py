@@ -208,13 +208,51 @@ def test_get_memories_uses_filter_and_default_pagination(
 
     assert response.status_code == 200
     assert response.json() == []
-    repository_call.assert_called_once_with(
-        session, project_id=project_id, limit=50, offset=0
-    )
+    repository_call.assert_called_once()
+    assert repository_call.call_args.args == (session,)
+    assert repository_call.call_args.kwargs == {
+        "project_id": project_id,
+        "memory_type": None,
+        "status": None,
+        "importance_min": None,
+        "importance_max": None,
+        "confidence_min": None,
+        "confidence_max": None,
+        "event_time_from": None,
+        "event_time_to": None,
+        "created_at_from": None,
+        "created_at_to": None,
+        "limit": 50,
+        "offset": 0,
+    }
 
 
 @pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
 def test_get_memories_rejects_invalid_pagination(
+    query: str, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, _ = route_client
+    assert client.get(f"/memories?{query}").status_code == 422
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "memory_type=unknown",
+        "status=unknown",
+        "importance_min=-0.1",
+        "importance_max=1.1",
+        "confidence_min=-0.1",
+        "confidence_max=1.1",
+        "importance_min=0.8&importance_max=0.2",
+        "confidence_min=0.8&confidence_max=0.2",
+        "event_time_from=2026-02-01T00:00:00Z&event_time_to=2026-01-01T00:00:00Z",
+        "created_at_from=2026-02-01T00:00:00Z&created_at_to=2026-01-01T00:00:00Z",
+        "event_time_from=2026-01-01T00:00:00",
+        "created_at_to=2026-01-01T00:00:00",
+    ],
+)
+def test_get_memories_rejects_invalid_filters(
     query: str, route_client: tuple[TestClient, Mock]
 ) -> None:
     client, _ = route_client
