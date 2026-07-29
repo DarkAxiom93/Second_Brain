@@ -324,6 +324,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/ready",
         "/projects",
         "/memories",
+        "/memories/search",
         "/memories/{memory_id}",
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/sources",
@@ -332,6 +333,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     }
     assert set(paths["/projects"]) == {"get", "post"}
     assert set(paths["/memories"]) == {"get", "post"}
+    assert set(paths["/memories/search"]) == {"post"}
     assert set(paths["/memories/{memory_id}"]) == {"get"}
     assert set(paths["/memories/{memory_id}/embedding"]) == {"post"}
     assert client.get("/api/memories").status_code == 404

@@ -25,14 +25,10 @@ MemoryType = Literal[
 MemoryStatus = Literal["active", "superseded", "invalid", "archived"]
 
 
-class MemoryFilters(BaseModel):
-    """Validated query parameters for listing Memories."""
+class MemoryStructuredFilters(BaseModel):
+    """Structured filters shared by lexical and semantic Memory retrieval."""
 
     project_id: uuid.UUID | None = None
-    query: Annotated[
-        str | None,
-        StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
-    ] = None
     memory_type: MemoryType | None = None
     status: MemoryStatus | None = None
     importance_min: Annotated[float | None, Field(ge=0.0, le=1.0)] = None
@@ -43,8 +39,6 @@ class MemoryFilters(BaseModel):
     event_time_to: datetime | None = None
     created_at_from: datetime | None = None
     created_at_to: datetime | None = None
-    limit: Annotated[int, Field(ge=1, le=100)] = 50
-    offset: Annotated[int, Field(ge=0)] = 0
 
     @field_validator(
         "event_time_from",
@@ -61,7 +55,7 @@ class MemoryFilters(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def require_ordered_ranges(self) -> "MemoryFilters":
+    def require_ordered_ranges(self) -> "MemoryStructuredFilters":
         """Reject reversed numeric and timestamp ranges."""
 
         score_ranges = (
@@ -83,6 +77,39 @@ class MemoryFilters(BaseModel):
             ):
                 raise ValueError(f"{name} lower bound must not exceed upper bound")
         return self
+
+
+class MemoryFilters(MemoryStructuredFilters):
+    """Validated query parameters for listing Memories."""
+
+    query: Annotated[
+        str | None,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
+    ] = None
+    limit: Annotated[int, Field(ge=1, le=100)] = 50
+    offset: Annotated[int, Field(ge=0)] = 0
+
+
+class MemorySearchPagination(BaseModel):
+    """SQL pagination for semantic Memory search."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    limit: Annotated[int, Field(ge=1, le=100)] = 20
+    offset: Annotated[int, Field(ge=0)] = 0
+
+
+class MemorySearchRequest(BaseModel):
+    """Validated semantic Memory search request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
+    ]
+    filters: MemoryStructuredFilters = Field(default_factory=MemoryStructuredFilters)
+    pagination: MemorySearchPagination = Field(default_factory=MemorySearchPagination)
 
 
 class MemoryCreate(BaseModel):

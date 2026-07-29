@@ -15,12 +15,18 @@ from app.embeddings import (
     ProviderUnavailableError,
     get_embedding_provider,
 )
+from app.embeddings.openai_provider import validate_embedding
 from app.models.memory import Memory
 from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
 from app.repositories import memory_embeddings as embedding_repository
 from app.repositories import sources as source_repository
-from app.schemas.memory import MemoryCreate, MemoryFilters, MemoryRead
+from app.schemas.memory import (
+    MemoryCreate,
+    MemoryFilters,
+    MemoryRead,
+    MemorySearchRequest,
+)
 from app.schemas.memory_embedding import MemoryEmbeddingRead
 from app.schemas.source import (
     LinkedSourceRead,
@@ -50,6 +56,35 @@ def database_unavailable() -> HTTPException:
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
     )
+
+
+@router.post("/search", response_model=list[MemoryRead])
+def search_memories(
+    request: MemorySearchRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+    provider: Annotated[EmbeddingProvider, Depends(provider_dependency)],
+) -> list[Memory]:
+    """Search embedded Memories by cosine distance and structured filters."""
+
+    try:
+        query_vector = validate_embedding(provider.embed(request.query), 1536)
+    except InvalidEmbeddingResponseError:
+        raise HTTPException(
+            status_code=502, detail="invalid embedding response"
+        ) from None
+    except ProviderRequestError:
+        raise HTTPException(
+            status_code=502, detail="embedding provider failed"
+        ) from None
+    try:
+        return memory_repository.search_memories(
+            session,
+            query_vector=query_vector,
+            **request.filters.model_dump(),
+            **request.pagination.model_dump(),
+        )
+    except SQLAlchemyError:
+        raise database_unavailable() from None
 
 
 @router.post("", response_model=MemoryRead, status_code=status.HTTP_201_CREATED)

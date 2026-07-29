@@ -480,3 +480,33 @@ search is not implemented yet. Existing lexical search, structured filters,
 and Source relationships are unchanged. Automated tests inject a deterministic
 fake provider, never call OpenAI, and incur no API cost. No migration is added;
 the Alembic head remains `0006_memory_embeddings`.
+
+## Checkpoint 18: explicit semantic Memory search
+
+Search only Memories that already have an explicitly generated embedding:
+
+```powershell
+$body = @{
+  query = "database migration decisions"
+  filters = @{ status = "active"; importance_min = 0.6 }
+  pagination = @{ limit = 20; offset = 0 }
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/memories/search `
+  -ContentType "application/json" -Body $body
+```
+
+`POST /memories/search` embeds the trimmed query once and ranks matching
+`memory_embeddings` rows by pgvector cosine distance. Supplied structured
+Memory filters are applied with `AND`; ordering is semantic distance ascending,
+then `created_at` descending and `id` ascending. Pagination is applied in SQL.
+Generate each participating Memory's embedding first with
+`POST /memories/{memory_id}/embedding`; Memories without an embedding row are
+not returned.
+
+The query vector is never persisted. Responses are bare arrays of Memory data
+and contain no vectors, provider response data, distances, or scores. Missing
+provider configuration returns HTTP 503 with `embedding provider unavailable`.
+This checkpoint is semantic-only: the existing `GET /memories?query=...`
+lexical behavior is unchanged, and no hybrid ranking is performed. Automated
+tests use fake providers and make no paid API calls. No schema migration is
+added; the Alembic head remains `0006_memory_embeddings`.
