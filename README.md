@@ -569,3 +569,36 @@ parsing, automatic extraction or chunking, chunk embedding, or automatic Memory
 creation. Existing Source and Memory APIs and response shapes remain unchanged.
 The next checkpoint will add explicit plain-text ingestion. The Alembic head is
 `0007_source_documents`.
+# Plain-text Source ingestion
+
+An existing Source can receive normalized plain text explicitly through JSON:
+
+```text
+PUT /sources/{source_id}/document/text
+```
+
+The request accepts `text`, optional `original_filename`, `chunk_size` (default
+2000, range 1000–10000), and `chunk_overlap` (default 200, range 0–500 and
+smaller than the chunk size). CRLF and CR line endings become LF; every other
+character is preserved. Normalized text is limited to 5,000,000 UTF-8 bytes.
+
+Chunks are deterministic fixed-size windows with overlap. Offsets count
+Unicode/Python characters, are start-inclusive and end-exclusive, and each
+chunk hash is the lowercase SHA-256 of its exact UTF-8 content. Responses report
+`created`, `updated`, or `unchanged`. An identical request preserves document
+timestamps and document/chunk IDs; changed chunks are replaced transactionally.
+
+```powershell
+$source = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/sources `
+  -ContentType 'application/json' -Body '{"source_type":"note","name":"Example"}'
+$uri = "http://127.0.0.1:8000/sources/$($source.id)/document/text"
+Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' `
+  -Body '{"text":"First text","original_filename":"notes.txt"}'
+Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' `
+  -Body '{"text":"First text","original_filename":"notes.txt"}'
+Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' `
+  -Body '{"text":"Updated text","chunk_size":1000,"chunk_overlap":100}'
+```
+
+This checkpoint has no file upload or parser, automatic Memory creation, chunk
+embeddings, or chunk search. Alembic head remains `0007_source_documents`.

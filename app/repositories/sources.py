@@ -3,13 +3,17 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from app.ingestion.text import TextChunk
 from app.models.memory import Memory
 from app.models.memory_source import MemorySource
 from app.models.source import Source
+from app.models.source_chunk import SourceChunk
+from app.models.source_document import SourceDocument
 from app.schemas.source import MemorySourceLinkCreate, SourceCreate
 
 
@@ -55,6 +59,15 @@ class LinkedMemory:
     memory_updated_at: datetime
 
 
+@dataclass(frozen=True)
+class DocumentIngestionResult:
+    """A document plus its idempotency outcome and chunk count."""
+
+    document: SourceDocument
+    chunk_count: int
+    generation_status: Literal["created", "updated", "unchanged"]
+
+
 def create_source(session: Session, source_data: SourceCreate) -> Source:
     """Add and flush a Source without committing."""
     source = Source(**source_data.model_dump())
@@ -67,6 +80,83 @@ def create_source(session: Session, source_data: SourceCreate) -> Source:
 def get_source(session: Session, source_id: uuid.UUID) -> Source | None:
     """Return a source by identifier, or None."""
     return session.scalar(select(Source).where(Source.id == source_id))
+
+
+def upsert_text_document(
+    session: Session,
+    *,
+    source_id: uuid.UUID,
+    normalized_text: str,
+    original_filename: str | None,
+    chunks: list[TextChunk],
+    extracted_at: datetime,
+) -> DocumentIngestionResult:
+    """Create or minimally update one Source document without committing."""
+    document = session.scalar(
+        select(SourceDocument)
+        .where(SourceDocument.source_id == source_id)
+        .options(selectinload(SourceDocument.chunks))
+    )
+    byte_size = len(normalized_text.encode("utf-8"))
+    if document is None:
+        document = SourceDocument(
+            source_id=source_id,
+            media_type="text/plain",
+            original_filename=original_filename,
+            byte_size=byte_size,
+            extracted_text=normalized_text,
+            ingestion_status="extracted",
+            error_code=None,
+            extracted_at=extracted_at,
+        )
+        document.chunks = [SourceChunk(**chunk.__dict__) for chunk in chunks]
+        session.add(document)
+        session.flush()
+        return DocumentIngestionResult(document, len(chunks), "created")
+
+    chunks_identical = len(document.chunks) == len(chunks) and all(
+        (
+            stored.chunk_index,
+            stored.content,
+            stored.char_start,
+            stored.char_end,
+            stored.content_hash,
+            stored.locator,
+        )
+        == (
+            generated.chunk_index,
+            generated.content,
+            generated.char_start,
+            generated.char_end,
+            generated.content_hash,
+            generated.locator,
+        )
+        for stored, generated in zip(document.chunks, chunks, strict=True)
+    )
+    metadata_identical = (
+        document.media_type == "text/plain"
+        and document.original_filename == original_filename
+        and document.byte_size == byte_size
+        and document.extracted_text == normalized_text
+        and document.ingestion_status == "extracted"
+        and document.error_code is None
+    )
+    if metadata_identical and chunks_identical:
+        return DocumentIngestionResult(document, len(chunks), "unchanged")
+
+    document.media_type = "text/plain"
+    document.original_filename = original_filename
+    document.byte_size = byte_size
+    document.extracted_text = normalized_text
+    document.ingestion_status = "extracted"
+    document.error_code = None
+    document.extracted_at = extracted_at
+    if not chunks_identical:
+        document.chunks.clear()
+        session.flush()
+        document.chunks = [SourceChunk(**chunk.__dict__) for chunk in chunks]
+    session.flush()
+    return DocumentIngestionResult(document, len(chunks), "updated")
 
 
 def create_memory_source_link(

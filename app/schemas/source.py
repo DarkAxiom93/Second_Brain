@@ -2,10 +2,18 @@
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
+from app.ingestion.text import chunk_text, normalize_plain_text
 from app.schemas.memory import MemoryStatus, MemoryType
 
 
@@ -48,6 +56,72 @@ class SourceRead(BaseModel):
     @classmethod
     def require_timezone(cls, value: datetime) -> datetime:
         """Reject timestamps without a usable timezone offset."""
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("timestamp must be timezone-aware")
+        return value
+
+
+class SourceTextIngest(BaseModel):
+    """Validated normalized plain-text ingestion request."""
+
+    model_config = ConfigDict(extra="forbid")
+    text: str
+    original_filename: str | None = None
+    chunk_size: Annotated[int, Field(ge=1000, le=10000)] = 2000
+    chunk_overlap: Annotated[int, Field(ge=0, le=500)] = 200
+
+    @field_validator("text")
+    @classmethod
+    def normalize_and_validate_text(cls, value: str) -> str:
+        normalized = normalize_plain_text(value)
+        if not normalized.strip():
+            raise ValueError("text must contain a non-whitespace character")
+        if len(normalized.encode("utf-8")) > 5_000_000:
+            raise ValueError("normalized text exceeds 5000000 UTF-8 bytes")
+        return normalized
+
+    @field_validator("original_filename", mode="before")
+    @classmethod
+    def validate_filename(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        filename = value.strip()
+        if not filename:
+            return None
+        if len(filename) > 255:
+            raise ValueError("original_filename must be at most 255 characters")
+        if filename in {".", ".."} or any(char in filename for char in "/\\\0"):
+            raise ValueError("original_filename must be a filename only")
+        return filename
+
+    @model_validator(mode="after")
+    def validate_chunk_settings(self) -> "SourceTextIngest":
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("chunk_overlap must be smaller than chunk_size")
+        chunk_text(self.text, self.chunk_size, self.chunk_overlap)
+        return self
+
+
+class SourceDocumentRead(BaseModel):
+    """Public ingestion result without document or chunk content."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    source_id: uuid.UUID
+    media_type: str
+    original_filename: str | None
+    byte_size: int
+    ingestion_status: str
+    error_code: str | None
+    extracted_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    chunk_count: int
+    generation_status: Literal["created", "updated", "unchanged"]
+
+    @field_validator("extracted_at", "created_at", "updated_at")
+    @classmethod
+    def require_document_timezone(cls, value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("timestamp must be timezone-aware")
         return value

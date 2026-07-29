@@ -149,6 +149,7 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/sources",
         "/sources",
+        "/sources/{source_id}/document/text",
         "/sources/{source_id}/memories",
     }
     assert set(paths["/projects"]) == {"get", "post"}

@@ -15,6 +15,8 @@ from app.db.dependencies import get_db_session
 from app.main import create_app
 from app.models.memory import Memory
 from app.models.source import Source
+from app.models.source_document import SourceDocument
+from app.repositories.sources import DocumentIngestionResult
 
 
 @pytest.fixture
@@ -133,3 +135,85 @@ def test_only_approved_source_paths_exist(
     client, _ = route_client
     assert client.get("/sources").status_code == 405
     assert client.get("/api/sources").status_code == 404
+
+
+def test_ingest_unknown_source_returns_exact_404(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    monkeypatch.setattr(
+        source_routes.source_repository, "get_source", Mock(return_value=None)
+    )
+    response = client.put(
+        f"/sources/{uuid.uuid4()}/document/text", json={"text": "content"}
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": "source not found"}
+    session.commit.assert_not_called()
+
+
+@pytest.mark.parametrize("generation_status", ["created", "updated", "unchanged"])
+def test_ingestion_outcomes_commit_once_without_exposing_content(
+    generation_status: str,
+    monkeypatch: pytest.MonkeyPatch,
+    route_client: tuple[TestClient, Mock],
+) -> None:
+    client, session = route_client
+    now = datetime.now(UTC)
+    source_id = uuid.uuid4()
+    document = SourceDocument(
+        id=uuid.uuid4(),
+        source_id=source_id,
+        media_type="text/plain",
+        original_filename=None,
+        byte_size=7,
+        extracted_text="content",
+        ingestion_status="extracted",
+        error_code=None,
+        extracted_at=now,
+        created_at=now,
+        updated_at=now,
+    )
+    monkeypatch.setattr(
+        source_routes.source_repository, "get_source", Mock(return_value=Source())
+    )
+    monkeypatch.setattr(
+        source_routes.source_repository,
+        "upsert_text_document",
+        Mock(
+            return_value=DocumentIngestionResult(
+                document=document,
+                chunk_count=1,
+                generation_status=generation_status,  # type: ignore[arg-type]
+            )
+        ),
+    )
+    response = client.put(
+        f"/sources/{source_id}/document/text", json={"text": "content"}
+    )
+    assert response.status_code == 200
+    assert response.json()["generation_status"] == generation_status
+    assert "extracted_text" not in response.json() and "chunks" not in response.json()
+    session.commit.assert_called_once_with()
+
+
+def test_ingestion_database_failure_rolls_back_and_is_generic(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    monkeypatch.setattr(
+        source_routes.source_repository, "get_source", Mock(return_value=Source())
+    )
+    failure = OperationalError("secret SQL", {}, Exception("password=secret"))
+    monkeypatch.setattr(
+        source_routes.source_repository,
+        "upsert_text_document",
+        Mock(side_effect=failure),
+    )
+    response = client.put(
+        f"/sources/{uuid.uuid4()}/document/text", json={"text": "content"}
+    )
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "secret" not in response.text and "password" not in response.text
+    session.rollback.assert_called_once_with()
