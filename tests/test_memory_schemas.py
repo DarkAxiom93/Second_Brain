@@ -121,6 +121,13 @@ def test_memory_create_does_not_accept_generated_fields() -> None:
     with pytest.raises(ValidationError):
         MemoryCreate(content="fact", id=uuid.uuid4(), created_at=datetime.now(UTC))
 
+    with pytest.raises(ValidationError):
+        MemoryCreate(content="fact", search_vector="client supplied")
+
+
+def test_memory_read_does_not_expose_search_vector() -> None:
+    assert "search_vector" not in MemoryRead.model_fields
+
 
 def test_memory_read_serializes_attribute_object() -> None:
     memory_id = uuid.uuid4()

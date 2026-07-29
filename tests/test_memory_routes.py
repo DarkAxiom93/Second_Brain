@@ -212,6 +212,7 @@ def test_get_memories_uses_filter_and_default_pagination(
     assert repository_call.call_args.args == (session,)
     assert repository_call.call_args.kwargs == {
         "project_id": project_id,
+        "query": None,
         "memory_type": None,
         "status": None,
         "importance_min": None,
@@ -225,6 +226,27 @@ def test_get_memories_uses_filter_and_default_pagination(
         "limit": 50,
         "offset": 0,
     }
+
+
+def test_get_memories_trims_and_passes_search_query(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, _ = route_client
+    repository_call = Mock(return_value=[])
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "list_memories", repository_call
+    )
+
+    assert client.get("/memories?query=%20%20postgres%20%20").status_code == 200
+    assert repository_call.call_args.kwargs["query"] == "postgres"
+
+
+@pytest.mark.parametrize("query", ["%20%20%20", "x" * 501])
+def test_get_memories_rejects_invalid_search_query(
+    query: str, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, _ = route_client
+    assert client.get(f"/memories?query={query}").status_code == 422
 
 
 @pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])

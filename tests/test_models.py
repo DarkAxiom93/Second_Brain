@@ -3,6 +3,7 @@
 import importlib
 
 from sqlalchemy import CheckConstraint, UniqueConstraint
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import RelationshipProperty
 
 from app.db.base import Base
@@ -120,7 +121,20 @@ def test_models_have_no_embedding_or_vector_columns() -> None:
         MemorySource.__table__,
     ):
         assert "embedding" not in table.c
-        assert all("vector" not in column.name.lower() for column in table.c)
+        assert all(column.name != "embedding" for column in table.c)
+
+
+def test_memory_search_vector_is_generated_tsvector_with_gin_index() -> None:
+    column = Memory.__table__.c.search_vector
+    assert isinstance(column.type, TSVECTOR)
+    assert column.computed is not None and column.computed.persisted is True
+    assert "to_tsvector('simple'" in str(column.computed.sqltext)
+    index = next(
+        index
+        for index in Memory.__table__.indexes
+        if index.name == "ix_memories_search_vector"
+    )
+    assert index.dialect_options["postgresql"]["using"] == "gin"
 
 
 def test_relationships_do_not_delete_memories() -> None:

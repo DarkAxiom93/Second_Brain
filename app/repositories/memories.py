@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.memory import Memory
@@ -32,6 +32,7 @@ def list_memories(
     session: Session,
     *,
     project_id: uuid.UUID | None,
+    query: str | None = None,
     memory_type: MemoryType | None = None,
     status: MemoryStatus | None = None,
     importance_min: float | None = None,
@@ -48,6 +49,11 @@ def list_memories(
     """Return a deterministic, SQL-filtered page of memories."""
 
     statement = select(Memory)
+    rank = None
+    if query is not None:
+        search_query = func.websearch_to_tsquery("simple", query)
+        statement = statement.where(Memory.search_vector.bool_op("@@")(search_query))
+        rank = func.ts_rank_cd(Memory.search_vector, search_query)
     if project_id is not None:
         statement = statement.where(Memory.project_id == project_id)
     if memory_type is not None:
@@ -70,11 +76,13 @@ def list_memories(
         statement = statement.where(Memory.created_at >= created_at_from)
     if created_at_to is not None:
         statement = statement.where(Memory.created_at <= created_at_to)
-    statement = (
-        statement.order_by(Memory.created_at.desc(), Memory.id.asc())
-        .limit(limit)
-        .offset(offset)
-    )
+    if rank is not None:
+        statement = statement.order_by(
+            rank.desc(), Memory.created_at.desc(), Memory.id.asc()
+        )
+    else:
+        statement = statement.order_by(Memory.created_at.desc(), Memory.id.asc())
+    statement = statement.limit(limit).offset(offset)
     return list(session.scalars(statement).all())
 
 

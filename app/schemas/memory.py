@@ -29,6 +29,10 @@ class MemoryFilters(BaseModel):
     """Validated query parameters for listing Memories."""
 
     project_id: uuid.UUID | None = None
+    query: Annotated[
+        str | None,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
+    ] = None
     memory_type: MemoryType | None = None
     status: MemoryStatus | None = None
     importance_min: Annotated[float | None, Field(ge=0.0, le=1.0)] = None

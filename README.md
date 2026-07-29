@@ -405,3 +405,29 @@ Invoke-RestMethod 'http://127.0.0.1:8000/memories?project_id=<project-uuid>&memo
 
 Checkpoint 14 adds no migration. The Alembic head remains
 `0004_memory_metadata`.
+
+## Checkpoint 15: PostgreSQL full-text Memory search
+
+`GET /memories` now accepts an optional `query` parameter for PostgreSQL lexical
+full-text search. The generated, stored `search_vector` searches `title` (weight
+A), `summary` (B), `content` (C), and the legacy `source` string (D), using the
+PostgreSQL `simple` configuration for multilingual text, code, product names,
+and identifiers. This is lexical search, not semantic or embedding search.
+
+PostgreSQL web-search syntax supports normal words, quoted phrases, `OR`, and
+excluded terms. Queries are trimmed, must contain non-whitespace text, and may
+not exceed 500 characters:
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?query=postgres'
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?query=%22database%20decision%22'
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?query=postgres%20OR%20sqlite'
+Invoke-RestMethod 'http://127.0.0.1:8000/memories?query=database%20-sqlite'
+```
+
+Search combines with every structured filter using AND. Search results are
+ordered by relevance descending, then `created_at` descending and `id`
+ascending; limit and offset are applied afterward in SQL. Without `query`, the
+existing chronological ordering and all existing behavior remain unchanged.
+The generated column has a GIN index and updates automatically when searchable
+fields change. The Alembic head is `0005_memory_search`.

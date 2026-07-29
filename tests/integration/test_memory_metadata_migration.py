@@ -41,7 +41,7 @@ def test_metadata_migration_lifecycle_preserves_rows(
     test_database_url: str, alembic_config: Config
 ) -> None:
     verify_connected_test_database(test_database_url)
-    command.upgrade(alembic_config, "0003_sources")
+    command.downgrade(alembic_config, "0003_sources")
     engine = get_engine()
     with engine.begin() as connection:
         connection.execute(text("DELETE FROM memory_sources"))

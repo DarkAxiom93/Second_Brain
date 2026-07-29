@@ -29,6 +29,7 @@ EXPECTED_MEMORY_COLUMNS = {
     "supersedes_id": True,
     "created_at": False,
     "updated_at": False,
+    "search_vector": False,
 }
 
 
@@ -38,7 +39,7 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0004_memory_metadata"
+    assert revision == "0005_memory_search"
     assert tables == {
         "alembic_version",
         "projects",
@@ -90,6 +91,7 @@ def test_expected_indexes_exist(migrated_test_database: None) -> None:
         "ix_memories_status",
         "ix_memories_event_time",
         "ix_memories_supersedes_id",
+        "ix_memories_search_vector",
     }
 
 

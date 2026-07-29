@@ -4,8 +4,18 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import (
+    CheckConstraint,
+    Computed,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -37,6 +47,7 @@ class Memory(Base):
             "status IN ('active', 'superseded', 'invalid', 'archived')",
             name="ck_memories_status",
         ),
+        Index("ix_memories_search_vector", "search_vector", postgresql_using="gin"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -97,6 +108,17 @@ class Memory(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    search_vector: Mapped[str] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "setweight(to_tsvector('simple', coalesce(title, '')), 'A') || "
+            "setweight(to_tsvector('simple', coalesce(summary, '')), 'B') || "
+            "setweight(to_tsvector('simple', coalesce(content, '')), 'C') || "
+            "setweight(to_tsvector('simple', coalesce(source, '')), 'D')",
+            persisted=True,
+        ),
+        nullable=False,
     )
 
     project: Mapped["Project | None"] = relationship(back_populates="memories")

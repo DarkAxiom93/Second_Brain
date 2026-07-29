@@ -11,7 +11,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0004_memory_metadata"
+    assert revision == "0005_memory_search"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -46,7 +46,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0004_memory_metadata"]
+    assert script.get_heads() == ["0005_memory_search"]
+    assert script.get_revision("0005_memory_search").down_revision == (
+        "0004_memory_metadata"
+    )
     assert script.get_revision("0004_memory_metadata").down_revision == "0003_sources"
     assert script.get_revision("0002_projects_memories").down_revision == (
         "0001_enable_pgvector"

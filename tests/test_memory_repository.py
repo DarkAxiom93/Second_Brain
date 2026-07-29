@@ -4,6 +4,8 @@ import uuid
 from datetime import UTC, datetime
 from unittest.mock import Mock
 
+from sqlalchemy.dialects import postgresql
+
 from app.repositories.memories import create_memory, get_memory, list_memories
 from app.schemas.memory import MemoryCreate
 
@@ -102,4 +104,29 @@ def test_get_memory_executes_select_without_committing() -> None:
     statement = session.scalar.call_args.args[0]
     compiled = str(statement.compile(compile_kwargs={"literal_binds": True}))
     assert memory_id.hex in compiled
+    session.commit.assert_not_called()
+
+
+def test_list_memories_applies_postgresql_search_and_relevance_in_sql() -> None:
+    session = Mock()
+    session.scalars.return_value.all.return_value = []
+
+    assert (
+        list_memories(session, project_id=None, query="alpha beta", limit=5, offset=2)
+        == []
+    )
+
+    statement = session.scalars.call_args.args[0]
+    compiled_statement = statement.compile(dialect=postgresql.dialect())
+    compiled = str(compiled_statement)
+    assert "websearch_to_tsquery" in compiled
+    assert "simple" in compiled_statement.params.values()
+    assert "alpha beta" in compiled_statement.params.values()
+    assert "memories.search_vector @@" in compiled
+    assert "ts_rank_cd" in compiled
+    assert "ORDER BY ts_rank_cd" in compiled
+    assert "memories.created_at DESC, memories.id ASC" in compiled
+    assert "LIMIT" in compiled and "OFFSET" in compiled
+    assert 5 in compiled_statement.params.values()
+    assert 2 in compiled_statement.params.values()
     session.commit.assert_not_called()
