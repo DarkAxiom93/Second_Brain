@@ -18,6 +18,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_db_session
+from app.extraction.dependencies import get_extraction_provider
+from app.extraction.provider import ExtractionProvider
+from app.extraction.service import ExtractionHTTPError, generate
 from app.ingestion.files import (
     DocumentExtractionError,
     DocumentTooLargeError,
@@ -30,6 +33,10 @@ from app.ingestion.files import (
 from app.ingestion.text import chunk_text
 from app.models.source import Source
 from app.repositories import sources as source_repository
+from app.schemas.memory_proposal import (
+    MemoryProposalGenerationRead,
+    MemoryProposalGenerationRequest,
+)
 from app.schemas.source import (
     LinkedMemoryRead,
     SourceCreate,
@@ -39,6 +46,48 @@ from app.schemas.source import (
 )
 
 router = APIRouter(prefix="/sources", tags=["sources"])
+
+
+@router.post(
+    "/{source_id}/memory-proposals", response_model=MemoryProposalGenerationRead
+)
+def generate_memory_proposals(
+    source_id: uuid.UUID,
+    request: MemoryProposalGenerationRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+    provider: Annotated[ExtractionProvider | None, Depends(get_extraction_provider)],
+) -> MemoryProposalGenerationRead:
+    """Explicitly generate pending proposals from one bounded chunk batch."""
+    try:
+        result = generate(
+            session,
+            source_id=source_id,
+            project_id=request.project_id,
+            chunk_start=request.chunk_start,
+            chunk_limit=request.chunk_limit,
+            maximum=request.max_proposals_per_chunk,
+            provider=provider,
+        )
+    except ExtractionHTTPError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail) from None
+    run = result.run
+    return MemoryProposalGenerationRead(
+        id=run.id,
+        document_id=run.document_id,
+        project_id=run.project_id,
+        provider=run.provider,
+        model=run.model,
+        prompt_version=run.prompt_version,
+        input_hash=run.input_hash,
+        run_status="completed",
+        error_code=run.error_code,
+        started_at=run.started_at,  # type: ignore[arg-type]
+        completed_at=run.completed_at,  # type: ignore[arg-type]
+        created_at=run.created_at,
+        updated_at=run.updated_at,
+        proposal_count=result.proposal_count,
+        generation_status=result.generation_status,  # type: ignore[arg-type]
+    )
 
 
 def _document_response(

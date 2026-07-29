@@ -667,3 +667,29 @@ Proposals do not automatically become Memories. No AI extraction call, proposal
 generation, review, approval, rejection, promotion endpoint, or public proposal
 data exists yet. The next checkpoint will add explicit AI proposal generation.
 The Alembic head is `0008_memory_proposals`.
+# Explicit Memory-proposal generation
+
+`POST /sources/{source_id}/memory-proposals` synchronously analyzes a bounded,
+ordered batch of already-ingested source chunks (`chunk_start` defaults to 0 and
+`chunk_limit` to 10, maximum 20). It makes one strict OpenAI Responses API call
+for each new or retried run. Document content is untrusted evidence: embedded
+instructions are ignored and every evidence range must match an exact chunk
+substring before a proposal is stored.
+
+Inputs and proposals use deterministic SHA-256 hashes. Completed identical runs
+are returned as `unchanged`; failed runs retain stable, non-secret error codes
+and may be `retried`; new runs report `created`. Proposals always begin as
+`pending`. They are not Memories, are never automatically approved or promoted,
+and raw prompts/provider responses are not stored.
+
+```powershell
+$body = @{ chunk_start = 0; chunk_limit = 10; max_proposals_per_chunk = 3 } |
+  ConvertTo-Json
+Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $body `
+  -Uri 'http://127.0.0.1:8000/sources/<source-uuid>/memory-proposals'
+```
+
+Keep `OPENAI_API_KEY` local and uncommitted. Defaults are model
+`gpt-5.6-terra` and prompt version `memory_proposals_v1`. Automated tests inject
+a fake provider and make no paid API calls. Alembic head remains
+`0008_memory_proposals`.

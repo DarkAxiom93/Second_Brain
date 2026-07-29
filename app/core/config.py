@@ -10,6 +10,11 @@ NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_len
 TcpPort = Annotated[int, Field(ge=1, le=65535)]
 EmbeddingDimensions = Annotated[int, Field(ge=1536, le=1536)]
 EmbeddingTimeout = Annotated[float, Field(gt=0, le=120)]
+ExtractionPromptVersion = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)
+]
+ExtractionTimeout = Annotated[float, Field(gt=0, le=300)]
+ExtractionMaxOutputTokens = Annotated[int, Field(ge=1, le=32000)]
 
 
 class Settings(BaseSettings):
@@ -45,6 +50,11 @@ class Settings(BaseSettings):
     embedding_model: NonBlankString = "text-embedding-3-small"
     embedding_dimensions: EmbeddingDimensions = 1536
     embedding_timeout_seconds: EmbeddingTimeout = 30
+    extraction_provider: Literal["openai"] = "openai"
+    extraction_model: NonBlankString = "gpt-5.6-terra"
+    extraction_prompt_version: ExtractionPromptVersion = "memory_proposals_v1"
+    extraction_timeout_seconds: ExtractionTimeout = 60
+    extraction_max_output_tokens: ExtractionMaxOutputTokens = 8000
 
     @field_validator("postgres_password", mode="before")
     @classmethod
