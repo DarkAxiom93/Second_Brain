@@ -8,11 +8,20 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_db_session
+from app.embeddings import (
+    EmbeddingProvider,
+    InvalidEmbeddingResponseError,
+    ProviderRequestError,
+    ProviderUnavailableError,
+    get_embedding_provider,
+)
 from app.models.memory import Memory
 from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
+from app.repositories import memory_embeddings as embedding_repository
 from app.repositories import sources as source_repository
 from app.schemas.memory import MemoryCreate, MemoryFilters, MemoryRead
+from app.schemas.memory_embedding import MemoryEmbeddingRead
 from app.schemas.source import (
     LinkedSourceRead,
     MemorySourceLinkCreate,
@@ -20,6 +29,18 @@ from app.schemas.source import (
 )
 
 router = APIRouter(prefix="/memories", tags=["memories"])
+
+
+def provider_dependency() -> EmbeddingProvider:
+    """Resolve provider while translating unavailable configuration safely."""
+
+    try:
+        return get_embedding_provider()
+    except ProviderUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="embedding provider unavailable",
+        ) from None
 
 
 def database_unavailable() -> HTTPException:
@@ -63,6 +84,55 @@ def create_memory(
         session.rollback()
         raise database_unavailable() from None
     return memory
+
+
+@router.post(
+    "/{memory_id}/embedding",
+    response_model=MemoryEmbeddingRead,
+    status_code=status.HTTP_200_OK,
+)
+def generate_memory_embedding(
+    memory_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    provider: Annotated[EmbeddingProvider, Depends(provider_dependency)],
+) -> MemoryEmbeddingRead:
+    """Explicitly create or idempotently update one Memory embedding."""
+
+    try:
+        memory = memory_repository.get_memory(session, memory_id)
+        if memory is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="memory not found")
+        result = embedding_repository.generate_memory_embedding(
+            session, memory, provider
+        )
+        session.commit()
+    except InvalidEmbeddingResponseError:
+        session.rollback()
+        raise HTTPException(
+            status_code=502, detail="invalid embedding response"
+        ) from None
+    except ProviderRequestError:
+        session.rollback()
+        raise HTTPException(
+            status_code=502, detail="embedding provider failed"
+        ) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise database_unavailable() from None
+    row = result.embedding
+    return MemoryEmbeddingRead(
+        id=row.id,
+        memory_id=row.memory_id,
+        provider=row.provider,
+        model=row.model,
+        dimensions=row.dimensions,
+        input_hash=row.input_hash,
+        embedded_at=row.embedded_at,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        generation_status=result.generation_status,
+    )
 
 
 @router.post(

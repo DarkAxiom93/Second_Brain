@@ -445,3 +445,38 @@ embedding. No external embedding API is called, no API key is required, and no
 semantic-search API or public embedding field exists yet. Embedding generation
 is reserved for the next checkpoint. The Alembic head is
 `0006_memory_embeddings`; PostgreSQL lexical search remains unchanged.
+
+## Checkpoint 17: explicit Memory embedding generation
+
+Generate or refresh one Memory embedding explicitly with:
+
+```text
+POST /memories/{memory_id}/embedding
+```
+
+The endpoint returns HTTP 200 with embedding metadata and a
+`generation_status` of `created`, `updated`, or `unchanged`; the vector is never
+included in public responses. The canonical provider input contains only the
+labeled `title`, `summary`, `content`, and legacy `source` fields, with line
+endings normalized to LF. A lowercase SHA-256 hash of the exact UTF-8 input,
+together with provider, model, and dimensions, makes unchanged requests
+idempotent without another provider call or vector write.
+
+The default provider is OpenAI, using `text-embedding-3-small` at 1536
+dimensions and a 30-second timeout. Supply the API key locally without
+displaying it:
+
+```powershell
+$env:OPENAI_API_KEY = Read-Host "OpenAI API key"
+```
+
+Never commit secrets or a local `.env` file. Missing provider configuration,
+provider failures, invalid responses, and database failures produce generic API
+errors without raw exceptions, request identifiers, connection details, input
+text, or vectors.
+
+Memory creation still does not generate embeddings automatically, and semantic
+search is not implemented yet. Existing lexical search, structured filters,
+and Source relationships are unchanged. Automated tests inject a deterministic
+fake provider, never call OpenAI, and incur no API cost. No migration is added;
+the Alembic head remains `0006_memory_embeddings`.

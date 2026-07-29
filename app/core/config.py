@@ -8,6 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 TcpPort = Annotated[int, Field(ge=1, le=65535)]
+EmbeddingDimensions = Annotated[int, Field(ge=1536, le=1536)]
+EmbeddingTimeout = Annotated[float, Field(gt=0, le=120)]
 
 
 class Settings(BaseSettings):
@@ -37,6 +39,12 @@ class Settings(BaseSettings):
     database_url: NonBlankString = (
         "postgresql+psycopg://second_brain:change-me@db:5432/second_brain"
     )
+
+    openai_api_key: SecretStr | None = None
+    embedding_provider: Literal["openai"] = "openai"
+    embedding_model: NonBlankString = "text-embedding-3-small"
+    embedding_dimensions: EmbeddingDimensions = 1536
+    embedding_timeout_seconds: EmbeddingTimeout = 30
 
     @field_validator("postgres_password", mode="before")
     @classmethod
