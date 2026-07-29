@@ -12,6 +12,8 @@ from app.db.session import get_engine, reset_database_state
 from app.models import (
     Memory,
     MemoryEmbedding,
+    MemoryExtractionRun,
+    MemoryProposal,
     MemorySource,
     Project,
     Source,
@@ -30,7 +32,145 @@ def test_metadata_contains_only_approved_tables() -> None:
         "memory_embeddings",
         "source_documents",
         "source_chunks",
+        "memory_extraction_runs",
+        "memory_proposals",
     }
+
+
+def test_memory_extraction_run_schema() -> None:
+    columns = MemoryExtractionRun.__table__.c
+    assert set(columns.keys()) == {
+        "id",
+        "document_id",
+        "project_id",
+        "provider",
+        "model",
+        "prompt_version",
+        "input_hash",
+        "run_status",
+        "error_code",
+        "started_at",
+        "completed_at",
+        "created_at",
+        "updated_at",
+    }
+    foreign_keys = {
+        key.parent.name: key for key in MemoryExtractionRun.__table__.foreign_keys
+    }
+    assert foreign_keys["document_id"].target_fullname == "source_documents.id"
+    assert foreign_keys["document_id"].ondelete == "CASCADE"
+    assert foreign_keys["project_id"].ondelete == "SET NULL"
+    checks = {
+        c.name: str(c.sqltext)
+        for c in MemoryExtractionRun.__table__.constraints
+        if isinstance(c, CheckConstraint)
+    }
+    assert set(checks) == {
+        "ck_memory_extraction_runs_input_hash_format",
+        "ck_memory_extraction_runs_run_status",
+    }
+    assert "{64}" in checks["ck_memory_extraction_runs_input_hash_format"]
+    uniques = {
+        tuple(c.columns.keys())
+        for c in MemoryExtractionRun.__table__.constraints
+        if isinstance(c, UniqueConstraint)
+    }
+    assert (
+        "document_id",
+        "provider",
+        "model",
+        "prompt_version",
+        "input_hash",
+    ) in uniques
+    assert {i.name for i in MemoryExtractionRun.__table__.indexes} == {
+        "ix_memory_extraction_runs_document_id",
+        "ix_memory_extraction_runs_project_id",
+        "ix_memory_extraction_runs_run_status",
+    }
+
+
+def test_memory_proposal_schema() -> None:
+    columns = MemoryProposal.__table__.c
+    assert set(columns.keys()) == {
+        "id",
+        "run_id",
+        "source_chunk_id",
+        "source_chunk_hash",
+        "project_id",
+        "proposal_index",
+        "title",
+        "summary",
+        "content",
+        "memory_type",
+        "importance",
+        "confidence",
+        "evidence_text",
+        "evidence_char_start",
+        "evidence_char_end",
+        "source_locator",
+        "proposal_hash",
+        "review_status",
+        "review_note",
+        "reviewed_at",
+        "memory_id",
+        "created_at",
+        "updated_at",
+    }
+    assert columns.source_chunk_id.nullable is True
+    assert columns.memory_id.nullable is True
+    foreign_keys = {
+        key.parent.name: key for key in MemoryProposal.__table__.foreign_keys
+    }
+    assert foreign_keys["run_id"].ondelete == "CASCADE"
+    assert foreign_keys["source_chunk_id"].ondelete == "SET NULL"
+    assert foreign_keys["project_id"].ondelete == "SET NULL"
+    assert foreign_keys["memory_id"].target_fullname == "memories.id"
+    assert foreign_keys["memory_id"].ondelete == "SET NULL"
+    checks = {
+        c.name: str(c.sqltext)
+        for c in MemoryProposal.__table__.constraints
+        if isinstance(c, CheckConstraint)
+    }
+    assert len(checks) == 11
+    assert "{64}" in checks["ck_memory_proposals_source_chunk_hash_format"]
+    assert "{64}" in checks["ck_memory_proposals_proposal_hash_format"]
+    uniques = {
+        tuple(c.columns.keys())
+        for c in MemoryProposal.__table__.constraints
+        if isinstance(c, UniqueConstraint)
+    }
+    assert {
+        ("run_id", "source_chunk_id", "proposal_index"),
+        ("run_id", "proposal_hash"),
+        ("memory_id",),
+    } <= uniques
+    assert {i.name for i in MemoryProposal.__table__.indexes} == {
+        "ix_memory_proposals_run_id",
+        "ix_memory_proposals_source_chunk_id",
+        "ix_memory_proposals_project_id",
+        "ix_memory_proposals_review_status",
+    }
+    for name in ("reviewed_at", "created_at", "updated_at"):
+        assert (
+            isinstance(columns[name].type, DateTime)
+            and columns[name].type.timezone is True
+        )
+    assert "embedding" not in columns and "vector" not in columns
+
+
+def test_memory_proposal_relationship_ownership() -> None:
+    assert "delete-orphan" in SourceDocument.extraction_runs.property.cascade
+    assert "delete-orphan" in MemoryExtractionRun.proposals.property.cascade
+    assert MemoryExtractionRun.proposals.property.passive_deletes is True
+    for relationship in (
+        SourceChunk.memory_proposals.property,
+        Project.extraction_runs.property,
+        Project.memory_proposals.property,
+        Memory.proposal_record.property,
+    ):
+        assert "delete" not in relationship.cascade
+        assert "delete-orphan" not in relationship.cascade
+        assert relationship.passive_deletes is True
 
 
 def test_source_columns_match_approved_schema() -> None:

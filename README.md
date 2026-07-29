@@ -654,3 +654,16 @@ rewrite document or chunk rows. Raw bytes are never persisted. No Memory is
 created automatically, and no chunk embeddings or chunk search are added. The
 JSON `PUT /sources/{source_id}/document/text` endpoint remains available and
 unchanged. Alembic head remains `0007_source_documents`.
+
+## Checkpoint 23: reviewable Memory proposal persistence
+
+`memory_extraction_runs` records the document, future provider and exact model,
+prompt version, deterministic input hash, status, and timestamps for an auditable
+attempt. `memory_proposals` stores proposed Memory fields in pending review status
+with immutable evidence text, offsets, chunk hash, and locator snapshots, so
+SourceChunk replacement does not destroy proposal evidence.
+
+Proposals do not automatically become Memories. No AI extraction call, proposal
+generation, review, approval, rejection, promotion endpoint, or public proposal
+data exists yet. The next checkpoint will add explicit AI proposal generation.
+The Alembic head is `0008_memory_proposals`.

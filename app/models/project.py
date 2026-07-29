@@ -12,6 +12,8 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.memory import Memory
+    from app.models.memory_extraction_run import MemoryExtractionRun
+    from app.models.memory_proposal import MemoryProposal
 
 
 class Project(Base):
@@ -42,4 +44,10 @@ class Project(Base):
     memories: Mapped[list["Memory"]] = relationship(
         back_populates="project",
         passive_deletes=True,
+    )
+    extraction_runs: Mapped[list["MemoryExtractionRun"]] = relationship(
+        back_populates="project", passive_deletes=True
+    )
+    memory_proposals: Mapped[list["MemoryProposal"]] = relationship(
+        back_populates="project", passive_deletes=True
     )

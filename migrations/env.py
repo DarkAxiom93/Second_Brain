@@ -10,6 +10,8 @@ from app.db.base import Base
 from app.models import (
     Memory,
     MemoryEmbedding,
+    MemoryExtractionRun,
+    MemoryProposal,
     MemorySource,
     Project,
     Source,
@@ -20,6 +22,8 @@ from app.models import (
 _REGISTERED_MODELS = (
     Memory,
     MemoryEmbedding,
+    MemoryExtractionRun,
+    MemoryProposal,
     MemorySource,
     Project,
     Source,

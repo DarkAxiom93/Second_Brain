@@ -22,6 +22,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.memory_embedding import MemoryEmbedding
+    from app.models.memory_proposal import MemoryProposal
     from app.models.memory_source import MemorySource
     from app.models.project import Project
 
@@ -134,4 +135,7 @@ class Memory(Base):
         passive_deletes=True,
         uselist=False,
         single_parent=True,
+    )
+    proposal_record: Mapped["MemoryProposal | None"] = relationship(
+        back_populates="memory", passive_deletes=True, uselist=False
     )

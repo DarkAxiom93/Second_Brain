@@ -22,6 +22,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.memory_proposal import MemoryProposal
     from app.models.source_document import SourceDocument
 
 
@@ -73,3 +74,6 @@ class SourceChunk(Base):
     )
 
     document: Mapped["SourceDocument"] = relationship(back_populates="chunks")
+    memory_proposals: Mapped[list["MemoryProposal"]] = relationship(
+        back_populates="source_chunk", passive_deletes=True
+    )

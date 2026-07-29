@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.memory_extraction_run import MemoryExtractionRun
     from app.models.source import Source
     from app.models.source_chunk import SourceChunk
 
@@ -73,4 +74,7 @@ class SourceDocument(Base):
         cascade="all, delete-orphan",
         order_by="SourceChunk.chunk_index",
         passive_deletes=True,
+    )
+    extraction_runs: Mapped[list["MemoryExtractionRun"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan", passive_deletes=True
     )
