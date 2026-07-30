@@ -19,6 +19,10 @@ from app.embeddings import (
 from app.embeddings.openai_provider import validate_embedding
 from app.memory_quality.contradiction import detect_memory_contradictions
 from app.memory_quality.expiration import ExpirationConflict, classify_expiration
+from app.memory_quality.refinement import (
+    QualityRefinementConflict,
+    classify_quality_refinement,
+)
 from app.memory_quality.similarity import detect_similar_memories
 from app.memory_quality.supersession import (
     SupersessionConflict,
@@ -35,6 +39,8 @@ from app.schemas.memory import (
     MemoryCreate,
     MemoryExpirationRead,
     MemoryFilters,
+    MemoryQualityRefinementRead,
+    MemoryQualityRefinementRequest,
     MemoryRead,
     MemorySearchRequest,
     MemorySimilarityCandidateRead,
@@ -70,6 +76,58 @@ def database_unavailable() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
+    )
+
+
+@router.post(
+    "/{memory_id}/quality",
+    response_model=MemoryQualityRefinementRead,
+    responses={
+        404: {"description": "Memory not found"},
+        409: {"description": "Memory quality-refinement conflict"},
+        503: {"description": "Database unavailable"},
+    },
+)
+def refine_memory_quality(
+    memory_id: uuid.UUID,
+    request: MemoryQualityRefinementRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> MemoryQualityRefinementRead:
+    """Explicitly refine confidence and/or importance on one active Memory."""
+
+    try:
+        memory = memory_repository.lock_memory(session, memory_id)
+        if memory is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="memory not found")
+        refinement = classify_quality_refinement(
+            memory=memory,
+            confidence=request.confidence,
+            importance=request.importance,
+        )
+        if refinement == "unchanged":
+            result = MemoryQualityRefinementRead(
+                refinement_status=refinement,
+                memory=MemoryRead.model_validate(memory),
+            )
+            session.rollback()
+            return result
+        memory_repository.apply_memory_quality_refinement(
+            memory=memory,
+            confidence=request.confidence,
+            importance=request.importance,
+        )
+        session.commit()
+        session.refresh(memory)
+    except QualityRefinementConflict as conflict:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=conflict.detail) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise database_unavailable() from None
+    return MemoryQualityRefinementRead(
+        refinement_status=refinement,
+        memory=MemoryRead.model_validate(memory),
     )
 
 

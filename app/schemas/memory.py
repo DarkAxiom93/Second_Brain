@@ -28,6 +28,7 @@ MemorySimilarityClassification = Literal["exact_duplicate", "similar"]
 MemoryContradictionEvidenceType = Literal["explicit_negation", "opposing_boolean_state"]
 MemorySupersessionStatus = Literal["updated", "unchanged"]
 MemoryExpirationStatus = Literal["updated", "unchanged"]
+MemoryQualityRefinementStatus = Literal["updated", "unchanged"]
 
 
 class MemoryStructuredFilters(BaseModel):
@@ -208,6 +209,30 @@ class MemoryExpirationRead(BaseModel):
     """Public result of an explicit Memory expiration transition."""
 
     expiration_status: MemoryExpirationStatus
+    memory: MemoryRead
+
+
+class MemoryQualityRefinementRequest(BaseModel):
+    """Explicit non-null quality values to apply to one active Memory."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    confidence: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)
+    importance: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def require_quality_value(self) -> "MemoryQualityRefinementRequest":
+        """Require at least one usable refinement value."""
+
+        if self.confidence is None and self.importance is None:
+            raise ValueError("at least one quality value is required")
+        return self
+
+
+class MemoryQualityRefinementRead(BaseModel):
+    """Public result of an explicit Memory quality refinement."""
+
+    refinement_status: MemoryQualityRefinementStatus
     memory: MemoryRead
 
 

@@ -417,6 +417,63 @@ def test_expire_missing_conflict_and_database_failure_never_commit(
     session.commit.assert_not_called()
 
 
+def test_quality_refinement_updates_and_unchanged_avoids_write(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    stored = memory()
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "lock_memory", Mock(return_value=stored)
+    )
+    apply = Mock(wraps=memory_routes.memory_repository.apply_memory_quality_refinement)
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "apply_memory_quality_refinement", apply
+    )
+    response = client.post(f"/memories/{stored.id}/quality", json={"confidence": 0.25})
+    assert response.status_code == 200
+    assert response.json()["refinement_status"] == "updated"
+    assert response.json()["memory"]["confidence"] == 0.25
+    assert response.json()["memory"]["importance"] == 0.5
+    session.commit.assert_called_once_with()
+    apply.assert_called_once()
+
+    session.reset_mock()
+    apply.reset_mock()
+    response = client.post(f"/memories/{stored.id}/quality", json={"confidence": 0.25})
+    assert response.json()["refinement_status"] == "unchanged"
+    apply.assert_not_called()
+    session.commit.assert_not_called()
+    session.rollback.assert_called_once_with()
+
+
+def test_quality_refinement_errors_never_commit(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    lock = Mock(return_value=None)
+    monkeypatch.setattr(memory_routes.memory_repository, "lock_memory", lock)
+    response = client.post(f"/memories/{uuid.uuid4()}/quality", json={"importance": 0})
+    assert response.status_code == 404
+    session.commit.assert_not_called()
+
+    session.reset_mock()
+    stored = memory()
+    stored.status = "archived"
+    lock.return_value = stored
+    response = client.post(f"/memories/{stored.id}/quality", json={"importance": 1})
+    assert response.status_code == 409
+    assert response.json() == {"detail": "memory not eligible for quality refinement"}
+    session.commit.assert_not_called()
+
+    session.reset_mock()
+    lock.side_effect = OperationalError("sensitive SQL", {}, Exception("secret"))
+    response = client.post(f"/memories/{stored.id}/quality", json={"importance": 1})
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    session.rollback.assert_called_once_with()
+    session.commit.assert_not_called()
+
+
 def test_memory_paths_and_existing_endpoints_are_registered(
     route_client: tuple[TestClient, Mock],
 ) -> None:
@@ -431,6 +488,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memories/{memory_id}",
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/expire",
+        "/memories/{memory_id}/quality",
         "/memories/{memory_id}/contradictions",
         "/memories/{memory_id}/similarities",
         "/memories/{memory_id}/supersede",
@@ -454,6 +512,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     assert set(supersede["responses"]) == {"200", "404", "409", "422", "503"}
     expire = paths["/memories/{memory_id}/expire"]["post"]
     assert set(expire["responses"]) == {"200", "404", "409", "422", "503"}
+    quality = paths["/memories/{memory_id}/quality"]["post"]
+    assert set(quality["responses"]) == {"200", "404", "409", "422", "503"}
     assert set(paths["/memories/{memory_id}/embedding"]) == {"post"}
     similarities = paths["/memories/{memory_id}/similarities"]["get"]
     assert set(similarities["responses"]) == {"200", "404", "422", "503"}

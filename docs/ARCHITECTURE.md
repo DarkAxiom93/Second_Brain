@@ -38,6 +38,10 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   operation preserves an existing past expiration timestamp and replaces a null
   or future timestamp with the request's captured UTC time. No scheduler changes
   status merely because `expires_at` passes.
+- Memory quality refinement is an explicit human action on one active Memory.
+  A row lock serializes partial or complete confidence/importance updates;
+  equal requests write nothing. No provider, automatic scoring, or retrieval
+  ranking policy participates.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

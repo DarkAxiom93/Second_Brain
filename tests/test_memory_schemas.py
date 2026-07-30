@@ -7,7 +7,46 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.memory import MemoryCreate, MemoryRead
+from app.schemas.memory import (
+    MemoryCreate,
+    MemoryQualityRefinementRequest,
+    MemoryRead,
+)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"confidence": 0.0},
+        {"importance": 1.0},
+        {"confidence": 0.25, "importance": 0.75},
+        {"confidence": None, "importance": 0.5},
+    ],
+)
+def test_quality_refinement_request_accepts_valid_partial_values(
+    payload: dict[str, float | None],
+) -> None:
+    assert MemoryQualityRefinementRequest.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"confidence": None},
+        {"importance": None},
+        {"confidence": None, "importance": None},
+        {"confidence": -0.01},
+        {"importance": 1.01},
+        {"confidence": float("nan")},
+        {"importance": float("inf")},
+    ],
+)
+def test_quality_refinement_request_rejects_missing_or_invalid_values(
+    payload: dict[str, float | None],
+) -> None:
+    with pytest.raises(ValidationError):
+        MemoryQualityRefinementRequest.model_validate(payload)
 
 
 def test_memory_create_accepts_and_trims_valid_input() -> None:

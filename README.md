@@ -942,3 +942,29 @@ Scheduled expiration processing is deferred. Migration
 `0009_memory_expiration` only extends `ck_memories_status` with `expired`; its
 downgrade refuses to proceed while expired rows exist rather than rewriting
 them.
+
+## Checkpoint 33: explicit Memory quality refinement
+
+Refine one active Memory's persisted quality metadata explicitly:
+
+```powershell
+Invoke-RestMethod -Method Post -ContentType 'application/json' `
+  -Body '{"confidence":0.8,"importance":0.7}' `
+  'http://127.0.0.1:8000/memories/<memory-uuid>/quality'
+```
+
+`POST /memories/{memory_id}/quality` accepts `confidence`, `importance`, or
+both. Each supplied non-null value must be finite and within 0.0 through 1.0;
+at least one is required. Omitted fields are preserved exactly. An actual
+change returns `refinement_status: updated`; equal supplied values return
+`unchanged` without a model write and preserve `updated_at`.
+
+Only active Memories are eligible. The operation locks the Memory row, applies
+a complete supplied pair atomically, and serializes concurrent requests. It
+does not change status, expiration, supersession, content, provenance,
+embeddings, proposals, or projects. Quality scoring remains entirely manual:
+there is no automatic scoring or provider call, and confidence/importance do
+not alter any ranking policy. Current limitations are that refinement is
+single-Memory only and retains the existing binary floating-point database
+representation. No migration is required; Alembic head remains
+`0009_memory_expiration`.

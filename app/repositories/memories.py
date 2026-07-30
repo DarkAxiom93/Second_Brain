@@ -340,6 +340,17 @@ def apply_memory_expiration(*, memory: Memory, expires_at: datetime) -> None:
     memory.expires_at = expires_at
 
 
+def apply_memory_quality_refinement(
+    *, memory: Memory, confidence: float | None, importance: float | None
+) -> None:
+    """Apply only supplied quality values without flushing or committing."""
+
+    if confidence is not None and confidence != memory.confidence:
+        memory.confidence = confidence
+    if importance is not None and importance != memory.importance:
+        memory.importance = importance
+
+
 def get_memory_embedding(
     session: Session, memory_id: uuid.UUID
 ) -> MemoryEmbedding | None:

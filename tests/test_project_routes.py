@@ -148,6 +148,7 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/memories/{memory_id}",
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/expire",
+        "/memories/{memory_id}/quality",
         "/memories/{memory_id}/contradictions",
         "/memories/{memory_id}/similarities",
         "/memories/{memory_id}/supersede",
