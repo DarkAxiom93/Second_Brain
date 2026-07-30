@@ -693,3 +693,48 @@ Keep `OPENAI_API_KEY` local and uncommitted. Defaults are model
 `gpt-5.6-terra` and prompt version `memory_proposals_v1`. Automated tests inject
 a fake provider and make no paid API calls. Alembic head remains
 `0008_memory_proposals`.
+
+## Checkpoint 25: human review of Memory proposals
+
+`GET /memory-proposals` returns the public review queue as a bare array. It
+defaults to `review_status=pending`; `review_status=all` removes that predicate.
+Filters for `run_id`, `source_id`, `document_id`, proposal `project_id`,
+`memory_type`, importance/confidence ranges, `limit`, and `offset` combine in
+SQL. Results are always oldest first (`created_at`, then `id`).
+
+`GET /memory-proposals/{proposal_id}` includes the immutable evidence text,
+offsets, chunk/proposal hashes, run status, and `source_chunk_available` flag.
+The stored evidence remains inspectable if re-ingestion deletes the original
+SourceChunk; complete chunk/document text, prompts, and provider output are not
+returned.
+
+`POST /memory-proposals/{proposal_id}/approve` accepts an optional
+`review_note`. `POST /memory-proposals/{proposal_id}/reject` requires a nonblank
+note. Only proposals from completed extraction runs can be reviewed. Repeating
+the same terminal decision is idempotent and reports `transition_status` as
+`unchanged`; requesting the opposite decision returns HTTP 409. Reviewed
+proposals cannot be reopened.
+
+Approval is only a human review decision in this checkpoint: it creates no
+Memory or MemoryEmbedding, and `memory_id` remains null. Proposal promotion is
+reserved for a later checkpoint. Alembic head remains `0008_memory_proposals`.
+
+```powershell
+# List pending proposals (the default queue)
+Invoke-RestMethod 'http://127.0.0.1:8000/memory-proposals'
+
+# Filter by Source or Project
+Invoke-RestMethod "http://127.0.0.1:8000/memory-proposals?source_id=$sourceId"
+Invoke-RestMethod "http://127.0.0.1:8000/memory-proposals?project_id=$projectId&review_status=all"
+
+# Inspect immutable evidence
+Invoke-RestMethod "http://127.0.0.1:8000/memory-proposals/$proposalId"
+
+# Approve, or reject with the required note
+Invoke-RestMethod -Method Post -ContentType 'application/json' `
+  -Body '{"review_note":"Evidence verified"}' `
+  "http://127.0.0.1:8000/memory-proposals/$proposalId/approve"
+Invoke-RestMethod -Method Post -ContentType 'application/json' `
+  -Body '{"review_note":"Evidence does not support the claim"}' `
+  "http://127.0.0.1:8000/memory-proposals/$proposalId/reject"
+```
