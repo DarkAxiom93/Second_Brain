@@ -332,6 +332,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memory-proposals/{proposal_id}",
         "/memory-proposals/{proposal_id}/approve",
         "/memory-proposals/{proposal_id}/reject",
+        "/memory-proposals/{proposal_id}/promote",
         "/sources",
         "/sources/{source_id}/document/file",
         "/sources/{source_id}/document/text",

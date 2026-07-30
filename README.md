@@ -715,9 +715,9 @@ the same terminal decision is idempotent and reports `transition_status` as
 `unchanged`; requesting the opposite decision returns HTTP 409. Reviewed
 proposals cannot be reopened.
 
-Approval is only a human review decision in this checkpoint: it creates no
-Memory or MemoryEmbedding, and `memory_id` remains null. Proposal promotion is
-reserved for a later checkpoint. Alembic head remains `0008_memory_proposals`.
+Approval is only a human review decision: it creates no Memory or
+MemoryEmbedding, and `memory_id` remains null until a separate promotion.
+Alembic head remains `0008_memory_proposals`.
 
 ```powershell
 # List pending proposals (the default queue)
@@ -737,4 +737,50 @@ Invoke-RestMethod -Method Post -ContentType 'application/json' `
 Invoke-RestMethod -Method Post -ContentType 'application/json' `
   -Body '{"review_note":"Evidence does not support the claim"}' `
   "http://127.0.0.1:8000/memory-proposals/$proposalId/reject"
+```
+
+## Checkpoint 26: explicit Memory-proposal promotion
+
+`POST /memory-proposals/{proposal_id}/promote` has no request body. It promotes
+only an approved proposal whose extraction run is completed; pending or
+rejected proposals are not eligible. Approval and promotion remain separate,
+deliberate actions, and there is no batch or automatic promotion route.
+
+Promotion copies `project_id`, `title`, `summary`, `content`, `memory_type`,
+`importance`, and `confidence` exactly from the proposal. The new Memory is
+`active`; `event_time`, `expires_at`, and `supersedes_id` remain null rather
+than being inferred. The legacy `source` value is the originating Source's
+nonblank `reference`, falling back to its `name`.
+
+The operation also creates exactly one structured link to the Source that owns
+the extraction run's document. Its location is the proposal's nonblank
+`source_locator`, or `chars <inclusive-start>-<exclusive-end>` from the stored
+evidence range. The proposal's `memory_id` links to the created Memory.
+
+The first promotion returns `promotion_status=created`. Repeating it returns
+`unchanged` with the same Memory and changes no persisted data. A proposal row
+lock makes concurrent requests create only one Memory and one Source link.
+Promotion creates no embedding: the Memory participates immediately in lexical
+and structured filtering, while semantic-only search requires the existing
+explicit embedding action. If the linked Memory is later deleted, the existing
+foreign key sets `memory_id` to null; a later explicit promotion may then create
+a replacement. Alembic head remains `0008_memory_proposals`; no migration is
+added.
+
+```powershell
+# Approve, then explicitly promote
+Invoke-RestMethod -Method Post -ContentType 'application/json' `
+  -Body '{"review_note":"Evidence verified"}' `
+  "http://127.0.0.1:8000/memory-proposals/$proposalId/approve"
+$promotion = Invoke-RestMethod -Method Post `
+  "http://127.0.0.1:8000/memory-proposals/$proposalId/promote"
+
+# Repeat promotion (returns unchanged)
+Invoke-RestMethod -Method Post `
+  "http://127.0.0.1:8000/memory-proposals/$proposalId/promote"
+
+# Retrieve the Memory and its originating Source
+$memoryId = $promotion.memory.id
+Invoke-RestMethod "http://127.0.0.1:8000/memories/$memoryId"
+Invoke-RestMethod "http://127.0.0.1:8000/memories/$memoryId/sources"
 ```

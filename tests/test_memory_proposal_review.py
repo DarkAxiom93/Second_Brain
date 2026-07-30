@@ -239,4 +239,5 @@ def test_only_approved_review_routes_added(
         "/memory-proposals/{proposal_id}",
         "/memory-proposals/{proposal_id}/approve",
         "/memory-proposals/{proposal_id}/reject",
+        "/memory-proposals/{proposal_id}/promote",
     }

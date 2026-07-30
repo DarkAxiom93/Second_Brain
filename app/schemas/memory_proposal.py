@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.schemas.memory import MemoryType
+from app.schemas.memory import MemoryRead, MemoryType
 
 ReviewStatus = Literal["pending", "approved", "rejected"]
 ReviewStatusFilter = Literal["pending", "approved", "rejected", "all"]
@@ -130,3 +130,9 @@ class MemoryProposalDetail(MemoryProposalListItem):
 
 class MemoryProposalReviewResult(MemoryProposalDetail):
     transition_status: Literal["updated", "unchanged"]
+
+
+class MemoryProposalPromotionResult(BaseModel):
+    proposal_id: uuid.UUID
+    promotion_status: Literal["created", "unchanged"]
+    memory: MemoryRead
