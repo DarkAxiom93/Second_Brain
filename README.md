@@ -1,5 +1,14 @@
 # Second Brain
 
+## Developer workflow
+
+Stable project guidance is split into concise references: [architecture](docs/ARCHITECTURE.md),
+[roadmap](docs/ROADMAP.md), [verification](docs/VERIFICATION.md),
+[safety](docs/SAFETY.md), [API conventions](docs/API_CONVENTIONS.md),
+[checkpoint history](docs/CHECKPOINTS.md), [ADRs](docs/decisions/README.md), and
+the [new-chat handoff](docs/CHAT_HANDOFF.md). Reusable Windows commands are
+documented in [scripts/README.md](scripts/README.md).
+
 Second Brain is a Python 3.12 project with Foundation configuration, local
 PostgreSQL infrastructure, and a minimal FastAPI liveness API.
 
@@ -79,12 +88,8 @@ To remove stopped containers without deleting database data, use:
 docker compose --env-file .env.example down
 ```
 
-Warning: the following command permanently deletes the local named database
-volume and its data. Do not run it casually:
-
-```powershell
-docker compose --env-file .env.example down -v
-```
+Do not use `down -v`; project safety rules prohibit deleting the database
+volume. Prefer `scripts/dev-down.ps1`, which stops only `db` and preserves data.
 
 ## Checkpoint 3: FastAPI liveness API
 

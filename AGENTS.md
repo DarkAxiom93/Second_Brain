@@ -5,6 +5,14 @@
 - Work on one approved checkpoint at a time.
 - Do not add unrequested frameworks, services, or speculative functionality.
 - Do not implement Milestone 2 functionality during Milestone 1.
+- Before each checkpoint, read `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`,
+  `docs/CHECKPOINTS.md`, `docs/VERIFICATION.md`, `docs/SAFETY.md`,
+  `docs/API_CONVENTIONS.md`, and the relevant ADRs in `docs/decisions/`.
+- Resolve instructions in this order: (1) explicit current-checkpoint instructions,
+  (2) this file, (3) migrations, tests, and current repository behavior,
+  (4) architecture, safety, verification, API conventions, and ADRs, then
+  (5) roadmap and checkpoint history. Preserve the safer existing rule if sources
+  conflict, and record the resolution in the checkpoint report.
 
 ## Python workflow
 

@@ -1,0 +1,47 @@
+# Checkpoints
+
+Hashes and migration heads below come from the committed linear Git and Alembic
+history. A dash means Alembic had not yet been introduced.
+
+| # | Purpose | Status | Alembic head | Commit |
+|---:|---|---|---|---|
+| 1 | Repository foundation | Complete | - | `72a7201` |
+| 2 | Phase 1 foundation completion | Complete | - | `f963bfb` |
+| 3 | FastAPI health endpoint | Complete | - | `8ec035c` |
+| 4 | PostgreSQL readiness and Alembic baseline | Complete | `0001_enable_pgvector` | `c021179` |
+| 5 | Project and Memory persistence | Complete | `0002_projects_memories` | `75a80cb` |
+| 6 | Project API | Complete | `0002_projects_memories` | `6438055` |
+| 7 | Memory creation API | Complete | `0002_projects_memories` | `99ec5b0` |
+| 8 | Memory retrieval API | Complete | `0002_projects_memories` | `c2f592a` |
+| 9 | Normalized Memory sources | Complete | `0003_sources` | `9f61436` |
+| 10 | Source creation and Memory linking | Complete | `0003_sources` | `51083b1` |
+| 11 | Repository checkpoint | Complete | `0003_sources` | `70500f5` |
+| 12 | Structured Memory metadata | Complete | `0004_memory_metadata` | `25f43ce` |
+| 13 | Expose structured metadata | Complete | `0004_memory_metadata` | `210d47c` |
+| 14 | Structured Memory filtering | Complete | `0004_memory_metadata` | `b767a23` |
+| 15 | PostgreSQL lexical search | Complete | `0005_memory_search` | `8138493` |
+| 16 | Memory embedding persistence | Complete | `0006_memory_embeddings` | `87a0eb1` |
+| 17 | Explicit embedding generation | Complete | `0006_memory_embeddings` | `b97ca75` |
+| 18 | Semantic search | Complete | `0006_memory_embeddings` | `f0f5b9c` |
+| 19 | Hybrid RRF search | Complete | `0006_memory_embeddings` | `270f129` |
+| 20 | Source document persistence | Complete | `0007_source_documents` | `2292910` |
+| 21 | Plain-text ingestion | Complete | `0007_source_documents` | `d911f78` |
+| 22 | TXT/PDF ingestion | Complete | `0007_source_documents` | `70a6e47` |
+| 23 | Reviewable proposal persistence | Complete | `0008_memory_proposals` | `e25eb4` |
+| 24 | AI proposal generation | Complete | `0008_memory_proposals` | `66690b2` |
+| 25 | Human proposal review | Complete | `0008_memory_proposals` | `47e905d` |
+| 26 | Explicit proposal promotion | Complete | `0008_memory_proposals` | `0092ded` |
+| 27 | Developer workflow and safety automation | Complete | `0008_memory_proposals` | This commit |
+
+## Standard lifecycle
+
+1. Confirm a clean repository.
+2. Start a new Codex conversation with the handoff and checkpoint request.
+3. Implement one checkpoint.
+4. Run complete verification.
+5. Produce the checkpoint report.
+6. Obtain human review.
+7. Commit only after approval.
+8. Push.
+9. Confirm the repository is clean and matches the remote.
+10. Begin the next checkpoint.
