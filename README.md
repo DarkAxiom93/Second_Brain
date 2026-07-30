@@ -789,3 +789,42 @@ $memoryId = $promotion.memory.id
 Invoke-RestMethod "http://127.0.0.1:8000/memories/$memoryId"
 Invoke-RestMethod "http://127.0.0.1:8000/memories/$memoryId/sources"
 ```
+
+## Checkpoint 28: advisory Memory duplicate and similarity detection
+
+Inspect one existing Memory without changing it or any candidate:
+
+```powershell
+Invoke-RestMethod `
+  "http://127.0.0.1:8000/memories/<memory-uuid>/similarities?limit=10"
+```
+
+`GET /memories/{memory_id}/similarities` returns the target UUID and at most 50
+same-project active candidates. The default limit is 10. The target is always
+excluded, including when it would otherwise match itself. An unassigned Memory
+is compared only with other unassigned Memories.
+
+`exact_duplicate` means case-sensitive content equality after stripping ASCII
+space, tab, LF, CR, form-feed, and vertical-tab characters from the ends and
+replacing each internal run of those characters with one ASCII space. Unicode
+separators such as non-breaking spaces remain significant. Punctuation and
+letter case are preserved. A `similar` candidate must
+meet either a lexical token-set Jaccard threshold of 0.60 with at least three
+shared tokens, or a stored-embedding cosine-similarity threshold of 0.85.
+Lexical and semantic scores are separate nullable fields and are never treated
+as interchangeable.
+
+Stored embeddings are used only when the target and candidate already have the
+same provider, model, and fixed dimension. This endpoint never calls an
+embedding or AI provider and never creates
+or refreshes an embedding. Without stored embeddings it falls back to lexical
+evidence. Results are advisory: they do not delete, merge, update, supersede,
+archive, expire, promote, reject, or otherwise modify any Memory or related
+record. Exact duplicate matching is exhaustive within the scope before the
+public limit is applied. Similar-candidate discovery is advisory and
+approximate: lexical and compatible-semantic retrieval each use a deterministic
+relevance-ranked pool of at most 250 candidates. The public limit can truncate
+both exact and similar results, including when more exact duplicates exist than
+requested. Exact duplicates sort first, then stronger semantic evidence,
+stronger lexical evidence, and UUID ascending. No migration is required;
+Alembic head remains `0008_memory_proposals`.

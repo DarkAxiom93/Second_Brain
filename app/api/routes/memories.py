@@ -16,6 +16,7 @@ from app.embeddings import (
     get_embedding_provider,
 )
 from app.embeddings.openai_provider import validate_embedding
+from app.memory_quality.similarity import detect_similar_memories
 from app.models.memory import Memory
 from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
@@ -26,6 +27,8 @@ from app.schemas.memory import (
     MemoryFilters,
     MemoryRead,
     MemorySearchRequest,
+    MemorySimilarityCandidateRead,
+    MemorySimilarityRead,
 )
 from app.schemas.memory_embedding import MemoryEmbeddingRead
 from app.schemas.source import (
@@ -55,6 +58,43 @@ def database_unavailable() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
+    )
+
+
+@router.get(
+    "/{memory_id}/similarities",
+    response_model=MemorySimilarityRead,
+    responses={
+        404: {"description": "Memory not found"},
+        503: {"description": "Database unavailable"},
+    },
+)
+def get_memory_similarities(
+    memory_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+) -> MemorySimilarityRead:
+    """Return advisory duplicate and similarity candidates without mutations."""
+
+    try:
+        target = memory_repository.get_memory(session, memory_id)
+        if target is None:
+            raise HTTPException(status_code=404, detail="memory not found")
+        candidates = detect_similar_memories(session, target=target, limit=limit)
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+    return MemorySimilarityRead(
+        target_memory_id=target.id,
+        candidates=[
+            MemorySimilarityCandidateRead(
+                memory_id=item.memory.id,
+                classification=item.classification,
+                lexical_similarity=item.lexical_similarity,
+                semantic_similarity=item.semantic_similarity,
+                reason=item.reason,
+            )
+            for item in candidates
+        ],
     )
 
 

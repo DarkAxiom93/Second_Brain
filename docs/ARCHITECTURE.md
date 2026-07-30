@@ -18,6 +18,11 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   `MemoryProposal` stores immutable evidence snapshots and review state.
 - Memory retrieval supports lexical PostgreSQL text search, semantic pgvector
   search, and hybrid Reciprocal Rank Fusion (RRF).
+- Memory quality detection performs advisory, read-only exact and similar
+  candidate classification within one project. It may read existing embeddings
+  only when provider, model, and dimensions match, but never generates them or
+  modifies a Memory. Exact equality is queried independently; advisory similar
+  discovery uses bounded relevance-ranked lexical and semantic pools.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

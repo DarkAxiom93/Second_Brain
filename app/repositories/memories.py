@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import Select, func, literal, select, union
 from sqlalchemy.orm import Session
 
+from app.memory_quality.normalization import EXACT_WHITESPACE_PATTERN
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.models.project import Project
@@ -269,3 +270,98 @@ def get_memory(session: Session, memory_id: uuid.UUID) -> Memory | None:
     """Return a memory by identifier, or None when it does not exist."""
 
     return session.scalar(select(Memory).where(Memory.id == memory_id))
+
+
+def get_memory_embedding(
+    session: Session, memory_id: uuid.UUID
+) -> MemoryEmbedding | None:
+    """Return one stored embedding record without generating derived data."""
+
+    return session.scalar(
+        select(MemoryEmbedding).where(MemoryEmbedding.memory_id == memory_id)
+    )
+
+
+def list_exact_duplicate_candidates(
+    session: Session,
+    *,
+    target: Memory,
+    normalized_content: str,
+    limit: int,
+) -> list[Memory]:
+    """Find active, same-scope Memories with conservatively normalized content."""
+
+    database_normalized = func.regexp_replace(
+        Memory.content, EXACT_WHITESPACE_PATTERN, " ", "g"
+    )
+    database_normalized = func.btrim(database_normalized, " \t\n\r\f\v")
+    statement = (
+        select(Memory)
+        .where(
+            Memory.id != target.id,
+            Memory.project_id.is_not_distinct_from(target.project_id),
+            Memory.status == "active",
+            database_normalized == normalized_content,
+        )
+        .order_by(Memory.id.asc())
+        .limit(limit)
+    )
+    return list(session.scalars(statement).all())
+
+
+def list_lexical_similarity_candidates(
+    session: Session,
+    *,
+    target: Memory,
+    query: str,
+    limit: int,
+) -> list[Memory]:
+    """Return a bounded lexical candidate pool for deterministic classification."""
+
+    search_query = func.websearch_to_tsquery("simple", query)
+    rank = func.ts_rank_cd(Memory.search_vector, search_query)
+    statement = (
+        select(Memory)
+        .where(
+            Memory.id != target.id,
+            Memory.project_id.is_not_distinct_from(target.project_id),
+            Memory.status == "active",
+            Memory.search_vector.bool_op("@@")(search_query),
+        )
+        .order_by(rank.desc(), Memory.id.asc())
+        .limit(limit)
+    )
+    return list(session.scalars(statement).all())
+
+
+def list_semantic_similarity_candidates(
+    session: Session,
+    *,
+    target: Memory,
+    query_vector: list[float],
+    provider: str,
+    model: str,
+    dimensions: int,
+    limit: int,
+) -> list[tuple[Memory, float | None]]:
+    """Return a bounded stored-vector candidate pool with cosine similarities."""
+
+    distance = MemoryEmbedding.embedding.cosine_distance(query_vector)
+    statement = (
+        select(Memory, (literal(1.0) - distance).label("similarity"))
+        .join(MemoryEmbedding)
+        .where(
+            Memory.id != target.id,
+            Memory.project_id.is_not_distinct_from(target.project_id),
+            Memory.status == "active",
+            MemoryEmbedding.provider == provider,
+            MemoryEmbedding.model == model,
+            MemoryEmbedding.dimensions == dimensions,
+        )
+        .order_by(distance.asc(), Memory.id.asc())
+        .limit(limit)
+    )
+    return [
+        (row[0], float(row[1]) if row[1] is not None else None)
+        for row in session.execute(statement).all()
+    ]

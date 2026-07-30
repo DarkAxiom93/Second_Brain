@@ -24,6 +24,7 @@ MemoryType = Literal[
 ]
 MemoryStatus = Literal["active", "superseded", "invalid", "archived"]
 MemorySearchMode = Literal["semantic", "hybrid"]
+MemorySimilarityClassification = Literal["exact_duplicate", "similar"]
 
 
 class MemoryStructuredFilters(BaseModel):
@@ -182,3 +183,20 @@ class MemoryRead(BaseModel):
         if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("timestamp must be timezone-aware")
         return value
+
+
+class MemorySimilarityCandidateRead(BaseModel):
+    """Public advisory evidence for one duplicate or similar candidate."""
+
+    memory_id: uuid.UUID
+    classification: MemorySimilarityClassification
+    lexical_similarity: float | None
+    semantic_similarity: float | None
+    reason: str
+
+
+class MemorySimilarityRead(BaseModel):
+    """Read-only duplicate and similarity result for one target Memory."""
+
+    target_memory_id: uuid.UUID
+    candidates: list[MemorySimilarityCandidateRead]
