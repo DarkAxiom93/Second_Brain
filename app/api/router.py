@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.routes.answers import router as answers_router
 from app.api.routes.health import router as health_router
 from app.api.routes.memories import router as memories_router
+from app.api.routes.memory_embedding_batches import router as embedding_batches_router
 from app.api.routes.memory_proposals import router as memory_proposals_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.readiness import router as readiness_router
@@ -16,5 +17,6 @@ api_router.include_router(health_router)
 api_router.include_router(readiness_router)
 api_router.include_router(projects_router)
 api_router.include_router(memories_router)
+api_router.include_router(embedding_batches_router)
 api_router.include_router(memory_proposals_router)
 api_router.include_router(sources_router)

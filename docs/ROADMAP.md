@@ -21,8 +21,9 @@ citations. Planned: result explanations and retrieval-quality evaluation.
 
 ## Operations
 
-Planned: batch embedding, re-embedding, maintenance, backups, export/import, and
-observability.
+Completed: explicit bounded batch embedding for active Memories missing an
+embedding. Planned: controlled re-embedding, maintenance, backups, export/import,
+and observability.
 
 ## User interface
 

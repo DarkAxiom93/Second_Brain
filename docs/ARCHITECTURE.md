@@ -46,6 +46,14 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   A row lock serializes partial or complete confidence/importance updates;
   equal requests write nothing. No provider, automatic scoring, or retrieval
   ranking policy participates.
+- Batch Memory embedding generation is an explicit synchronous action over at
+  most 50 active Memories that lack embeddings. Project, unassigned, and all
+  scopes select deterministically by creation time and UUID. One ordered
+  provider request is validated before deterministic row locks recheck status
+  and existing embeddings; successful inserts commit atomically, concurrent
+  winners remain unchanged, and newly inactive rows are skipped. Empty batches
+  resolve no provider. Existing embeddings are never replaced, and no
+  background generation or re-embedding occurs.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

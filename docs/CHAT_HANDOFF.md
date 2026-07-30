@@ -7,7 +7,7 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 35 are
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 36 are
 complete. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
@@ -76,13 +76,23 @@ rolls back every application-table write, makes no provider call, and optionally
 writes JSON only to an explicit output path. Baseline checks use reviewed minimum
 thresholds and never update the checked-in baseline automatically.
 
+`POST /memory-embeddings/batch` explicitly embeds at most 50 active Memories
+that are missing embeddings, scoped to one project, unassigned rows, or all
+rows. SQL selection is stable by creation time and UUID. A non-empty selection
+makes one validated ordered provider call before UUID-ordered row locks recheck
+status and existing embeddings. Inserts are atomic; concurrent winners return
+unchanged and newly inactive rows return skipped. Empty batches resolve no
+provider or commit. Existing embeddings are never replaced, and there is no
+automatic/background generation or controlled re-embedding yet.
+
 Read `AGENTS.md` and stable docs before work. One checkpoint at a time; preserve
 exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 35, retrieval quality evaluation harness.
-Scheduled expiration processing remains deferred. Continue one approved
+Most recently completed: Checkpoint 36, explicit batch Memory embedding
+generation. Scheduled expiration processing and controlled re-embedding remain
+deferred. Continue one approved
 checkpoint at a time and attach the latest checkpoint report to the new
 conversation.
 

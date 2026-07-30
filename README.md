@@ -485,6 +485,28 @@ and Source relationships are unchanged. Automated tests inject a deterministic
 fake provider, never call OpenAI, and incur no API cost. No migration is added;
 the Alembic head remains `0006_memory_embeddings`.
 
+## Checkpoint 36: explicit batch Memory embedding generation
+
+`POST /memory-embeddings/batch` explicitly generates embeddings for a bounded
+selection of active Memories that do not already have one. The extra-forbidden
+body accepts `scope` as `project`, `unassigned`, or `all`; `project` requires
+`project_id`, while the other scopes forbid it. `limit` defaults to 20 and is
+restricted to 1 through 50. An unknown project UUID returns an empty HTTP 200
+result without a separate Project existence query.
+
+SQL selects by `created_at` then UUID and applies the limit. Empty selection
+resolves no provider and performs no write or commit. Non-empty selection reuses
+the canonical Memory text and SHA-256 hash and makes one ordered provider batch
+call. After validation, UUID-ordered row locks recheck each candidate. Atomic
+inserts return `created`; a concurrent winner is `unchanged`; a newly inactive
+row is `skipped` with `memory_not_active`. Responses preserve candidate order,
+include counts and metadata, and never expose vectors.
+
+The action never replaces or re-embeds an existing embedding, changes a Memory,
+or runs automatically or in the background. Controlled re-embedding remains
+deferred. Tests use fake providers. No migration is added; Alembic remains
+`0009_memory_expiration`.
+
 ## Checkpoint 18: explicit semantic Memory search
 
 Search only Memories that already have an explicitly generated embedding:

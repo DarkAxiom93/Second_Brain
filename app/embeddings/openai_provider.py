@@ -50,15 +50,25 @@ class OpenAIEmbeddingProvider:
         return self._dimensions
 
     def embed(self, text: str) -> list[float]:
+        return self.embed_many([text])[0]
+
+    def embed_many(self, texts: list[str]) -> list[list[float]]:
+        """Generate a batch and reject missing, duplicate, or reordered data."""
+
         try:
             response = self._client.embeddings.create(
                 model=self.model,
-                input=text,
+                input=texts,
                 dimensions=self.dimensions,
                 encoding_format="float",
             )
         except Exception as exc:
             raise ProviderRequestError from exc
-        if len(response.data) != 1:
+        if len(response.data) != len(texts):
             raise InvalidEmbeddingResponseError
-        return validate_embedding(response.data[0].embedding, self.dimensions)
+        if [item.index for item in response.data] != list(range(len(texts))):
+            raise InvalidEmbeddingResponseError
+        return [
+            validate_embedding(item.embedding, self.dimensions)
+            for item in response.data
+        ]

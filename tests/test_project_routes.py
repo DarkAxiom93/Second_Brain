@@ -159,6 +159,7 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/memory-proposals/{proposal_id}/approve",
         "/memory-proposals/{proposal_id}/reject",
         "/memory-proposals/{proposal_id}/promote",
+        "/memory-embeddings/batch",
         "/sources",
         "/sources/{source_id}/document/file",
         "/sources/{source_id}/document/text",
