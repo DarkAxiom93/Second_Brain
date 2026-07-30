@@ -1,6 +1,7 @@
 """Memory creation and retrieval endpoints."""
 
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,6 +18,7 @@ from app.embeddings import (
 )
 from app.embeddings.openai_provider import validate_embedding
 from app.memory_quality.contradiction import detect_memory_contradictions
+from app.memory_quality.expiration import ExpirationConflict, classify_expiration
 from app.memory_quality.similarity import detect_similar_memories
 from app.memory_quality.supersession import (
     SupersessionConflict,
@@ -31,6 +33,7 @@ from app.schemas.memory import (
     MemoryContradictionCandidateRead,
     MemoryContradictionRead,
     MemoryCreate,
+    MemoryExpirationRead,
     MemoryFilters,
     MemoryRead,
     MemorySearchRequest,
@@ -67,6 +70,47 @@ def database_unavailable() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
+    )
+
+
+@router.post(
+    "/{memory_id}/expire",
+    response_model=MemoryExpirationRead,
+    responses={
+        404: {"description": "Memory not found"},
+        409: {"description": "Memory expiration conflict"},
+        503: {"description": "Database unavailable"},
+    },
+)
+def expire_memory(
+    memory_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> MemoryExpirationRead:
+    """Explicitly expire one active Memory."""
+
+    captured_at = datetime.now(UTC)
+    try:
+        memory = memory_repository.lock_memory(session, memory_id)
+        if memory is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="memory not found")
+        decision = classify_expiration(memory=memory, captured_at=captured_at)
+        if decision.status == "updated":
+            memory_repository.apply_memory_expiration(
+                memory=memory, expires_at=decision.expires_at
+            )
+        session.commit()
+        if decision.status == "updated":
+            session.refresh(memory)
+    except ExpirationConflict as conflict:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=conflict.detail) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise database_unavailable() from None
+    return MemoryExpirationRead(
+        expiration_status=decision.status,
+        memory=MemoryRead.model_validate(memory),
     )
 
 

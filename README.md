@@ -904,3 +904,41 @@ one-successor rule is transactionally enforced rather than backed by a new
 unique constraint, and inconsistent legacy state is reported as a conflict
 rather than repaired. No migration is required; Alembic head remains
 `0008_memory_proposals`.
+
+## Checkpoint 32: explicit Memory expiration
+
+Explicitly expire one active Memory without a request body:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  "http://127.0.0.1:8000/memories/<memory-uuid>/expire"
+```
+
+`POST /memories/{memory_id}/expire` returns the complete Memory with
+`expiration_status: updated` for the first eligible transition. It changes the
+status from `active` to `expired`. A null `expires_at` becomes the one UTC time
+captured for the request; a future value is replaced with that time; an equal or
+past value is preserved. Only status, `expires_at`, and the normal `updated_at`
+effect may change.
+
+Repeating a consistent expiration returns `unchanged` without a model write and
+preserves both `expires_at` and `updated_at`. Missing Memories return `404 memory
+not found`. Superseded, invalid, and archived Memories return `409 memory not
+eligible for expiration`; an expired Memory with a null timestamp returns `409
+memory expiration state is inconsistent`. Database failures return the generic
+503 response.
+
+The route locks the target PostgreSQL row and owns one transaction, so concurrent
+identical requests produce exactly one `updated` result and then `unchanged`
+results with one stable expiration timestamp. It never changes content,
+metadata, provenance, embeddings, proposals, projects, or supersession links.
+
+Expiration is human-controlled only. Passing `expires_at`, or allowing that time
+to pass, never changes status automatically. Search and retrieval do not process
+scheduled expiration. Similarity continues to accept an existing non-active
+target under its established behavior but considers only active candidates;
+contradiction detection requires an active target and active candidates.
+Scheduled expiration processing is deferred. Migration
+`0009_memory_expiration` only extends `ck_memories_status` with `expired`; its
+downgrade refuses to proceed while expired rows exist rather than rewriting
+them.

@@ -353,6 +353,70 @@ def test_supersede_database_failure_rolls_back_without_details(
     session.commit.assert_not_called()
 
 
+def test_expire_updates_once_and_unchanged_does_not_write(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    stored = memory()
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "lock_memory", Mock(return_value=stored)
+    )
+    apply = Mock(wraps=memory_routes.memory_repository.apply_memory_expiration)
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "apply_memory_expiration", apply
+    )
+    first = client.post(f"/memories/{stored.id}/expire")
+    assert first.status_code == 200
+    assert first.json()["expiration_status"] == "updated"
+    assert first.json()["memory"]["status"] == "expired"
+    apply.assert_called_once()
+    session.commit.assert_called_once_with()
+    first_timestamp = stored.expires_at
+    first_updated_at = stored.updated_at
+    session.reset_mock()
+    apply.reset_mock()
+    second = client.post(f"/memories/{stored.id}/expire")
+    assert second.json()["expiration_status"] == "unchanged"
+    assert (
+        stored.expires_at == first_timestamp and stored.updated_at == first_updated_at
+    )
+    apply.assert_not_called()
+    session.commit.assert_called_once_with()
+    session.refresh.assert_not_called()
+
+
+def test_expire_missing_conflict_and_database_failure_never_commit(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    lock = Mock(return_value=None)
+    monkeypatch.setattr(memory_routes.memory_repository, "lock_memory", lock)
+    response = client.post(f"/memories/{uuid.uuid4()}/expire")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "memory not found"}
+    session.rollback.assert_called_once_with()
+    session.commit.assert_not_called()
+
+    session.reset_mock()
+    stored = memory()
+    stored.status = "archived"
+    lock.return_value = stored
+    response = client.post(f"/memories/{stored.id}/expire")
+    assert response.status_code == 409
+    assert response.json() == {"detail": "memory not eligible for expiration"}
+    session.rollback.assert_called_once_with()
+    session.commit.assert_not_called()
+
+    session.reset_mock()
+    lock.side_effect = OperationalError("sensitive SQL", {}, Exception("secret"))
+    response = client.post(f"/memories/{stored.id}/expire")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "sensitive" not in response.text and "secret" not in response.text
+    session.rollback.assert_called_once_with()
+    session.commit.assert_not_called()
+
+
 def test_memory_paths_and_existing_endpoints_are_registered(
     route_client: tuple[TestClient, Mock],
 ) -> None:
@@ -366,6 +430,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memories/search",
         "/memories/{memory_id}",
         "/memories/{memory_id}/embedding",
+        "/memories/{memory_id}/expire",
         "/memories/{memory_id}/contradictions",
         "/memories/{memory_id}/similarities",
         "/memories/{memory_id}/supersede",
@@ -387,6 +452,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     assert set(paths["/memories/{memory_id}"]) == {"get"}
     supersede = paths["/memories/{memory_id}/supersede"]["post"]
     assert set(supersede["responses"]) == {"200", "404", "409", "422", "503"}
+    expire = paths["/memories/{memory_id}/expire"]["post"]
+    assert set(expire["responses"]) == {"200", "404", "409", "422", "503"}
     assert set(paths["/memories/{memory_id}/embedding"]) == {"post"}
     similarities = paths["/memories/{memory_id}/similarities"]["get"]
     assert set(similarities["responses"]) == {"200", "404", "422", "503"}

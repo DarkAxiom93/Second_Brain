@@ -46,7 +46,7 @@ class Memory(Base):
             name="ck_memories_confidence_range",
         ),
         CheckConstraint(
-            "status IN ('active', 'superseded', 'invalid', 'archived')",
+            "status IN ('active', 'superseded', 'invalid', 'archived', 'expired')",
             name="ck_memories_status",
         ),
         Index("ix_memories_search_vector", "search_vector", postgresql_using="gin"),

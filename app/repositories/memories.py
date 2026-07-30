@@ -286,6 +286,14 @@ def lock_memories(
     return {memory.id: memory for memory in session.scalars(statement).all()}
 
 
+def lock_memory(session: Session, memory_id: uuid.UUID) -> Memory | None:
+    """Lock one Memory row for a caller-owned transition transaction."""
+
+    return session.scalar(
+        select(Memory).where(Memory.id == memory_id).with_for_update()
+    )
+
+
 def lock_memory_successors(session: Session, older_id: uuid.UUID) -> list[Memory]:
     """Lock direct successors after the caller has serialized on the older row."""
 
@@ -323,6 +331,13 @@ def apply_memory_supersession(*, older: Memory, replacement: Memory) -> None:
 
     replacement.supersedes_id = older.id
     older.status = "superseded"
+
+
+def apply_memory_expiration(*, memory: Memory, expires_at: datetime) -> None:
+    """Apply only the intentional expiration fields without committing."""
+
+    memory.status = "expired"
+    memory.expires_at = expires_at
 
 
 def get_memory_embedding(

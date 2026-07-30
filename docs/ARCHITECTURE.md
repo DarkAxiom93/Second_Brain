@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0008_memory_proposals`.
+`0009_memory_expiration`.
 
 ## Components and data
 
@@ -33,6 +33,11 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   superseded while linking the active replacement. Deterministic row locking
   enforces one direct successor and idempotent concurrency without automatic
   contradiction resolution.
+- Memory expiration is an explicit human action on one active Memory. A row lock
+  makes the active-to-expired transition idempotent under concurrency; the
+  operation preserves an existing past expiration timestamp and replaces a null
+  or future timestamp with the request's captured UTC time. No scheduler changes
+  status merely because `expires_at` passes.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

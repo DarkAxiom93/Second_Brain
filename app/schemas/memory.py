@@ -22,11 +22,12 @@ MemoryType = Literal[
     "preference",
     "temporary",
 ]
-MemoryStatus = Literal["active", "superseded", "invalid", "archived"]
+MemoryStatus = Literal["active", "superseded", "invalid", "archived", "expired"]
 MemorySearchMode = Literal["semantic", "hybrid"]
 MemorySimilarityClassification = Literal["exact_duplicate", "similar"]
 MemoryContradictionEvidenceType = Literal["explicit_negation", "opposing_boolean_state"]
 MemorySupersessionStatus = Literal["updated", "unchanged"]
+MemoryExpirationStatus = Literal["updated", "unchanged"]
 
 
 class MemoryStructuredFilters(BaseModel):
@@ -201,6 +202,13 @@ class MemorySupersessionRead(BaseModel):
     supersession_status: MemorySupersessionStatus
     superseded_memory: MemoryRead
     replacement_memory: MemoryRead
+
+
+class MemoryExpirationRead(BaseModel):
+    """Public result of an explicit Memory expiration transition."""
+
+    expiration_status: MemoryExpirationStatus
+    memory: MemoryRead
 
 
 class MemorySimilarityCandidateRead(BaseModel):

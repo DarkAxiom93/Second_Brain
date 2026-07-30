@@ -7,14 +7,14 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0008_memory_proposals`. Checkpoints 1 through 31 are
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 32 are
 complete. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
 proposal generation, human review, explicit promotion, and reusable developer
 workflow documentation/scripts, advisory Memory duplicate/similarity detection,
 conservative explicit-polarity contradiction detection, and explicit Memory
-supersession. Endpoint categories
+supersession, and explicit Memory expiration. Endpoint categories
 are health/readiness,
 projects, Memories/search/embedding, sources/ingestion/proposal generation, and
 proposal review/promotion.
@@ -39,14 +39,22 @@ chains, enforces one direct successor under deterministic row locking, and is
 idempotent without timestamp writes. It never resolves contradictions
 automatically or rewrites content, provenance, proposals, or embeddings.
 
+Memory expiration is the human-controlled `POST /memories/{memory_id}/expire`
+action. It locks one row, transitions only an active Memory to `expired`, uses
+the request UTC time for a null or future `expires_at`, preserves an equal or
+past timestamp, and is idempotent without repeat timestamp writes. No scheduler
+or timestamp-passing behavior changes status automatically. Similarity keeps its
+existing non-active-target behavior while filtering candidates to active rows;
+contradiction detection requires active targets and candidates.
+
 Read `AGENTS.md` and stable docs before work. One checkpoint at a time; preserve
 exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 31, explicit Memory superseding. The next
-planned Memory Quality capability is expiration handling, followed by confidence
-and importance work, one approved checkpoint at a time. Attach the latest
+Most recently completed: Checkpoint 32, explicit Memory expiration. Scheduled
+expiration processing remains deferred; confidence and importance work follows,
+one approved checkpoint at a time. Attach the latest
 checkpoint report to the new conversation.
 
 ## Copy from PowerShell

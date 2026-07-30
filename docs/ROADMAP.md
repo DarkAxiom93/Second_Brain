@@ -10,8 +10,9 @@ explicit promotion into Memory.
 
 ## Memory quality
 
-Planned: duplicate detection, contradiction detection, superseding workflow,
-expiration handling, and confidence/importance refinement.
+Completed: duplicate detection, contradiction detection, explicit superseding,
+and explicit expiration. Planned: scheduled-expiration handling and
+confidence/importance refinement.
 
 ## Retrieval and answers
 
