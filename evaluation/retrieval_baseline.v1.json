@@ -1,0 +1,13 @@
+{
+  "dataset_version": "1.0",
+  "minimums": {
+    "lexical": {"hit_at_k": 1.0, "recall_at_k": 1.0, "mean_reciprocal_rank": 0.95},
+    "semantic": {"hit_at_k": 1.0, "recall_at_k": 1.0, "mean_reciprocal_rank": 0.95},
+    "hybrid": {"hit_at_k": 1.0, "recall_at_k": 1.0, "mean_reciprocal_rank": 0.90}
+  },
+  "verified_summary": {
+    "lexical": {"case_count": 7, "hit_at_k": 1.0, "recall_at_k": 1.0, "mean_reciprocal_rank": 1.0, "precision_at_k": 0.857143},
+    "semantic": {"case_count": 3, "hit_at_k": 1.0, "recall_at_k": 1.0, "mean_reciprocal_rank": 1.0, "precision_at_k": 0.555556},
+    "hybrid": {"case_count": 8, "hit_at_k": 1.0, "recall_at_k": 1.0, "mean_reciprocal_rank": 1.0, "precision_at_k": 0.4625}
+  }
+}

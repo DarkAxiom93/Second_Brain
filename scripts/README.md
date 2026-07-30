@@ -10,6 +10,7 @@ provider, or remove the PostgreSQL volume.
 ```powershell
 .\scripts\dev-up.ps1
 .\scripts\verify-databases.ps1
+.\scripts\evaluate-retrieval.ps1 -BaselineCheck
 .\scripts\verify.ps1 -Mode Full
 .\scripts\start-api.ps1 -Reload
 .\scripts\dev-down.ps1
@@ -60,3 +61,10 @@ execution:
 The tool refuses unsafe database identity, name/count mismatches, Memory links,
 and protected-row changes. It accepts no wildcard, name-only, arbitrary-table,
 or unbounded-delete mode.
+
+## Retrieval evaluation
+
+`evaluate-retrieval.ps1` runs the deterministic, transaction-rolled-back
+retrieval dataset only against `second_brain_test`. See
+`docs/RETRIEVAL_EVALUATION.md` for metrics, baseline policy, and optional JSON
+output.

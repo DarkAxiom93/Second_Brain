@@ -7,7 +7,7 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 34 are
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 35 are
 complete. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
@@ -67,12 +67,21 @@ updates supplied finite confidence and/or importance values in the inclusive
 equal requests return unchanged without writing. It makes no provider call,
 performs no automatic scoring, and changes no ranking policy.
 
+Retrieval quality evaluation is a developer-only, nine-case versioned harness
+for lexical, semantic, and hybrid active-Memory retrieval. It directly reuses
+production retrieval, uses fixed local 1536-dimensional vectors, and reports
+Hit@K, Recall@K, MRR, and Precision@K separately by mode. The PowerShell 5.1
+command verifies `second_brain_test`, creates fixtures inside one transaction,
+rolls back every application-table write, makes no provider call, and optionally
+writes JSON only to an explicit output path. Baseline checks use reviewed minimum
+thresholds and never update the checked-in baseline automatically.
+
 Read `AGENTS.md` and stable docs before work. One checkpoint at a time; preserve
 exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 34, evidence-backed Memory answers.
+Most recently completed: Checkpoint 35, retrieval quality evaluation harness.
 Scheduled expiration processing remains deferred. Continue one approved
 checkpoint at a time and attach the latest checkpoint report to the new
 conversation.

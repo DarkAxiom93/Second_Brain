@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "cases": [
+    {"case_id":"active_only","query":"release checklist","project_scope":"alpha","relevant":["active_release"],"irrelevant":["archived_release","expired_release","invalid_release","superseded_release"],"modes":["lexical","hybrid"],"limit":5},
+    {"case_id":"deterministic_tie","query":"identical ranking phrase","project_scope":"alpha","relevant":["tie_a","tie_b"],"modes":["lexical","semantic","hybrid"],"limit":2},
+    {"case_id":"exact_lexical","query":"cobalt lighthouse protocol","project_scope":"alpha","relevant":["lexical_exact"],"irrelevant":["lexical_distractor"],"modes":["lexical","hybrid"],"limit":3},
+    {"case_id":"hybrid_distractor","query":"quarterly retention forecast","project_scope":"alpha","relevant":["hybrid_target"],"irrelevant":["hybrid_distractor"],"modes":["hybrid"],"limit":2},
+    {"case_id":"multiple_relevant","query":"incident response handbook","project_scope":"alpha","relevant":["incident_primary","incident_secondary"],"modes":["lexical","hybrid"],"limit":3},
+    {"case_id":"no_relevant","query":"nonexistent zephyr marsupial","project_scope":"alpha","relevant":[],"modes":["lexical"],"limit":3},
+    {"case_id":"paraphrase_semantic","query":"where are customer backups kept","project_scope":"alpha","relevant":["semantic_backup"],"modes":["semantic","hybrid"],"limit":3},
+    {"case_id":"project_isolation","query":"private alpha roadmap","project_scope":"alpha","relevant":["alpha_roadmap"],"irrelevant":["beta_roadmap"],"modes":["lexical","semantic","hybrid"],"limit":3},
+    {"case_id":"unassigned_memory","query":"unassigned orchid note","relevant":["unassigned_note"],"modes":["lexical","hybrid"],"limit":3}
+  ]
+}
