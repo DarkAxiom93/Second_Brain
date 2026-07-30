@@ -27,6 +27,12 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   reports only deterministic English explicit-negation or opposing-boolean-state
   pairs whose remaining normalized proposition anchors match exactly. It is
   advisory, non-exhaustive, provider-free, and never persists its results.
+- Memory supersession is an explicit human action between two existing active
+  Memories in equal nullable project scope. It preserves provenance and content,
+  supports acyclic predecessor chains, and atomically marks only the older row
+  superseded while linking the active replacement. Deterministic row locking
+  enforces one direct successor and idempotent concurrency without automatic
+  contradiction resolution.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

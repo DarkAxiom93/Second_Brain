@@ -18,6 +18,10 @@ from app.embeddings import (
 from app.embeddings.openai_provider import validate_embedding
 from app.memory_quality.contradiction import detect_memory_contradictions
 from app.memory_quality.similarity import detect_similar_memories
+from app.memory_quality.supersession import (
+    SupersessionConflict,
+    classify_supersession,
+)
 from app.models.memory import Memory
 from app.models.memory_source import MemorySource
 from app.repositories import memories as memory_repository
@@ -32,6 +36,8 @@ from app.schemas.memory import (
     MemorySearchRequest,
     MemorySimilarityCandidateRead,
     MemorySimilarityRead,
+    MemorySupersedeRequest,
+    MemorySupersessionRead,
 )
 from app.schemas.memory_embedding import MemoryEmbeddingRead
 from app.schemas.source import (
@@ -61,6 +67,68 @@ def database_unavailable() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
+    )
+
+
+@router.post(
+    "/{memory_id}/supersede",
+    response_model=MemorySupersessionRead,
+    responses={
+        404: {"description": "Memory not found"},
+        409: {"description": "Supersession conflict"},
+        503: {"description": "Database unavailable"},
+    },
+)
+def supersede_memory(
+    memory_id: uuid.UUID,
+    request: MemorySupersedeRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> MemorySupersessionRead:
+    """Explicitly supersede an older Memory with an existing replacement."""
+
+    if memory_id == request.replacement_memory_id:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="memory cannot supersede itself")
+    try:
+        locked = memory_repository.lock_memories(
+            session, {memory_id, request.replacement_memory_id}
+        )
+        older = locked.get(memory_id)
+        replacement = locked.get(request.replacement_memory_id)
+        if older is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="older memory not found")
+        if replacement is None:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="replacement memory not found")
+        successors = memory_repository.lock_memory_successors(session, older.id)
+        creates_cycle = memory_repository.predecessor_chain_contains(
+            session, start_id=older.id, sought_id=replacement.id
+        )
+        transition = classify_supersession(
+            older=older,
+            replacement=replacement,
+            existing_successors=successors,
+            creates_cycle=creates_cycle,
+        )
+        if transition == "updated":
+            memory_repository.apply_memory_supersession(
+                older=older, replacement=replacement
+            )
+        session.commit()
+        if transition == "updated":
+            session.refresh(older)
+            session.refresh(replacement)
+    except SupersessionConflict as conflict:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=conflict.detail) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise database_unavailable() from None
+    return MemorySupersessionRead(
+        supersession_status=transition,
+        superseded_memory=MemoryRead.model_validate(older),
+        replacement_memory=MemoryRead.model_validate(replacement),
     )
 
 

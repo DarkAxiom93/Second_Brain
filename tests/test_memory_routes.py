@@ -314,6 +314,45 @@ def test_memory_retrieval_database_failure_returns_generic_503(
     assert "sensitive" not in response.text and "secret" not in response.text
 
 
+def test_supersede_self_rejects_before_repository_work(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    memory_id = uuid.uuid4()
+    lock = Mock()
+    monkeypatch.setattr(memory_routes.memory_repository, "lock_memories", lock)
+    response = client.post(
+        f"/memories/{memory_id}/supersede",
+        json={"replacement_memory_id": str(memory_id)},
+    )
+    assert response.status_code == 409
+    assert response.json() == {"detail": "memory cannot supersede itself"}
+    lock.assert_not_called()
+    session.rollback.assert_called_once_with()
+    session.commit.assert_not_called()
+
+
+def test_supersede_database_failure_rolls_back_without_details(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    failure = OperationalError("sensitive SQL", {}, Exception("password=secret"))
+    monkeypatch.setattr(
+        memory_routes.memory_repository,
+        "lock_memories",
+        Mock(side_effect=failure),
+    )
+    response = client.post(
+        f"/memories/{uuid.uuid4()}/supersede",
+        json={"replacement_memory_id": str(uuid.uuid4())},
+    )
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "sensitive" not in response.text and "secret" not in response.text
+    session.rollback.assert_called_once_with()
+    session.commit.assert_not_called()
+
+
 def test_memory_paths_and_existing_endpoints_are_registered(
     route_client: tuple[TestClient, Mock],
 ) -> None:
@@ -329,6 +368,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/contradictions",
         "/memories/{memory_id}/similarities",
+        "/memories/{memory_id}/supersede",
         "/memories/{memory_id}/sources",
         "/memory-proposals",
         "/memory-proposals/{proposal_id}",
@@ -345,6 +385,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     assert set(paths["/memories"]) == {"get", "post"}
     assert set(paths["/memories/search"]) == {"post"}
     assert set(paths["/memories/{memory_id}"]) == {"get"}
+    supersede = paths["/memories/{memory_id}/supersede"]["post"]
+    assert set(supersede["responses"]) == {"200", "404", "409", "422", "503"}
     assert set(paths["/memories/{memory_id}/embedding"]) == {"post"}
     similarities = paths["/memories/{memory_id}/similarities"]["get"]
     assert set(similarities["responses"]) == {"200", "404", "422", "503"}

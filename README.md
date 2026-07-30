@@ -867,3 +867,40 @@ update embeddings. General antonyms, scalar conflicts, inferred context,
 approximate anchors, stemming, temporal reasoning beyond the structured-time
 exclusion, multilingual rules, and provider-assisted reasoning are deferred.
 No migration is required; Alembic head remains `0008_memory_proposals`.
+
+## Checkpoint 31: explicit Memory superseding
+
+Declare that an existing active replacement Memory supersedes an existing active
+older Memory:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/memories/<older-memory-uuid>/supersede" `
+  -ContentType "application/json" `
+  -Body '{"replacement_memory_id":"<replacement-memory-uuid>"}'
+```
+
+The older Memory is always the path identifier and the replacement is always in
+the body. Both must be distinct and active for the first transition, and their
+nullable project scopes must be equal: the same project, or both unassigned.
+Success stores the older identifier in `replacement.supersedes_id`, changes only
+the older status to `superseded`, preserves the replacement as `active`, and
+returns the complete two public Memories with `supersession_status: updated`.
+
+Repeating that exact consistent request returns `unchanged` without a model
+write or timestamp change. An older Memory may have only one direct successor;
+a replacement may retain only its existing single predecessor. Multi-level
+chains such as `A <- B <- C` are allowed, but self-links and direct or indirect
+cycles are rejected. The transaction locks requested rows in UUID order and
+serializes successor checks on the older row, so identical concurrent requests
+converge on one relationship and competing replacements cannot overwrite it.
+
+This workflow is explicitly human-controlled. Contradiction detection,
+ingestion, proposal review/promotion, creation, and search never invoke it
+automatically. Superseding does not copy or rewrite content, metadata,
+provenance links, proposals, or embeddings. Current limitations are that the
+one-successor rule is transactionally enforced rather than backed by a new
+unique constraint, and inconsistent legacy state is reported as a conflict
+rather than repaired. No migration is required; Alembic head remains
+`0008_memory_proposals`.

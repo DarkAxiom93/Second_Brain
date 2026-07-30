@@ -26,6 +26,7 @@ MemoryStatus = Literal["active", "superseded", "invalid", "archived"]
 MemorySearchMode = Literal["semantic", "hybrid"]
 MemorySimilarityClassification = Literal["exact_duplicate", "similar"]
 MemoryContradictionEvidenceType = Literal["explicit_negation", "opposing_boolean_state"]
+MemorySupersessionStatus = Literal["updated", "unchanged"]
 
 
 class MemoryStructuredFilters(BaseModel):
@@ -184,6 +185,22 @@ class MemoryRead(BaseModel):
         if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("timestamp must be timezone-aware")
         return value
+
+
+class MemorySupersedeRequest(BaseModel):
+    """Identify the existing active Memory that replaces the path Memory."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    replacement_memory_id: uuid.UUID
+
+
+class MemorySupersessionRead(BaseModel):
+    """Public result of an explicit Memory supersession transition."""
+
+    supersession_status: MemorySupersessionStatus
+    superseded_memory: MemoryRead
+    replacement_memory: MemoryRead
 
 
 class MemorySimilarityCandidateRead(BaseModel):

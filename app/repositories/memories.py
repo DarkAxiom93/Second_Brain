@@ -272,6 +272,59 @@ def get_memory(session: Session, memory_id: uuid.UUID) -> Memory | None:
     return session.scalar(select(Memory).where(Memory.id == memory_id))
 
 
+def lock_memories(
+    session: Session, memory_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, Memory]:
+    """Lock requested Memory rows in deterministic UUID order."""
+
+    statement = (
+        select(Memory)
+        .where(Memory.id.in_(memory_ids))
+        .order_by(Memory.id.asc())
+        .with_for_update()
+    )
+    return {memory.id: memory for memory in session.scalars(statement).all()}
+
+
+def lock_memory_successors(session: Session, older_id: uuid.UUID) -> list[Memory]:
+    """Lock direct successors after the caller has serialized on the older row."""
+
+    statement = (
+        select(Memory)
+        .where(Memory.supersedes_id == older_id)
+        .order_by(Memory.id.asc())
+        .with_for_update()
+    )
+    return list(session.scalars(statement).all())
+
+
+def predecessor_chain_contains(
+    session: Session, *, start_id: uuid.UUID, sought_id: uuid.UUID
+) -> bool:
+    """Return whether sought_id occurs in the complete predecessor ancestry."""
+
+    ancestry = (
+        select(Memory.id, Memory.supersedes_id)
+        .where(Memory.id == start_id)
+        .cte("memory_ancestry", recursive=True)
+    )
+    parent = Memory.__table__.alias("memory_parent")
+    ancestry = ancestry.union(
+        select(parent.c.id, parent.c.supersedes_id).join(
+            ancestry, parent.c.id == ancestry.c.supersedes_id
+        )
+    )
+    statement = select(ancestry.c.id).where(ancestry.c.id == sought_id).limit(1)
+    return session.scalar(statement) is not None
+
+
+def apply_memory_supersession(*, older: Memory, replacement: Memory) -> None:
+    """Apply the two intentional model changes without flushing or committing."""
+
+    replacement.supersedes_id = older.id
+    older.status = "superseded"
+
+
 def get_memory_embedding(
     session: Session, memory_id: uuid.UUID
 ) -> MemoryEmbedding | None:
