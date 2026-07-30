@@ -327,6 +327,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memories/search",
         "/memories/{memory_id}",
         "/memories/{memory_id}/embedding",
+        "/memories/{memory_id}/contradictions",
         "/memories/{memory_id}/similarities",
         "/memories/{memory_id}/sources",
         "/memory-proposals",
@@ -351,6 +352,12 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     assert limit["schema"]["default"] == 10
     assert limit["schema"]["minimum"] == 1
     assert limit["schema"]["maximum"] == 50
+    contradictions = paths["/memories/{memory_id}/contradictions"]["get"]
+    assert set(contradictions["responses"]) == {"200", "404", "422", "503"}
+    contradiction_limit = next(
+        item for item in contradictions["parameters"] if item["name"] == "limit"
+    )
+    assert contradiction_limit["schema"] == limit["schema"]
     assert client.get("/api/memories").status_code == 404
 
 
@@ -367,3 +374,20 @@ def test_similarity_database_failure_is_generic_and_never_commits(
     assert response.json() == {"detail": "database unavailable"}
     assert "sensitive" not in response.text and "secret" not in response.text
     session.commit.assert_not_called()
+    session.flush.assert_not_called()
+
+
+def test_contradiction_database_failure_is_generic_and_never_commits(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    failure = OperationalError("sensitive SQL", {}, Exception("password=secret"))
+    monkeypatch.setattr(
+        memory_routes.memory_repository, "get_memory", Mock(side_effect=failure)
+    )
+    response = client.get(f"/memories/{uuid.uuid4()}/contradictions")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "sensitive" not in response.text and "secret" not in response.text
+    session.commit.assert_not_called()
+    session.flush.assert_not_called()

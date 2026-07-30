@@ -23,6 +23,10 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   only when provider, model, and dimensions match, but never generates them or
   modifies a Memory. Exact equality is queried independently; advisory similar
   discovery uses bounded relevance-ranked lexical and semantic pools.
+- Contradiction detection reuses those same scoped, bounded candidate pools and
+  reports only deterministic English explicit-negation or opposing-boolean-state
+  pairs whose remaining normalized proposition anchors match exactly. It is
+  advisory, non-exhaustive, provider-free, and never persists its results.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

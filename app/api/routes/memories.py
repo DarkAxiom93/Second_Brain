@@ -16,6 +16,7 @@ from app.embeddings import (
     get_embedding_provider,
 )
 from app.embeddings.openai_provider import validate_embedding
+from app.memory_quality.contradiction import detect_memory_contradictions
 from app.memory_quality.similarity import detect_similar_memories
 from app.models.memory import Memory
 from app.models.memory_source import MemorySource
@@ -23,6 +24,8 @@ from app.repositories import memories as memory_repository
 from app.repositories import memory_embeddings as embedding_repository
 from app.repositories import sources as source_repository
 from app.schemas.memory import (
+    MemoryContradictionCandidateRead,
+    MemoryContradictionRead,
     MemoryCreate,
     MemoryFilters,
     MemoryRead,
@@ -58,6 +61,46 @@ def database_unavailable() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
+    )
+
+
+@router.get(
+    "/{memory_id}/contradictions",
+    response_model=MemoryContradictionRead,
+    responses={
+        404: {"description": "Memory not found"},
+        503: {"description": "Database unavailable"},
+    },
+)
+def get_memory_contradictions(
+    memory_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+) -> MemoryContradictionRead:
+    """Return bounded English-only explicit-polarity evidence without mutation."""
+
+    try:
+        target = memory_repository.get_memory(session, memory_id)
+        if target is None or target.status != "active":
+            raise HTTPException(status_code=404, detail="memory not found")
+        candidates = detect_memory_contradictions(session, target=target, limit=limit)
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+    return MemoryContradictionRead(
+        target_memory_id=target.id,
+        candidates=[
+            MemoryContradictionCandidateRead(
+                memory_id=item.memory.id,
+                classification=item.classification,
+                evidence_type=item.evidence_type,
+                reason=item.reason,
+                lexical_similarity=item.lexical_similarity,
+                semantic_similarity=item.semantic_similarity,
+                target_state=item.target_state,
+                candidate_state=item.candidate_state,
+            )
+            for item in candidates
+        ],
     )
 
 

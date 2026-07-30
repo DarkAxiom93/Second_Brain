@@ -25,6 +25,7 @@ MemoryType = Literal[
 MemoryStatus = Literal["active", "superseded", "invalid", "archived"]
 MemorySearchMode = Literal["semantic", "hybrid"]
 MemorySimilarityClassification = Literal["exact_duplicate", "similar"]
+MemoryContradictionEvidenceType = Literal["explicit_negation", "opposing_boolean_state"]
 
 
 class MemoryStructuredFilters(BaseModel):
@@ -200,3 +201,23 @@ class MemorySimilarityRead(BaseModel):
 
     target_memory_id: uuid.UUID
     candidates: list[MemorySimilarityCandidateRead]
+
+
+class MemoryContradictionCandidateRead(BaseModel):
+    """Public deterministic evidence for a potential contradiction."""
+
+    memory_id: uuid.UUID
+    classification: Literal["potential_contradiction"]
+    evidence_type: MemoryContradictionEvidenceType
+    reason: str
+    lexical_similarity: float | None
+    semantic_similarity: float | None
+    target_state: str
+    candidate_state: str
+
+
+class MemoryContradictionRead(BaseModel):
+    """Read-only advisory contradiction result for one target Memory."""
+
+    target_memory_id: uuid.UUID
+    candidates: list[MemoryContradictionCandidateRead]

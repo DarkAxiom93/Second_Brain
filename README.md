@@ -828,3 +828,42 @@ both exact and similar results, including when more exact duplicates exist than
 requested. Exact duplicates sort first, then stronger semantic evidence,
 stronger lexical evidence, and UUID ascending. No migration is required;
 Alembic head remains `0008_memory_proposals`.
+
+## Checkpoint 29: advisory Memory contradiction detection
+
+Inspect one active Memory for conservative potential contradictions:
+
+```powershell
+Invoke-RestMethod `
+  "http://127.0.0.1:8000/memories/<memory-uuid>/contradictions?limit=10"
+```
+
+`GET /memories/{memory_id}/contradictions` uses the similarities endpoint's
+default limit 10 and range 1..50. It returns `200` for a valid result, `404
+memory not found` for a missing or inactive target, 422 for invalid input, and
+the generic 503 database response when PostgreSQL is unavailable.
+
+V1 is English-only and recognizes only `is/is not`, `are/are not`, `was/was
+not`, `were/were not`, `can/cannot`, `can/can not`, and the state pairs
+`enabled/disabled`, `active/inactive`, `true/false`, `on/off`, and
+`available/unavailable`. The opposing markers must begin at the same token
+position and removing them must leave exactly the same case-folded proposition
+anchor after conservative ASCII-whitespace and surrounding-punctuation
+normalization. Subject, attribute, qualifiers, identifier numbers, and token
+order remain significant. Pairs with differing non-null structured
+`event_time` values are excluded.
+
+Results are `potential_contradiction` evidence for human review, never confirmed
+contradictions. Project/null-project isolation, active candidate filtering,
+self-exclusion, exact-duplicate exclusion, and bounded lexical and compatible
+stored-embedding retrieval are inherited from similarity detection. Evidence
+category precedes semantic score (descending, null last), lexical score
+(descending, null last), and UUID in ordering; the public limit is applied only
+after contradiction evaluation. Because each retrieval branch is bounded to
+250 rows, results are advisory and potentially non-exhaustive.
+
+The endpoint makes no provider call, writes nothing, and does not create or
+update embeddings. General antonyms, scalar conflicts, inferred context,
+approximate anchors, stemming, temporal reasoning beyond the structured-time
+exclusion, multilingual rules, and provider-assisted reasoning are deferred.
+No migration is required; Alembic head remains `0008_memory_proposals`.

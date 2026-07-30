@@ -34,6 +34,15 @@ class SimilarityCandidate:
     reason: str
 
 
+@dataclass(frozen=True)
+class SimilarityCandidatePool:
+    """Bounded retrieval evidence shared by read-only quality policies."""
+
+    memories: dict[uuid.UUID, Memory]
+    exact_ids: frozenset[uuid.UUID]
+    semantic_scores: dict[uuid.UUID, float]
+
+
 def _tokens(content: str) -> frozenset[str]:
     return frozenset(token.casefold() for token in _TOKEN.findall(content))
 
@@ -69,17 +78,16 @@ def _candidate_sort_key(
     )
 
 
-def detect_similar_memories(
-    session: Session, *, target: Memory, limit: int
-) -> list[SimilarityCandidate]:
-    """Classify bounded same-project candidates without modifying persistence."""
-
+def collect_similarity_candidate_pool(
+    session: Session, *, target: Memory, exact_limit: int
+) -> SimilarityCandidatePool:
+    """Collect bounded same-scope candidates without classification or mutation."""
     normalized_target = normalize_exact_content(target.content)
     exact_rows = memory_repository.list_exact_duplicate_candidates(
         session,
         target=target,
         normalized_content=normalized_target,
-        limit=limit,
+        limit=exact_limit,
     )
     candidates: dict[uuid.UUID, Memory] = {row.id: row for row in exact_rows}
     exact_ids = set(candidates)
@@ -112,13 +120,28 @@ def detect_similar_memories(
             candidates[row.id] = row
             semantic_scores[row.id] = score
 
+    return SimilarityCandidatePool(
+        memories=candidates,
+        exact_ids=frozenset(exact_ids),
+        semantic_scores=semantic_scores,
+    )
+
+
+def detect_similar_memories(
+    session: Session, *, target: Memory, limit: int
+) -> list[SimilarityCandidate]:
+    """Classify bounded same-project candidates without modifying persistence."""
+
+    pool = collect_similarity_candidate_pool(session, target=target, exact_limit=limit)
+    target_tokens = _tokens(target.content)
+
     results: list[SimilarityCandidate] = []
-    for memory_id, memory in candidates.items():
+    for memory_id, memory in pool.memories.items():
         lexical_score, shared_tokens = _lexical_similarity(
             target_tokens, memory.content
         )
-        semantic_score = semantic_scores.get(memory_id)
-        if memory_id in exact_ids:
+        semantic_score = pool.semantic_scores.get(memory_id)
+        if memory_id in pool.exact_ids:
             results.append(
                 SimilarityCandidate(
                     memory=memory,
