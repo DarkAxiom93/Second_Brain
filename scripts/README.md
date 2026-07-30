@@ -21,6 +21,19 @@ Quick for documentation preflight and is never final approval. `start-api.ps1`
 does not start Docker or migrate the database. Its optional `-DatabaseUrl`
 override exists for identity/refusal testing and is never printed.
 
+`verify.ps1` launches every external verification stage through the shared
+Windows PowerShell 5.1-compatible isolated-process helper. The helper redirects
+all three standard streams, closes child stdin, drains stdout and stderr
+concurrently, waits for completion, preserves the real exit code and output,
+and disposes the process before the next stage. Maintainers must not mix native
+PowerShell pipelines or inherited host handles into this lifecycle. Run the
+focused process checks with:
+
+```powershell
+powershell.exe -NoLogo -NoProfile -NonInteractive `
+  -File .\scripts\tests\verify-process.ps1
+```
+
 ## Narrow smoke cleanup
 
 Capture the exact UUID and unique temporary name during the same smoke run.

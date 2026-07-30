@@ -22,6 +22,14 @@ and excludes the migration lifecycle file; Full remains authoritative.
 `-SkipDatabase` is documentation-only preflight and is insufficient for final
 approval.
 
+On Windows, each external Full stage must run to completion in an isolated
+process with redirected stdin, stdout, and stderr. Both output streams must be
+drained concurrently before deterministic process disposal; the real exit code
+must stop verification on failure. Do not replace this with native output
+pipelines, inherited host standard handles, sleeps, retries, or suppressed
+stderr. The helper and its focused checks remain Windows PowerShell 5.1
+compatible.
+
 Live Uvicorn smoke testing is required when startup, routing, dependency wiring,
 or public behavior changes; documentation/script-only changes need safe script
 behavior checks instead. Provider calls must be faked unless explicitly

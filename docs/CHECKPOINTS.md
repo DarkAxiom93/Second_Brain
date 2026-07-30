@@ -33,7 +33,8 @@ history. A dash means Alembic had not yet been introduced.
 | 26 | Explicit proposal promotion | Complete | `0008_memory_proposals` | `0092ded` |
 | 27 | Developer workflow and safety automation | Complete | `0008_memory_proposals` | This commit |
 | 28 | Memory duplicate and similarity detection | Complete | `0008_memory_proposals` | `12d39bf` |
-| 29 | Advisory Memory contradiction detection | Complete | `0008_memory_proposals` | Pending review |
+| 29 | Advisory Memory contradiction detection | Complete | `0008_memory_proposals` | `4a96e56` |
+| 30 | Windows Full verification process reliability | Complete | `0008_memory_proposals` | Pending review |
 
 ## Standard lifecycle
 
