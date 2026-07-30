@@ -7,7 +7,7 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 33 are
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 34 are
 complete. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
@@ -19,6 +19,18 @@ refinement. Endpoint categories
 are health/readiness,
 projects, Memories/search/embedding, sources/ingestion/proposal generation, and
 proposal review/promotion.
+
+`POST /answers` explicitly answers one trimmed question from a single bounded
+active-Memory lexical, semantic, or hybrid retrieval (hybrid default), with an
+optional project filter. Evidence receives deterministic M1..Mn labels and is
+bounded to 2,000 characters per Memory and 12,000 characters total. Provider
+output is strictly typed and capped; only validated cited Memories are returned,
+in retrieval order, with separate nullable lexical and semantic scores. Empty
+retrieval returns deterministic `insufficient_evidence` without resolving an
+answer provider. Memory text is untrusted evidence, never instructions. The
+operation commits nothing and stores no query, answer, prompt, conversation, or
+history. There is no chat follow-up, agent, tool use, web access, or external
+source retrieval.
 
 Duplicate detection uses exhaustive normalized equality within the target's
 project scope before the requested result limit. Similar-candidate discovery is
@@ -60,7 +72,7 @@ exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 33, explicit Memory quality refinement.
+Most recently completed: Checkpoint 34, evidence-backed Memory answers.
 Scheduled expiration processing remains deferred. Continue one approved
 checkpoint at a time and attach the latest checkpoint report to the new
 conversation.

@@ -16,8 +16,8 @@ scheduled-expiration handling.
 
 ## Retrieval and answers
 
-Planned: evidence-backed question answering, citations, result explanations,
-and retrieval-quality evaluation.
+Completed: explicit evidence-backed question answering with validated Memory
+citations. Planned: result explanations and retrieval-quality evaluation.
 
 ## Operations
 

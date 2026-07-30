@@ -15,6 +15,7 @@ ExtractionPromptVersion = Annotated[
 ]
 ExtractionTimeout = Annotated[float, Field(gt=0, le=300)]
 ExtractionMaxOutputTokens = Annotated[int, Field(ge=1, le=32000)]
+AnswerMaxOutputTokens = Annotated[int, Field(ge=1, le=4000)]
 
 
 class Settings(BaseSettings):
@@ -55,6 +56,10 @@ class Settings(BaseSettings):
     extraction_prompt_version: ExtractionPromptVersion = "memory_proposals_v1"
     extraction_timeout_seconds: ExtractionTimeout = 60
     extraction_max_output_tokens: ExtractionMaxOutputTokens = 8000
+    answer_provider: Literal["openai"] = "openai"
+    answer_model: NonBlankString = "gpt-5.6-terra"
+    answer_timeout_seconds: ExtractionTimeout = 60
+    answer_max_output_tokens: AnswerMaxOutputTokens = 1200
 
     @field_validator("postgres_password", mode="before")
     @classmethod

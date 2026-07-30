@@ -38,6 +38,7 @@ history. A dash means Alembic had not yet been introduced.
 | 31 | Explicit Memory superseding workflow | Complete | `0008_memory_proposals` | `af9e56f` |
 | 32 | Explicit Memory expiration workflow | Complete | `0009_memory_expiration` | `7b34eb6` |
 | 33 | Explicit Memory quality refinement | Complete | `0009_memory_expiration` | Pending review |
+| 34 | Evidence-backed Memory answers | Complete | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

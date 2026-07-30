@@ -968,3 +968,30 @@ not alter any ranking policy. Current limitations are that refinement is
 single-Memory only and retains the existing binary floating-point database
 representation. No migration is required; Alembic head remains
 `0009_memory_expiration`.
+
+## Checkpoint 34: evidence-backed Memory answers
+
+`POST /answers` accepts a required question (`query`, trimmed, 1–500
+characters), optional `project_id`, `search_mode` (`lexical`, `semantic`, or
+`hybrid`, default `hybrid`), and `limit` (1–20, default 10). Unknown fields are
+rejected. Retrieval uses the existing deterministic active-Memory search rules
+and nullable-project/project filtering; an unknown project simply yields no
+evidence.
+
+The provider receives only deterministic `M1`…`Mn` evidence blocks, capped at
+2,000 characters per Memory and 12,000 characters total. Memory content is
+untrusted evidence: embedded instructions are ignored, and the provider may use
+no general knowledge, tools, web content, or external sources. Output is capped
+by project configuration and must strictly report `answered` with at least one
+valid evidence label, or `insufficient_evidence` with no labels. Duplicate
+labels are deduplicated; unknown labels fail generically. Returned citations
+preserve retrieval order and include the full public Memory plus separate
+nullable lexical and semantic scores.
+
+When retrieval is empty, the API returns HTTP 200 with a deterministic
+`insufficient_evidence` message and no citations without resolving the answer
+provider. Semantic and hybrid modes require the configured embedding provider;
+lexical mode does not. The operation is stateless and read-only: it commits no
+transaction and persists no question, answer, conversation, retrieval history,
+query embedding, usage counter, or search statistic. It is not chat and has no
+follow-up history, agent framework, tool calling, or document/chunk retrieval.

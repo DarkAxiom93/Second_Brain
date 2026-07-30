@@ -18,6 +18,10 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   `MemoryProposal` stores immutable evidence snapshots and review state.
 - Memory retrieval supports lexical PostgreSQL text search, semantic pgvector
   search, and hybrid Reciprocal Rank Fusion (RRF).
+- Evidence-backed answers are stateless, read-only operations over one bounded
+  active-Memory retrieval. A strict answer provider may cite only deterministic
+  evidence labels; questions, answers, prompts, and retrieval history are not
+  persisted.
 - Memory quality detection performs advisory, read-only exact and similar
   candidate classification within one project. It may read existing embeddings
   only when provider, model, and dimensions match, but never generates them or

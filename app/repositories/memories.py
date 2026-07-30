@@ -1,6 +1,7 @@
 """Persistence operations for memories."""
 
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import Select, func, literal, select, union
@@ -11,6 +12,13 @@ from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.models.project import Project
 from app.schemas.memory import MemoryCreate, MemoryStatus, MemoryType
+
+
+@dataclass(frozen=True)
+class ScoredMemory:
+    memory: Memory
+    lexical_score: float | None
+    semantic_score: float | None
 
 
 def _apply_structured_filters(
@@ -264,6 +272,103 @@ def search_memories_hybrid(
         .limit(limit)
     )
     return list(session.scalars(statement).all())
+
+
+def search_answer_evidence(
+    session: Session,
+    *,
+    query: str,
+    mode: str,
+    project_id: uuid.UUID | None,
+    limit: int,
+    query_vector: list[float] | None,
+) -> list[ScoredMemory]:
+    """Retrieve one bounded, active-only scored evidence set."""
+
+    project_filter = Memory.project_id == project_id if project_id is not None else None
+    active_filters = [Memory.status == "active"]
+    if project_filter is not None:
+        active_filters.append(project_filter)
+    search_query = func.websearch_to_tsquery("simple", query)
+    lexical_score = func.ts_rank_cd(Memory.search_vector, search_query)
+
+    if mode == "lexical":
+        statement = (
+            select(Memory, lexical_score)
+            .where(Memory.search_vector.bool_op("@@")(search_query), *active_filters)
+            .order_by(lexical_score.desc(), Memory.created_at.desc(), Memory.id.asc())
+            .limit(limit)
+        )
+        return [
+            ScoredMemory(row[0], float(row[1]), None)
+            for row in session.execute(statement)
+        ]
+
+    if query_vector is None:
+        raise ValueError("semantic retrieval requires a query vector")
+    distance = MemoryEmbedding.embedding.cosine_distance(query_vector)
+    semantic_score = (literal(1.0) - distance).label("semantic_score")
+    if mode == "semantic":
+        statement = (
+            select(Memory, semantic_score)
+            .join(MemoryEmbedding)
+            .where(*active_filters)
+            .order_by(distance.asc(), Memory.created_at.desc(), Memory.id.asc())
+            .limit(limit)
+        )
+        return [
+            ScoredMemory(row[0], None, float(row[1]))
+            for row in session.execute(statement)
+        ]
+
+    candidate_limit = min(1000, max(100, limit * 5))
+    lexical_order = (lexical_score.desc(), Memory.created_at.desc(), Memory.id.asc())
+    lexical = (
+        select(
+            Memory.id.label("memory_id"),
+            lexical_score.label("lexical_score"),
+            func.row_number().over(order_by=lexical_order).label("lexical_rank"),
+        )
+        .where(Memory.search_vector.bool_op("@@")(search_query), *active_filters)
+        .order_by(*lexical_order)
+        .limit(candidate_limit)
+        .cte("answer_lexical")
+    )
+    semantic_order = (distance.asc(), Memory.created_at.desc(), Memory.id.asc())
+    semantic = (
+        select(
+            Memory.id.label("memory_id"),
+            semantic_score,
+            func.row_number().over(order_by=semantic_order).label("semantic_rank"),
+        )
+        .join(MemoryEmbedding)
+        .where(*active_filters)
+        .order_by(*semantic_order)
+        .limit(candidate_limit)
+        .cte("answer_semantic")
+    )
+    ids = union(select(lexical.c.memory_id), select(semantic.c.memory_id)).cte(
+        "answer_ids"
+    )
+    rrf = func.coalesce(
+        literal(1.0) / (literal(60) + lexical.c.lexical_rank), 0.0
+    ) + func.coalesce(literal(1.0) / (literal(60) + semantic.c.semantic_rank), 0.0)
+    statement = (
+        select(Memory, lexical.c.lexical_score, semantic.c.semantic_score)
+        .join(ids, ids.c.memory_id == Memory.id)
+        .outerjoin(lexical, lexical.c.memory_id == ids.c.memory_id)
+        .outerjoin(semantic, semantic.c.memory_id == ids.c.memory_id)
+        .order_by(rrf.desc(), Memory.created_at.desc(), Memory.id.asc())
+        .limit(limit)
+    )
+    return [
+        ScoredMemory(
+            row[0],
+            float(row[1]) if row[1] is not None else None,
+            float(row[2]) if row[2] is not None else None,
+        )
+        for row in session.execute(statement)
+    ]
 
 
 def get_memory(session: Session, memory_id: uuid.UUID) -> Memory | None:

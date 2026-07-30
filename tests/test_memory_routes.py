@@ -480,6 +480,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     client, _ = route_client
     paths = client.app.openapi()["paths"]
     assert set(paths) == {
+        "/answers",
         "/health",
         "/ready",
         "/projects",
