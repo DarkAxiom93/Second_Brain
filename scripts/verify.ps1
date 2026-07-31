@@ -10,6 +10,36 @@ $python = Join-Path $repoRoot ".venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python)) { throw "Project Python was not found." }
 . (Join-Path $PSScriptRoot "Invoke-IsolatedProcess.ps1")
 
+$pytestTempPrefix = "second-brain-pytest-"
+$tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd("\", "/")
+$pytestRunId = [System.Guid]::NewGuid().ToString("N")
+$pytestBaseTemp = Join-Path $tempRoot ($pytestTempPrefix + $pytestRunId)
+$pytestBaseTemp = [System.IO.Path]::GetFullPath($pytestBaseTemp)
+$expectedTempPrefix = $tempRoot + [System.IO.Path]::DirectorySeparatorChar
+
+function Assert-PytestTempPathSafe {
+    param([string]$Candidate)
+    $resolvedCandidate = [System.IO.Path]::GetFullPath($Candidate)
+    $leaf = Split-Path -Leaf $resolvedCandidate
+    if (-not [System.IO.Path]::IsPathRooted($resolvedCandidate) -or
+        -not $resolvedCandidate.StartsWith($expectedTempPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+        -not $leaf.StartsWith($pytestTempPrefix, [System.StringComparison]::Ordinal) -or
+        $resolvedCandidate -eq $tempRoot -or
+        $resolvedCandidate -eq [System.IO.Path]::GetFullPath($repoRoot) -or
+        $resolvedCandidate -ne $pytestBaseTemp -or
+        $leaf -ne ($pytestTempPrefix + $pytestRunId)) {
+        throw "Refusing unsafe pytest temporary-directory operation."
+    }
+}
+
+Assert-PytestTempPathSafe $pytestBaseTemp
+try {
+    $null = New-Item -ItemType Directory -Path $pytestBaseTemp -ErrorAction Stop
+} catch {
+    throw "Unable to prepare the isolated pytest temporary directory."
+}
+Write-Host "Pytest base temp: $pytestBaseTemp"
+
 function Invoke-Stage {
     param([string]$Name, [string[]]$Arguments)
     Write-Host "==> $Name"
@@ -18,6 +48,7 @@ function Invoke-Stage {
     if ($result.ExitCode -ne 0) { throw "$Name failed with exit code $($result.ExitCode)." }
 }
 
+$verificationFailure = $null
 Push-Location $repoRoot
 try {
     if ($SkipDatabase) {
@@ -41,7 +72,7 @@ try {
         $env:DATABASE_URL = "postgresql+psycopg://second_brain:change-me@127.0.0.1:5433/second_brain"
         $env:TEST_DATABASE_URL = "postgresql+psycopg://second_brain:change-me@127.0.0.1:5433/second_brain_test"
         Write-Host "==> complete pytest suite"
-        $pytestResult = Invoke-IsolatedProcess -FilePath $python -ArgumentList @("-m", "pytest") -WorkingDirectory $repoRoot
+        $pytestResult = Invoke-IsolatedProcess -FilePath $python -ArgumentList @("-m", "pytest", "--basetemp=$pytestBaseTemp") -WorkingDirectory $repoRoot
         Write-ProcessResult $pytestResult
         if ($pytestResult.ExitCode -ne 0) { throw "pytest failed with exit code $($pytestResult.ExitCode)." }
         $pytestOutput = $pytestResult.StandardOutput + $pytestResult.StandardError
@@ -63,7 +94,7 @@ try {
         Write-Host "==> Quick tests (tests root only; integration and migration lifecycle excluded)"
         $quickTests = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot "tests") -File -Filter "test_*.py" | ForEach-Object { $_.FullName })
         if ($quickTests.Count -eq 0) { throw "No reliable Quick test selection was found." }
-        $quickResult = Invoke-IsolatedProcess -FilePath $python -ArgumentList (@("-m", "pytest") + $quickTests) -WorkingDirectory $repoRoot
+        $quickResult = Invoke-IsolatedProcess -FilePath $python -ArgumentList (@("-m", "pytest", "--basetemp=$pytestBaseTemp") + $quickTests) -WorkingDirectory $repoRoot
         Write-ProcessResult $quickResult
         if ($quickResult.ExitCode -ne 0) { throw "Quick tests failed with exit code $($quickResult.ExitCode)." }
     }
@@ -73,6 +104,24 @@ try {
     Write-ProcessResult $gitResult
     if ($gitResult.ExitCode -ne 0) { throw "git diff --check failed with exit code $($gitResult.ExitCode)." }
     Write-Host "$Mode verification completed successfully."
+} catch {
+    $verificationFailure = $_
 } finally {
     Pop-Location
+    try {
+        Assert-PytestTempPathSafe $pytestBaseTemp
+        if (Test-Path -LiteralPath $pytestBaseTemp) {
+            Remove-Item -LiteralPath $pytestBaseTemp -Recurse -Force -ErrorAction Stop
+        }
+    } catch {
+        if ($null -eq $verificationFailure) {
+            $verificationFailure = $_
+        } else {
+            Write-Warning "Verification failed and exact pytest temporary-directory cleanup also failed."
+        }
+    }
+}
+
+if ($null -ne $verificationFailure) {
+    throw $verificationFailure
 }

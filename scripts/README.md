@@ -26,6 +26,11 @@ Quick for documentation preflight and is never final approval. `start-api.ps1`
 does not start Docker or migrate the database. Its optional `-DatabaseUrl`
 override exists for identity/refusal testing and is never printed.
 
+Each `verify.ps1` run passes one unique GUID-named directory under the Windows
+temporary root to every pytest stage with `--basetemp`. The run cleans up only
+that exact validated directory, including on failure; concurrent runs do not
+share it, and inaccessible default `pytest-of-<username>` roots are not touched.
+
 `frontend-setup.ps1` runs locked `npm ci` inside `frontend/` and never installs
 globally. After starting PostgreSQL and FastAPI, run `frontend-dev.ps1` in a
 separate terminal; it serves `http://127.0.0.1:5173` by default and accepts an

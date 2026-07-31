@@ -25,6 +25,16 @@ and excludes the migration lifecycle file; Full remains authoritative.
 `-SkipDatabase` is documentation-only preflight and is insufficient for final
 approval.
 
+Every `verify.ps1` invocation gives all of its pytest stages one unique
+`second-brain-pytest-<GUID>` base directory beneath the current Windows OS
+temporary root. This avoids pytest's shared `pytest-of-<username>` root, which
+may be inaccessible or belong to another process. Concurrent verification runs
+therefore use different directories. Cleanup runs after success or failure and
+may remove only the exact absolute, prefix-checked directory owned by that
+invocation; existing pytest roots are neither inspected nor repaired. A pytest
+failure remains authoritative if exact-path cleanup also fails, while a cleanup
+failure after otherwise successful verification still fails the command.
+
 On Windows, each external Full stage must run to completion in an isolated
 process with redirected stdin, stdout, and stderr. Both output streams must be
 drained concurrently before deterministic process disposal; the real exit code
