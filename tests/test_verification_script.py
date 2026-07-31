@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
+
+from tests.powershell import run_powershell
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 VERIFY_SCRIPT = REPOSITORY_ROOT / "scripts" / "verify.ps1"
+PROCESS_HELPER = REPOSITORY_ROOT / "scripts" / "Invoke-IsolatedProcess.ps1"
 
 
 def _script() -> str:
@@ -20,19 +22,12 @@ def test_verify_script_parses_in_windows_powershell_51() -> None:
         f"'{VERIFY_SCRIPT}', [ref]$null, [ref]$errors); "
         "if ($errors.Count -gt 0) { $errors | Out-String | Write-Error; exit 1 }"
     )
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-Command",
             command,
         ],
         cwd=REPOSITORY_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert result.returncode == 0, result.stderr
 
@@ -86,3 +81,17 @@ def test_failure_propagation_and_existing_stages_remain_present() -> None:
         "git diff --check",
     ):
         assert stage in script
+
+
+def test_outer_runner_keeps_all_redirected_handles_until_child_exit() -> None:
+    helper = PROCESS_HELPER.read_text(encoding="utf-8")
+    wait = helper.index("$process.WaitForExit()")
+    read_stdout = helper.index("$stdoutTask.GetAwaiter().GetResult()")
+    read_stderr = helper.index("$stderrTask.GetAwaiter().GetResult()")
+    close_stdin = helper.index("$standardInput.Close()")
+    dispose = helper.index("$process.Dispose()")
+
+    assert wait < read_stdout < close_stdin < dispose
+    assert wait < read_stderr < close_stdin
+    assert "ReadToEndAsync()" in helper
+    assert "RedirectStandardInput = $true" in helper

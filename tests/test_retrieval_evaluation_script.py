@@ -1,17 +1,14 @@
 """Safe static checks for the PowerShell retrieval evaluation entry point."""
 
-import subprocess
 from pathlib import Path
+
+from tests.powershell import run_powershell
 
 
 def test_script_parses_in_windows_powershell_and_propagates_exit_code() -> None:
     script = Path("scripts/evaluate-retrieval.ps1")
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-Command",
             (
                 "$errors=$null; [void][System.Management.Automation.Language.Parser]::"
@@ -19,9 +16,6 @@ def test_script_parses_in_windows_powershell_and_propagates_exit_code() -> None:
                 "if ($errors.Count) { exit 1 }"
             ),
         ],
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert result.returncode == 0, result.stderr
     source = script.read_text(encoding="utf-8")

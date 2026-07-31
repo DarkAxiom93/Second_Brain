@@ -1,18 +1,15 @@
 """Safe static and argument checks for the PowerShell export command."""
 
-import subprocess
 from pathlib import Path
+
+from tests.powershell import run_powershell
 
 SCRIPT = Path("scripts/export-project.ps1")
 
 
 def test_script_is_powershell_51_safe_and_has_no_dangerous_modes() -> None:
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-Command",
             (
                 "$errors=$null; [void][System.Management.Automation.Language.Parser]::"
@@ -20,9 +17,6 @@ def test_script_is_powershell_51_safe_and_has_no_dangerous_modes() -> None:
                 "if ($errors.Count) { exit 1 }"
             ),
         ],
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert result.returncode == 0, result.stderr
     source = SCRIPT.read_text(encoding="utf-8").lower()
@@ -33,12 +27,8 @@ def test_script_is_powershell_51_safe_and_has_no_dangerous_modes() -> None:
 
 
 def test_invalid_uuid_fails_before_database_access() -> None:
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-File",
             str(SCRIPT),
             "-ProjectId",
@@ -46,9 +36,6 @@ def test_invalid_uuid_fails_before_database_access() -> None:
             "-OutputPath",
             "unused.sbexport",
         ],
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert result.returncode != 0
     assert "valid UUID" in result.stderr

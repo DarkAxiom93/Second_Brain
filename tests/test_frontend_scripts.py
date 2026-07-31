@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from tests.powershell import run_powershell
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_ROOT = REPOSITORY_ROOT / "scripts"
@@ -24,19 +25,12 @@ def test_frontend_script_parses_in_windows_powershell_51(script: Path) -> None:
         f"'{script}', [ref]$null, [ref]$errors); "
         "if ($errors.Count -gt 0) { $errors | Out-String | Write-Error; exit 1 }"
     )
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-Command",
             command,
         ],
         cwd=REPOSITORY_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert result.returncode == 0, result.stderr
 

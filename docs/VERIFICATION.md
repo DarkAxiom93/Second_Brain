@@ -41,7 +41,16 @@ drained concurrently before deterministic process disposal; the real exit code
 must stop verification on failure. Do not replace this with native output
 pipelines, inherited host standard handles, sleeps, retries, or suppressed
 stderr. The helper and its focused checks remain Windows PowerShell 5.1
-compatible.
+compatible. All three redirected handles remain valid until the child has
+terminated and both output reads are complete; only then are stdin and the
+process disposed.
+
+Tests that launch nested Windows PowerShell processes use one shared test-only
+file-backed capture helper. Child stdin is `DEVNULL`; stdout and stderr go to
+separate uniquely owned files rather than nested `PIPE` handles. Those files
+remain open until the child fully exits, are decoded separately with replacement
+for invalid bytes, and are then removed by exact path. The helper performs one
+attempt, preserves the real exit code, and never uses inherited pytest streams.
 
 Live Uvicorn smoke testing is required when startup, routing, dependency wiring,
 or public behavior changes; documentation/script-only changes need safe script

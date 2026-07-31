@@ -41,9 +41,9 @@ but never installs dependencies.
 
 `verify.ps1` launches every external verification stage through the shared
 Windows PowerShell 5.1-compatible isolated-process helper. The helper redirects
-all three standard streams, closes child stdin, drains stdout and stderr
-concurrently, waits for completion, preserves the real exit code and output,
-and disposes the process before the next stage. Maintainers must not mix native
+all three standard streams, drains stdout and stderr concurrently, waits for
+completion, then closes stdin and disposes the process while preserving the
+real exit code and output. Maintainers must not mix native
 PowerShell pipelines or inherited host handles into this lifecycle. Run the
 focused process checks with:
 
@@ -51,6 +51,12 @@ focused process checks with:
 powershell.exe -NoLogo -NoProfile -NonInteractive `
   -File .\scripts\tests\verify-process.ps1
 ```
+
+PowerShell processes launched inside pytest use the separate test-only helper
+in `tests/powershell.py`. It captures stdout and stderr in unique owned files so
+nested children never depend on the outer verifier's redirected handles. This
+does not change production script behavior or the outer isolated-process
+lifecycle.
 
 ## Narrow smoke cleanup
 

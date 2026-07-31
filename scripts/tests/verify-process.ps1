@@ -33,6 +33,14 @@ Assert-True ($later.ExitCode -eq 0) "Command after high output failed."
 Assert-True ($later.StandardOutput -match "stdout-later") "Later stdout was unusable."
 Assert-True ($later.StandardError -match "stderr-later") "Later stderr was unusable."
 
+for ($attempt = 0; $attempt -lt 20; $attempt++) {
+    $overlapped = Invoke-IsolatedProcess -FilePath $python -ArgumentList @(
+        "-c", "import _overlapped; print('overlapped-ok')"
+    ) -WorkingDirectory $repoRoot
+    Assert-True ($overlapped.ExitCode -eq 0) "Redirected Python handle import failed."
+    Assert-True ($overlapped.StandardOutput -match "overlapped-ok") "Redirected Python output was incomplete."
+}
+
 $failure = Invoke-IsolatedProcess -FilePath $python -ArgumentList @(
     "-c", "import sys; print('expected failure', file=sys.stderr); raise SystemExit(23)"
 ) -WorkingDirectory $repoRoot

@@ -2,41 +2,29 @@
 
 import json
 import os
-import subprocess
 from pathlib import Path
+
+from tests.powershell import PowerShellResult, run_powershell
 
 SCRIPT = Path("scripts/diagnose-system.ps1")
 
 
-def _powershell(
-    *arguments: str, env: dict[str, str] | None = None
-) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+def _powershell(*arguments: str, env: dict[str, str] | None = None) -> PowerShellResult:
+    return run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-ExecutionPolicy",
             "Bypass",
             "-File",
             str(SCRIPT),
             *arguments,
         ],
-        capture_output=True,
-        text=True,
-        check=False,
         env=env,
     )
 
 
 def test_script_parses_in_windows_powershell_51_and_has_no_mutation_switches() -> None:
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-Command",
             (
                 "$errors=$null; [void][System.Management.Automation.Language.Parser]::"
@@ -44,9 +32,6 @@ def test_script_parses_in_windows_powershell_51_and_has_no_mutation_switches() -
                 "if ($errors.Count) { exit 1 }"
             ),
         ],
-        capture_output=True,
-        text=True,
-        check=False,
     )
     assert result.returncode == 0, result.stderr
     source = SCRIPT.read_text(encoding="utf-8").lower()

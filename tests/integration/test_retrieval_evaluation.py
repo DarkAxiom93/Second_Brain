@@ -1,7 +1,6 @@
 """PostgreSQL integration proof for the retrieval evaluation harness."""
 
 import os
-import subprocess
 import uuid
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.retrieval_evaluation.runner import run
 from tests.integration.conftest import verify_connected_test_database
+from tests.powershell import run_powershell
 
 
 def test_harness_reuses_production_retrieval_and_rolls_back_all_fixtures(
@@ -65,12 +65,8 @@ def test_powershell_command_succeeds_writes_optional_json_and_hides_credentials(
     output = Path("evaluation") / f"retrieval-result-{uuid.uuid4()}.json"
     environment = os.environ.copy()
     environment["TEST_DATABASE_URL"] = test_database_url
-    result = subprocess.run(
+    result = run_powershell(
         [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
             "-ExecutionPolicy",
             "Bypass",
             "-File",
@@ -79,10 +75,7 @@ def test_powershell_command_succeeds_writes_optional_json_and_hides_credentials(
             "-OutputPath",
             str(output),
         ],
-        capture_output=True,
-        text=True,
         env=environment,
-        check=False,
     )
     try:
         assert result.returncode == 0, result.stderr

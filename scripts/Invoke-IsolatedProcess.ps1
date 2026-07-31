@@ -44,9 +44,10 @@ function Invoke-IsolatedProcess {
 
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $startInfo
+    $standardInput = $null
     try {
         if (-not $process.Start()) { throw "Failed to start process: $FilePath" }
-        $process.StandardInput.Close()
+        $standardInput = $process.StandardInput
         $stdoutTask = $process.StandardOutput.ReadToEndAsync()
         $stderrTask = $process.StandardError.ReadToEndAsync()
         $process.WaitForExit()
@@ -54,6 +55,7 @@ function Invoke-IsolatedProcess {
         $stderr = $stderrTask.GetAwaiter().GetResult()
         $exitCode = $process.ExitCode
     } finally {
+        if ($null -ne $standardInput) { $standardInput.Close() }
         $process.Dispose()
     }
 
