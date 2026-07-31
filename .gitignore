@@ -5,6 +5,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tmp-tests/
 .coverage
 htmlcov/
 
@@ -20,3 +21,13 @@ htmlcov/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/*.log

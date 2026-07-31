@@ -13,8 +13,11 @@ only the verified `second_brain_test` database.
 
 Full approval requires `pip check`, Ruff lint, Ruff format check, mypy, the
 complete pytest suite, `alembic current`, `alembic heads`, `alembic check`, and
-`git diff --check`. No integration test may be skipped. `scripts/verify.ps1`
-encodes this contract.
+`git diff --check`. It also requires frontend ESLint, TypeScript checking,
+non-watch Vitest, and a production Vite build through
+`scripts/verify-frontend.ps1`. No integration test may be skipped.
+`scripts/verify.ps1` encodes this contract. Frontend dependencies are installed
+explicitly with `scripts/frontend-setup.ps1`; verification never installs them.
 
 Quick verification is a focused development loop. Because the repository has no
 reliable unit/integration marker, Quick runs tests outside `tests/integration`
@@ -34,6 +37,11 @@ Live Uvicorn smoke testing is required when startup, routing, dependency wiring,
 or public behavior changes; documentation/script-only changes need safe script
 behavior checks instead. Provider calls must be faked unless explicitly
 approved.
+
+For the local UI smoke, start PostgreSQL, then FastAPI, then Vite as separate
+processes. Browser requests to `http://127.0.0.1:5173/api/health` and
+`/api/ready` must reach the backend through the Vite proxy. Stop Vite and
+FastAPI before stopping PostgreSQL; preserve the database volume.
 
 Start and stop PostgreSQL with the scripts. Shutdown uses `docker compose stop
 db`, preserving the container and named volume; never use `down -v`.

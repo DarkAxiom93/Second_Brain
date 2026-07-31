@@ -109,10 +109,23 @@ exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently implemented: Checkpoint 41, read-only operational diagnostics and
-configuration validation. Maintenance execution, scheduled expiration
+Most recently implemented: Checkpoint 42, the local React/TypeScript web UI
+foundation. The responsive shell provides deterministic routes for Dashboard,
+Projects, Sources, Proposals, Memories, Search, Answers, and Settings. Only the
+Dashboard is functional: it performs bounded, strictly validated, read-only
+`/health` and `/ready` requests through the Vite `/api` development proxy.
+Other routes are explicit placeholders and unknown routes render a client-local
+Not Found page without contacting the backend.
+
+Frontend setup, development, and verification use
+`scripts/frontend-setup.ps1`, `scripts/frontend-dev.ps1`, and
+`scripts/verify-frontend.ps1`. Full project verification now includes frontend
+lint, TypeScript checking, non-watch Vitest, and the production build. The UI
+has no authentication, application-data write workflow, persistent browser
+storage, provider call, analytics, or telemetry. Future UI checkpoints will
+implement the placeholder screens. Maintenance execution, scheduled expiration
 processing, and persistent observability remain deferred. Continue one approved
-checkpoint at a time and attach the latest checkpoint report to the new
+checkpoint at a time and attach `docs/checkpoint-42-report.md` to the new
 conversation.
 
 ## Copy from PowerShell
@@ -120,14 +133,15 @@ conversation.
 ```powershell
 Get-Content .\docs\CHAT_HANDOFF.md -Raw | Set-Clipboard
 ```
-# Checkpoint 41 handoff
+# Checkpoint 42 handoff
 
-Checkpoint 41 adds `scripts/diagnose-system.ps1`, a deterministic read-only
-diagnostic for runtime, configuration, PostgreSQL, pgvector, Alembic, safe
-aggregate counts, and optional loopback health/readiness probes. Provider
-configuration is inspected without resolution or network calls. Full
-verification passes 603 tests with zero skips; the development smoke is healthy
-with one expected missing-provider-credentials warning, and Alembic remains
-`0009_memory_expiration`. Review `docs/checkpoint-41-report.md`. Do not begin
-another checkpoint until this checkpoint is approved, committed, pushed, and
-the repository is clean.
+Checkpoint 42 adds the maintainable local React/TypeScript/Vite workspace,
+responsive accessible shell, strict health/readiness dashboard, safe typed API
+boundary, deterministic placeholder and Not Found routes, locked npm
+dependencies, Windows PowerShell 5.1 frontend scripts, and Full verification
+integration. Full verification passes 610 Python tests and 14 frontend tests
+with zero skips; browser smoke passes through the Vite proxy. No backend code,
+API contract, Python dependency, Docker service, database behavior, or migration
+changed. Alembic remains `0009_memory_expiration`. Review
+`docs/checkpoint-42-report.md`. Do not begin another checkpoint until this
+checkpoint is approved, committed, pushed, and the repository is clean.

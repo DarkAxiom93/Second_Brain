@@ -49,6 +49,16 @@ try {
         Invoke-Stage "Alembic current" @("-m", "alembic", "current")
         Invoke-Stage "Alembic heads" @("-m", "alembic", "heads")
         Invoke-Stage "Alembic check" @("-m", "alembic", "check")
+
+        Write-Host "==> frontend verification"
+        $frontendResult = Invoke-IsolatedProcess -FilePath "powershell.exe" -ArgumentList @(
+            "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+            "-File", (Join-Path $PSScriptRoot "verify-frontend.ps1")
+        ) -WorkingDirectory $repoRoot
+        Write-ProcessResult $frontendResult
+        if ($frontendResult.ExitCode -ne 0) {
+            throw "Frontend verification failed with exit code $($frontendResult.ExitCode)."
+        }
     } else {
         Write-Host "==> Quick tests (tests root only; integration and migration lifecycle excluded)"
         $quickTests = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot "tests") -File -Filter "test_*.py" | ForEach-Object { $_.FullName })

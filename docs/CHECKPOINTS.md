@@ -45,7 +45,8 @@ history. A dash means Alembic had not yet been introduced.
 | 38 | Read-only Memory maintenance audit | Complete | `0009_memory_expiration` | `5853269` |
 | 39 | Versioned Project export bundle | Complete | `0009_memory_expiration` | `9045fbf` |
 | 40 | Controlled Project import and restore | Complete | `0009_memory_expiration` | `029d936` |
-| 41 | Operational diagnostics and configuration validation | In progress | `0009_memory_expiration` | Pending review |
+| 41 | Operational diagnostics and configuration validation | Complete | `0009_memory_expiration` | `1f3023e` |
+| 42 | Local web UI foundation | In progress | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

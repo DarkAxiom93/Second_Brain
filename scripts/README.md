@@ -13,8 +13,10 @@ provider, or remove the PostgreSQL volume.
 .\scripts\evaluate-retrieval.ps1 -BaselineCheck
 .\scripts\audit-memory-maintenance.ps1
 .\scripts\diagnose-system.ps1
+.\scripts\frontend-setup.ps1
 .\scripts\verify.ps1 -Mode Full
 .\scripts\start-api.ps1 -Reload
+.\scripts\frontend-dev.ps1
 .\scripts\dev-down.ps1
 .\scripts\copy-chat-handoff.ps1
 ```
@@ -23,6 +25,14 @@ provider, or remove the PostgreSQL volume.
 Quick for documentation preflight and is never final approval. `start-api.ps1`
 does not start Docker or migrate the database. Its optional `-DatabaseUrl`
 override exists for identity/refusal testing and is never printed.
+
+`frontend-setup.ps1` runs locked `npm ci` inside `frontend/` and never installs
+globally. After starting PostgreSQL and FastAPI, run `frontend-dev.ps1` in a
+separate terminal; it serves `http://127.0.0.1:5173` by default and accepts an
+optional `-Port`. It never starts Docker or the backend. Run
+`verify-frontend.ps1` for isolated ESLint, TypeScript, non-watch Vitest, and
+production-build stages. Full project verification invokes it automatically
+but never installs dependencies.
 
 `verify.ps1` launches every external verification stage through the shared
 Windows PowerShell 5.1-compatible isolated-process helper. The helper redirects

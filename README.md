@@ -15,6 +15,7 @@ PostgreSQL infrastructure, and a minimal FastAPI liveness API.
 ## Prerequisites
 
 - CPython 3.12
+- Node.js 22.12 or newer and npm 10 or newer
 - Git
 
 ## Local setup on Windows
@@ -40,6 +41,28 @@ No prefix is required. The checked-in values are development placeholders, not
 production credentials. On Windows, commands can invoke the virtual
 environment's Python executable directly without activating it.
 
+Install locked frontend dependencies separately:
+
+```powershell
+.\scripts\frontend-setup.ps1
+```
+
+Start PostgreSQL, then the backend, then the frontend in separate terminals:
+
+```powershell
+.\scripts\dev-up.ps1
+.\scripts\start-api.ps1
+.\scripts\frontend-dev.ps1
+```
+
+The UI is available at `http://127.0.0.1:5173`. Vite rewrites `/api/health` and
+`/api/ready` to the backend `/health` and `/ready` routes, so no CORS change is
+needed. `VITE_API_BASE` may override the public API prefix; every `VITE_*`
+variable is browser-visible public configuration and must never contain a
+secret. The dashboard is read-only. Projects, Sources, Proposals, Memories,
+Search, Answers, and Settings are placeholders; authentication and write
+workflows are not implemented yet.
+
 ## Quality checks
 
 ```powershell
@@ -48,6 +71,8 @@ environment's Python executable directly without activating it.
 & '.\.venv\Scripts\python.exe' -m ruff format --check .
 & '.\.venv\Scripts\python.exe' -m mypy app
 & '.\.venv\Scripts\python.exe' -m pytest
+.\scripts\verify-frontend.ps1
+.\scripts\verify.ps1 -Mode Full
 ```
 
 ## Checkpoint 2: local PostgreSQL

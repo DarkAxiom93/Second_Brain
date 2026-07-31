@@ -30,8 +30,10 @@ observability.
 
 ## User interface
 
+Completed: maintainable local React/TypeScript workspace, responsive application
+shell, deterministic routing, and a read-only health/readiness dashboard.
 Future: project browser, source upload, proposal review queue, Memory browser,
-search, chat with citations, and settings.
+search, chat with citations, settings, authentication, and write workflows.
 
 ## Future agents and integrations
 
