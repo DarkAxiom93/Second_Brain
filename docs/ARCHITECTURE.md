@@ -72,6 +72,9 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   read-only transaction prevent accidental writes; no provider is resolved.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
+- Project export is an explicit maintainer-only, read-only operation. It streams
+  one project-scoped graph from a repeatable-read PostgreSQL snapshot into the
+  checksummed `second-brain-project-export` version 1 private bundle.
 
 ```mermaid
 flowchart LR

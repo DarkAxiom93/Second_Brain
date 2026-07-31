@@ -1072,3 +1072,13 @@ lexical mode does not. The operation is stateless and read-only: it commits no
 transaction and persists no question, answer, conversation, retrieval history,
 query embedding, usage counter, or search statistic. It is not chat and has no
 follow-up history, agent framework, tool calling, or document/chunk retrieval.
+## Project export
+
+Create a private, read-only bundle for one Project:
+
+```powershell
+.\scripts\export-project.ps1 -ProjectId <uuid> -OutputPath C:\backup\project.sbexport
+```
+
+The destination parent must exist and the destination file must not. Bundles
+are sensitive and unencrypted; see `docs/PROJECT_EXPORT_FORMAT.md`.

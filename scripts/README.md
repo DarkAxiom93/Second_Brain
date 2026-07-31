@@ -78,3 +78,9 @@ optional `-OutputPath`. It prints a compact summary and writes JSON only when
 requested. Parsed and live identity must match before queries. The transaction
 is database-enforced read-only; the command has no mutation, repair, Docker, or
 provider mode.
+## Project export
+
+`export-project.ps1` creates a new, private `.sbexport` package for one Project.
+It refuses invalid UUIDs, unsafe database identity, missing parent directories,
+and existing output files. Add `-UseTestDatabase` only for the verified
+`second_brain_test` database. See `docs/PROJECT_EXPORT_FORMAT.md`.
