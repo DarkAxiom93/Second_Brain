@@ -75,6 +75,10 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
 - Project export is an explicit maintainer-only, read-only operation. It streams
   one project-scoped graph from a repeatable-read PostgreSQL snapshot into the
   checksummed `second-brain-project-export` version 1 private bundle.
+- Project import is an explicit maintainer-only operation. It validates a
+  complete version-1 bundle and target conflicts before dependency-safe inserts
+  in one transaction. Validation-only is read-only; restore never merges,
+  overwrites, remaps, repairs, or calls a provider.
 
 ```mermaid
 flowchart LR

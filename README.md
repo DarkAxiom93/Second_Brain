@@ -1082,3 +1082,22 @@ Create a private, read-only bundle for one Project:
 
 The destination parent must exist and the destination file must not. Bundles
 are sensitive and unencrypted; see `docs/PROJECT_EXPORT_FORMAT.md`.
+
+## Project import
+
+Validate a version-1 bundle and the development database without writing:
+
+```powershell
+.\scripts\import-project.ps1 -BundlePath C:\backup\project.sbexport
+```
+
+Restore only with an exact manifest Project ID confirmation:
+
+```powershell
+.\scripts\import-project.ps1 -BundlePath C:\backup\project.sbexport `
+  -Execute -ExpectedProjectId <uuid>
+```
+
+Use `-UseTestDatabase` explicitly for `second_brain_test`. Imports reject
+conflicts and never merge or overwrite existing rows; see
+`docs/PROJECT_EXPORT_FORMAT.md`.

@@ -1,8 +1,8 @@
 # Project export bundle
 
 `second-brain-project-export` version 1 is a private, application-level backup
-of one Project. It is not `pg_dump`, and Checkpoint 39 provides no import or
-restore operation. Controlled import is deferred to Checkpoint 40.
+of one Project. It is not `pg_dump`. Controlled import accepts exactly this
+format and requires both source and target revision `0009_memory_expiration`.
 
 The `.sbexport` file is a ZIP-compatible container owned by this application.
 It contains `manifest.json`, `project.json`, and the always-present JSONL files
@@ -44,3 +44,39 @@ embedding vectors. Version 1 is not encrypted and must not be published or sent
 unprotected. It contains no database URLs, credentials, environment variables,
 provider responses, prompts, reasoning, generated search vectors, logs, or
 temporary paths.
+
+## Controlled import
+
+Validation-only is the default and performs no flush or commit:
+
+```powershell
+.\scripts\import-project.ps1 -BundlePath C:\backup\project.sbexport
+.\scripts\import-project.ps1 -BundlePath C:\backup\test.sbexport -UseTestDatabase
+```
+
+Execution requires an explicit manifest Project ID match:
+
+```powershell
+.\scripts\import-project.ps1 -BundlePath C:\backup\project.sbexport -Execute -ExpectedProjectId <uuid>
+.\scripts\import-project.ps1 -BundlePath C:\backup\test.sbexport -UseTestDatabase -Execute -ExpectedProjectId <uuid>
+```
+
+Import validates the complete archive, manifest, schemas, checksums, counts,
+typed values, references, supersession graph, target identities, and unique
+constraints before writing. Every imported identity must be absent. Existing
+rows are never merged, overwritten, reused, remapped, repaired, or deleted.
+Execution inserts the complete graph in dependency-safe deterministic order in
+one caller-owned transaction and commits exactly once; any failure rolls back
+the whole Project. Generated Memory search vectors are omitted from the bundle
+and PostgreSQL derives them from restored persisted fields.
+
+The reader does not extract archive contents. Limits are 32 entries, 128 MiB
+for the archive and total compressed entry data, 64 MiB per compressed or
+uncompressed entry, 256 MiB total uncompressed data, and 4 MiB per JSONL row.
+Absolute, traversing, duplicate, case-colliding, encrypted, and non-regular
+entries are rejected.
+
+An export/import/export round trip preserves canonical application data-file
+content and relationships; only package metadata such as export time and ZIP
+byte layout may vary. Version 1 has no encryption, merge, remapping,
+partial-restore, or automatic restore facility.

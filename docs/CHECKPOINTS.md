@@ -43,7 +43,8 @@ history. A dash means Alembic had not yet been introduced.
 | 36 | Explicit batch Memory embedding generation | Complete | `0009_memory_expiration` | `d976b9a` |
 | 37 | Controlled batch Memory re-embedding | Complete | `0009_memory_expiration` | `8af0e6a` |
 | 38 | Read-only Memory maintenance audit | Complete | `0009_memory_expiration` | `5853269` |
-| 39 | Versioned Project export bundle | In progress | `0009_memory_expiration` | Pending review |
+| 39 | Versioned Project export bundle | Complete | `0009_memory_expiration` | `9045fbf` |
+| 40 | Controlled Project import and restore | In progress | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

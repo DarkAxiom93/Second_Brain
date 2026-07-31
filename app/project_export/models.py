@@ -25,7 +25,7 @@ class ExportIntegrityError(ExportError):
 class ExportFile(BaseModel):
     """Integrity metadata for one data file."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     path: str
     byte_length: int = Field(ge=0)
@@ -50,7 +50,7 @@ class ExportFile(BaseModel):
 class ExportOptions(BaseModel):
     """Options required to interpret this export."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     row_order: str = "uuid_ascending"
     timestamp_format: str = "UTC ISO-8601 with Z suffix"
@@ -61,7 +61,7 @@ class ExportOptions(BaseModel):
 class ExportManifest(BaseModel):
     """Top-level format-versioned manifest."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     format_name: str = Field(default=FORMAT_NAME, pattern=f"^{FORMAT_NAME}$")
     format_version: int = Field(default=FORMAT_VERSION, ge=1, le=1)
@@ -84,7 +84,7 @@ class ExportManifest(BaseModel):
 class ExportResult(BaseModel):
     """Safe command summary for a completed bundle."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     output_path: str
     project_id: UUID

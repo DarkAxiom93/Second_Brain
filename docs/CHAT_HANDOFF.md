@@ -119,11 +119,13 @@ conversation.
 ```powershell
 Get-Content .\docs\CHAT_HANDOFF.md -Raw | Set-Clipboard
 ```
-# Checkpoint 39 handoff
+# Checkpoint 40 handoff
 
-Checkpoint 39 implements the private `second-brain-project-export` version 1
-bundle and is ready for human review. Full verification passes 576 tests with
-zero skips and Alembic remains `0009_memory_expiration`. Review
-`docs/PROJECT_EXPORT_FORMAT.md` and `docs/checkpoint-39-report.md`. Do not begin
-Checkpoint 40 import work until this checkpoint is approved, committed, pushed,
-and the repository is clean.
+Checkpoint 40 implements controlled validation and transactional restore of the
+private `second-brain-project-export` version 1 bundle and is ready for human
+review. Default mode is read-only; execution requires an exact Project ID,
+rejects every conflict, and commits the complete graph once or rolls it all
+back. Full verification passes 586 tests with zero skips and Alembic remains
+`0009_memory_expiration`. Review `docs/PROJECT_EXPORT_FORMAT.md` and
+`docs/checkpoint-40-report.md`. Do not begin Checkpoint 41 until this checkpoint
+is approved, committed, pushed, and the repository is clean.

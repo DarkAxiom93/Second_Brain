@@ -23,8 +23,8 @@ citations. Planned: result explanations and retrieval-quality evaluation.
 
 Completed: explicit bounded batch embedding for active Memories missing an
 embedding, controlled re-embedding of existing embeddings, deterministic
-read-only maintenance auditing, and versioned project export. Planned:
-controlled project import, maintenance execution, backups, and observability.
+read-only maintenance auditing, versioned project export, and controlled
+project import. Planned: maintenance execution, backups, and observability.
 
 ## User interface
 

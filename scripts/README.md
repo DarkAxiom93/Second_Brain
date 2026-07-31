@@ -84,3 +84,15 @@ provider mode.
 It refuses invalid UUIDs, unsafe database identity, missing parent directories,
 and existing output files. Add `-UseTestDatabase` only for the verified
 `second_brain_test` database. See `docs/PROJECT_EXPORT_FORMAT.md`.
+# Project import
+
+Validate a private version-1 Project bundle and the development target without
+writing:
+
+```powershell
+.\scripts\import-project.ps1 -BundlePath C:\backup\project.sbexport
+```
+
+Use `-UseTestDatabase` only for `second_brain_test`. A restore additionally
+requires `-Execute -ExpectedProjectId <manifest-uuid>`. Import rejects every
+conflict and commits the complete graph once or rolls it all back.
