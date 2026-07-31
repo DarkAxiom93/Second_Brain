@@ -7,7 +7,7 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 36 are
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 37 are
 complete. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
@@ -83,16 +83,24 @@ makes one validated ordered provider call before UUID-ordered row locks recheck
 status and existing embeddings. Inserts are atomic; concurrent winners return
 unchanged and newly inactive rows return skipped. Empty batches resolve no
 provider or commit. Existing embeddings are never replaced, and there is no
-automatic/background generation or controlled re-embedding yet.
+automatic/background generation.
+
+`POST /memory-embeddings/reembed` explicitly replaces bounded existing active
+Memory embeddings. Stale selection compares canonical input hash, provider,
+model, and dimensions; all selection forces replacement. SQL ordering and limit
+are deterministic, one fully validated provider batch precedes UUID-ordered
+locks, and eligible rows update atomically in place while preserving embedding
+identity and creation time. Concurrent stale winners become unchanged; deleted
+or newly inactive candidates are skipped. Missing embeddings are never created,
+and there is no automatic or scheduled re-embedding.
 
 Read `AGENTS.md` and stable docs before work. One checkpoint at a time; preserve
 exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 36, explicit batch Memory embedding
-generation. Scheduled expiration processing and controlled re-embedding remain
-deferred. Continue one approved
+Most recently completed: Checkpoint 37, controlled batch Memory re-embedding.
+Scheduled expiration processing remains deferred. Continue one approved
 checkpoint at a time and attach the latest checkpoint report to the new
 conversation.
 

@@ -41,6 +41,7 @@ history. A dash means Alembic had not yet been introduced.
 | 34 | Evidence-backed Memory answers | Complete | `0009_memory_expiration` | Pending review |
 | 35 | Retrieval quality evaluation harness | Complete | `0009_memory_expiration` | Pending review |
 | 36 | Explicit batch Memory embedding generation | Complete | `0009_memory_expiration` | Pending review |
+| 37 | Controlled batch Memory re-embedding | Complete | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

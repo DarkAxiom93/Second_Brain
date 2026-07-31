@@ -3,9 +3,9 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import String, cast, func, literal, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
@@ -40,6 +40,7 @@ def lock_memories(
         .where(Memory.id.in_(memory_ids))
         .order_by(Memory.id)
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     return {row.id: row for row in rows}
 
@@ -89,3 +90,77 @@ def insert_embedding_if_missing(
     if existing is None:  # pragma: no cover - defensive impossible database state
         raise RuntimeError("embedding conflict winner missing")
     return existing, False
+
+
+def _canonical_text_sql() -> object:
+    """Build the canonical Memory input in SQL using the established policy."""
+
+    def normalized(column: object) -> object:
+        return func.replace(
+            func.replace(func.coalesce(column, ""), "\r\n", "\n"), "\r", "\n"
+        )
+
+    return func.concat(
+        literal("TITLE:\n"),
+        normalized(Memory.title),
+        literal("\n\nSUMMARY:\n"),
+        normalized(Memory.summary),
+        literal("\n\nCONTENT:\n"),
+        normalized(Memory.content),
+        literal("\n\nSOURCE:\n"),
+        normalized(Memory.source),
+    )
+
+
+def select_reembedding_candidates(
+    session: Session,
+    *,
+    scope: str,
+    project_id: uuid.UUID | None,
+    selection: str,
+    limit: int,
+    provider: str,
+    model: str,
+    dimensions: int,
+) -> list[Memory]:
+    """Select active existing embeddings in stable creation order."""
+
+    statement = (
+        select(Memory)
+        .join(MemoryEmbedding)
+        .options(contains_eager(Memory.embedding_record))
+        .where(Memory.status == "active")
+    )
+    if scope == "project":
+        statement = statement.where(Memory.project_id == project_id)
+    elif scope == "unassigned":
+        statement = statement.where(Memory.project_id.is_(None))
+    if selection == "stale":
+        current_hash = func.encode(
+            func.sha256(func.convert_to(cast(_canonical_text_sql(), String), "UTF8")),
+            "hex",
+        )
+        statement = statement.where(
+            (MemoryEmbedding.input_hash != current_hash)
+            | (MemoryEmbedding.provider != provider)
+            | (MemoryEmbedding.model != model)
+            | (MemoryEmbedding.dimensions != dimensions)
+        )
+    return list(
+        session.scalars(statement.order_by(Memory.created_at, Memory.id).limit(limit))
+    )
+
+
+def lock_embeddings(
+    session: Session, memory_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, MemoryEmbedding]:
+    """Lock selected embedding rows in deterministic Memory UUID order."""
+
+    rows = session.scalars(
+        select(MemoryEmbedding)
+        .where(MemoryEmbedding.memory_id.in_(memory_ids))
+        .order_by(MemoryEmbedding.memory_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return {row.memory_id: row for row in rows}

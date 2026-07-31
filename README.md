@@ -503,8 +503,33 @@ row is `skipped` with `memory_not_active`. Responses preserve candidate order,
 include counts and metadata, and never expose vectors.
 
 The action never replaces or re-embeds an existing embedding, changes a Memory,
-or runs automatically or in the background. Controlled re-embedding remains
-deferred. Tests use fake providers. No migration is added; Alembic remains
+or runs automatically or in the background. Tests use fake providers. No
+migration is added; Alembic remains
+`0009_memory_expiration`.
+
+## Checkpoint 37: controlled batch Memory re-embedding
+
+`POST /memory-embeddings/reembed` explicitly replaces existing embeddings for
+active Memories. Its extra-forbidden body uses the same `scope`, optional
+`project_id`, and 1-through-50 `limit` rules as the missing-embedding batch and
+adds `selection`, either `stale` or `all`. Stale means the stored canonical
+input hash, provider, model, or dimensions differs from current configuration;
+timestamps alone never make an embedding stale. All forces replacement of every
+eligible in-scope existing embedding.
+
+SQL selects only active Memories with embeddings, ordered by `created_at` then
+UUID with the limit applied. Empty selection resolves no provider. A non-empty
+selection makes exactly one canonical-order provider batch call and validates
+the complete result before writes. Deterministic row locks then recheck status,
+embedding existence, and current identity. Replacements are atomic and update
+the existing row, preserving its ID, `memory_id`, and `created_at`. Concurrent
+stale requests yield one update and later unchanged results; concurrent forced
+requests serialize to one valid final embedding. Responses include previous and
+current metadata and counts but never vectors.
+
+This route never creates a missing embedding, embeds a non-active Memory,
+changes Memory data, or runs automatically or on a schedule. Tests and smoke
+verification make no live provider call. No migration is added; Alembic remains
 `0009_memory_expiration`.
 
 ## Checkpoint 18: explicit semantic Memory search

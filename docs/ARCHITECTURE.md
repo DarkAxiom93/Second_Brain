@@ -54,6 +54,15 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   winners remain unchanged, and newly inactive rows are skipped. Empty batches
   resolve no provider. Existing embeddings are never replaced, and no
   background generation or re-embedding occurs.
+- Batch Memory re-embedding is a separate explicit synchronous action over at
+  most 50 active Memories that already have embeddings. Stale selection compares
+  the canonical input hash and configured provider, model, and dimensions;
+  forced-all selection replaces every eligible in-scope row. SQL selects in
+  creation-time and UUID order, one validated provider batch runs without row
+  locks, and deterministic locks then recheck eligibility before atomic in-place
+  replacement. Embedding identity and creation time are preserved. Missing
+  embeddings are never created, and no scheduled or background re-embedding
+  occurs.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

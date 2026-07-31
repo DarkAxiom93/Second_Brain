@@ -72,3 +72,26 @@ class MemoryEmbeddingBatchRead(BaseModel):
     unchanged_count: int
     skipped_count: int
     items: list[MemoryEmbeddingBatchItem]
+
+
+class MemoryEmbeddingReembedRequest(MemoryEmbeddingBatchRequest):
+    """Explicit bounded selection rules for replacing existing embeddings."""
+
+    selection: Literal["stale", "all"]
+
+
+class MemoryEmbeddingReembedItem(BaseModel):
+    memory_id: uuid.UUID
+    reembedding_status: Literal["updated", "unchanged", "skipped"]
+    previous_embedding: MemoryEmbeddingMetadata
+    current_embedding: MemoryEmbeddingMetadata | None
+    skipped_reason: Literal["memory_not_active", "embedding_missing"] | None = None
+
+
+class MemoryEmbeddingReembedRead(BaseModel):
+    batch_status: Literal["completed", "empty"]
+    selected_count: int
+    updated_count: int
+    unchanged_count: int
+    skipped_count: int
+    items: list[MemoryEmbeddingReembedItem]

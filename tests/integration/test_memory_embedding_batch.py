@@ -9,7 +9,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.api.routes.memory_embedding_batches import provider_resolver
+from app.api.routes.memory_embedding_batches import (
+    configured_embedding_identity,
+    provider_resolver,
+)
 from app.db.session import get_engine
 from app.main import create_app
 from app.models import Memory, MemoryEmbedding, Project
@@ -44,15 +47,21 @@ def batch_client(
 ) -> Generator[tuple[TestClient, BatchProvider], None, None]:
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
+        session.execute(delete(Memory))
         session.execute(delete(Project))
         session.commit()
     provider = BatchProvider()
     application = create_app()
     application.dependency_overrides[provider_resolver] = lambda: lambda: provider
+    application.dependency_overrides[configured_embedding_identity] = lambda: (
+        provider.name,
+        provider.model,
+        provider.dimensions,
+    )
     yield TestClient(application), provider
     with Session(get_engine()) as session:
-        session.execute(delete(Project))
         session.execute(delete(Memory))
+        session.execute(delete(Project))
         session.commit()
 
 
@@ -155,3 +164,87 @@ def test_scopes_order_limit_active_missing_and_metadata(
     )
     assert project_result.status_code == 200
     assert project_result.json()["batch_status"] == "empty"
+
+
+def test_reembed_stale_and_forced_all_preserve_identity(
+    batch_client: tuple[TestClient, BatchProvider],
+) -> None:
+    client, provider = batch_client
+    base = datetime.now(UTC) - timedelta(days=1)
+    with Session(get_engine()) as session:
+        project = Project(name="Re-embedding project")
+        session.add(project)
+        session.flush()
+        stale = Memory(project_id=project.id, content="stale", created_at=base)
+        current = Memory(
+            project_id=project.id,
+            content="current",
+            created_at=base + timedelta(seconds=1),
+        )
+        missing = Memory(project_id=project.id, content="missing")
+        inactive = Memory(project_id=project.id, content="inactive", status="archived")
+        session.add_all([stale, current, missing, inactive])
+        session.flush()
+        stale_embedding = MemoryEmbedding(
+            memory_id=stale.id,
+            provider="old",
+            model="old",
+            dimensions=1536,
+            embedding=[0.9] * 1536,
+            input_hash="a" * 64,
+            embedded_at=base,
+            created_at=base,
+        )
+        current_embedding = MemoryEmbedding(
+            memory_id=current.id,
+            provider=provider.name,
+            model=provider.model,
+            dimensions=provider.dimensions,
+            embedding=[0.8] * 1536,
+            input_hash=canonical_input_hash(canonical_memory_text(current)),
+            embedded_at=base,
+            created_at=base,
+        )
+        session.add_all([stale_embedding, current_embedding])
+        session.commit()
+        project_id = project.id
+        stale_id = stale.id
+        embedding_id = stale_embedding.id
+        created_at = stale_embedding.created_at
+
+    response = client.post(
+        "/memory-embeddings/reembed",
+        json={
+            "scope": "project",
+            "project_id": str(project_id),
+            "selection": "stale",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["selected_count"] == body["updated_count"] == 1
+    assert body["items"][0]["memory_id"] == str(stale_id)
+    assert body["items"][0]["previous_embedding"]["provider"] == "old"
+    assert body["items"][0]["current_embedding"]["provider"] == provider.name
+    assert len(provider.calls) == 1
+    with Session(get_engine()) as session:
+        replaced = session.get(MemoryEmbedding, embedding_id)
+        assert replaced is not None
+        assert replaced.id == embedding_id and replaced.created_at == created_at
+        assert replaced.input_hash == canonical_input_hash(
+            canonical_memory_text(session.get(Memory, stale_id))
+        )
+
+    forced = client.post(
+        "/memory-embeddings/reembed",
+        json={
+            "scope": "project",
+            "project_id": str(project_id),
+            "selection": "all",
+            "limit": 1,
+        },
+    )
+    assert forced.status_code == 200
+    assert forced.json()["selected_count"] == forced.json()["unchanged_count"] == 1
+    assert forced.json()["updated_count"] == 0
+    assert len(provider.calls) == 2
