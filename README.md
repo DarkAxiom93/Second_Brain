@@ -1101,3 +1101,33 @@ Restore only with an exact manifest Project ID confirmation:
 Use `-UseTestDatabase` explicitly for `second_brain_test`. Imports reject
 conflicts and never merge or overwrite existing rows; see
 `docs/PROJECT_EXPORT_FORMAT.md`.
+
+## Operational diagnostics
+
+Run the deterministic local readiness diagnostic against the development
+database:
+
+```powershell
+.\scripts\diagnose-system.ps1
+```
+
+Add `-UseTestDatabase` only for `second_brain_test`. `-OutputPath <path>` writes
+the typed result as JSON and refuses an existing file; without it, no file is
+created. `-ApiBaseUrl http://127.0.0.1:8000` optionally probes the established
+`/health` and `/ready` routes. Only credential-free loopback HTTP or HTTPS
+targets are accepted, and the API need not be running when the option is
+omitted.
+
+Exit code 0 means every required check passed; warnings remain healthy, while
+any failed check returns nonzero. Checks cover Python and repository runtime,
+safe parsed configuration identity, provider/model names and embedding
+dimensions, PostgreSQL connectivity/version/identity, pgvector, required
+tables, current and sole Alembic revision, pending-upgrade state, and safe
+aggregate application counts.
+
+The command sets its database transaction read-only, issues only inspection and
+`SELECT` operations, never resolves or calls a provider, and never prints
+credentials, full connection URLs, entity content, identifiers, vectors,
+filenames, or source text. It does not repair configuration, run migrations,
+start services, or persist telemetry. Persistent metrics, monitoring, tracing,
+and scheduled checks remain deferred.

@@ -109,8 +109,9 @@ exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 38, read-only Memory maintenance auditing.
-Maintenance execution and scheduled expiration processing remain deferred. Continue one approved
+Most recently implemented: Checkpoint 41, read-only operational diagnostics and
+configuration validation. Maintenance execution, scheduled expiration
+processing, and persistent observability remain deferred. Continue one approved
 checkpoint at a time and attach the latest checkpoint report to the new
 conversation.
 
@@ -119,13 +120,14 @@ conversation.
 ```powershell
 Get-Content .\docs\CHAT_HANDOFF.md -Raw | Set-Clipboard
 ```
-# Checkpoint 40 handoff
+# Checkpoint 41 handoff
 
-Checkpoint 40 implements controlled validation and transactional restore of the
-private `second-brain-project-export` version 1 bundle and is ready for human
-review. Default mode is read-only; execution requires an exact Project ID,
-rejects every conflict, and commits the complete graph once or rolls it all
-back. Full verification passes 586 tests with zero skips and Alembic remains
-`0009_memory_expiration`. Review `docs/PROJECT_EXPORT_FORMAT.md` and
-`docs/checkpoint-40-report.md`. Do not begin Checkpoint 41 until this checkpoint
-is approved, committed, pushed, and the repository is clean.
+Checkpoint 41 adds `scripts/diagnose-system.ps1`, a deterministic read-only
+diagnostic for runtime, configuration, PostgreSQL, pgvector, Alembic, safe
+aggregate counts, and optional loopback health/readiness probes. Provider
+configuration is inspected without resolution or network calls. Full
+verification passes 603 tests with zero skips; the development smoke is healthy
+with one expected missing-provider-credentials warning, and Alembic remains
+`0009_memory_expiration`. Review `docs/checkpoint-41-report.md`. Do not begin
+another checkpoint until this checkpoint is approved, committed, pushed, and
+the repository is clean.

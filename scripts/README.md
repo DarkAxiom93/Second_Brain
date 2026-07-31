@@ -12,6 +12,7 @@ provider, or remove the PostgreSQL volume.
 .\scripts\verify-databases.ps1
 .\scripts\evaluate-retrieval.ps1 -BaselineCheck
 .\scripts\audit-memory-maintenance.ps1
+.\scripts\diagnose-system.ps1
 .\scripts\verify.ps1 -Mode Full
 .\scripts\start-api.ps1 -Reload
 .\scripts\dev-down.ps1
@@ -62,6 +63,15 @@ execution:
 The tool refuses unsafe database identity, name/count mismatches, Memory links,
 and protected-row changes. It accepts no wildcard, name-only, arbitrary-table,
 or unbounded-delete mode.
+
+## Operational diagnostics
+
+`diagnose-system.ps1` defaults to the verified `second_brain` database. Add
+`-UseTestDatabase` only for `second_brain_test`, `-OutputPath` for new JSON
+output, or `-ApiBaseUrl` for credential-free loopback `/health` and `/ready`
+probes. It returns zero only when all required checks pass. Warnings do not
+cause failure. Database work is transaction-enforced read-only; provider
+configuration is inspected without provider resolution or network calls.
 
 ## Retrieval evaluation
 

@@ -79,6 +79,11 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   complete version-1 bundle and target conflicts before dependency-safe inserts
   in one transaction. Validation-only is read-only; restore never merges,
   overwrites, remaps, repairs, or calls a provider.
+- Operational diagnostics are an explicit local, read-only command. One captured
+  UTC instant covers runtime/configuration identity, PostgreSQL and pgvector,
+  Alembic consistency, required tables, and safe aggregate counts. Provider
+  configuration is inspected without resolution or network calls; optional API
+  probes are restricted to credential-free loopback targets.
 
 ```mermaid
 flowchart LR
