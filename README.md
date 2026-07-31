@@ -532,6 +532,36 @@ changes Memory data, or runs automatically or on a schedule. Tests and smoke
 verification make no live provider call. No migration is added; Alembic remains
 `0009_memory_expiration`.
 
+## Checkpoint 38: read-only Memory maintenance audit
+
+Run the deterministic maintainer audit against development:
+
+```powershell
+.\scripts\audit-memory-maintenance.ps1
+```
+
+Use `-TestDatabase` for the separately verified test database,
+`-DetailLimit 25` to bound each category's ID details, and
+`-OutputPath .\audit.json` to additionally write typed JSON. JSON is never
+written unless an output path is supplied.
+
+The report includes total, project-assigned, and unassigned Memories; complete
+counts for every status; active Memories missing embeddings; active Memories
+with stale embeddings; active expiration timestamps that are due or future;
+expired Memories missing `expires_at`; and embeddings attached to non-active
+Memories. One timezone-aware UTC timestamp is captured for the complete audit.
+Each actionable category returns its full count and up to the requested number
+of IDs, ordered by `created_at` ascending and UUID ascending.
+
+Embedding staleness is exactly the controlled re-embedding rule: canonical
+input SHA-256 hash, configured provider, model, or dimensions differs. The audit
+does not resolve or call a provider. It validates parsed and live database
+identity, uses a database read-only transaction, and never flushes, commits,
+repairs, expires, embeds, re-embeds, archives, invalidates, supersedes, deletes,
+or rewrites application data. It is a point-in-time diagnostic, not exhaustive
+history or a maintenance executor; future execution remains separate and
+explicit. No API route, schema change, migration, job, or telemetry is added.
+
 ## Checkpoint 18: explicit semantic Memory search
 
 Search only Memories that already have an explicitly generated embedding:

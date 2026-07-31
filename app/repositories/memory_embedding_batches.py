@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import String, cast, func, literal, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, contains_eager
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
@@ -92,7 +93,7 @@ def insert_embedding_if_missing(
     return existing, False
 
 
-def _canonical_text_sql() -> object:
+def canonical_memory_text_sql() -> ColumnElement[str]:
     """Build the canonical Memory input in SQL using the established policy."""
 
     def normalized(column: object) -> object:
@@ -109,6 +110,23 @@ def _canonical_text_sql() -> object:
         normalized(Memory.content),
         literal("\n\nSOURCE:\n"),
         normalized(Memory.source),
+    )
+
+
+def stale_embedding_predicate(
+    *, provider: str, model: str, dimensions: int
+) -> ColumnElement[bool]:
+    """Return the established configured-identity staleness rule."""
+
+    current_hash = func.encode(
+        func.sha256(func.convert_to(cast(canonical_memory_text_sql(), String), "UTF8")),
+        "hex",
+    )
+    return (
+        (MemoryEmbedding.input_hash != current_hash)
+        | (MemoryEmbedding.provider != provider)
+        | (MemoryEmbedding.model != model)
+        | (MemoryEmbedding.dimensions != dimensions)
     )
 
 
@@ -136,15 +154,10 @@ def select_reembedding_candidates(
     elif scope == "unassigned":
         statement = statement.where(Memory.project_id.is_(None))
     if selection == "stale":
-        current_hash = func.encode(
-            func.sha256(func.convert_to(cast(_canonical_text_sql(), String), "UTF8")),
-            "hex",
-        )
         statement = statement.where(
-            (MemoryEmbedding.input_hash != current_hash)
-            | (MemoryEmbedding.provider != provider)
-            | (MemoryEmbedding.model != model)
-            | (MemoryEmbedding.dimensions != dimensions)
+            stale_embedding_predicate(
+                provider=provider, model=model, dimensions=dimensions
+            )
         )
     return list(
         session.scalars(statement.order_by(Memory.created_at, Memory.id).limit(limit))

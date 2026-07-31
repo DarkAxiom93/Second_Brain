@@ -63,6 +63,13 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
   replacement. Embedding identity and creation time are preserved. Missing
   embeddings are never created, and no scheduled or background re-embedding
   occurs.
+- Memory maintenance auditing is a developer-only, point-in-time, read-only
+  operation. It captures one UTC instant, aggregates status/project assignment,
+  and reports bounded creation-time/UUID-ordered IDs for missing or stale active
+  embeddings, due/future active expiration timestamps, inconsistent expired
+  state, and non-active embeddings. Staleness reuses the controlled
+  re-embedding SQL predicate. Parsed/live database identity and a database
+  read-only transaction prevent accidental writes; no provider is resolved.
 - AI generation produces proposals. Human approval and explicit promotion are
   separate actions; only promotion creates a `Memory` and `MemorySource`.
 

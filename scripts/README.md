@@ -11,6 +11,7 @@ provider, or remove the PostgreSQL volume.
 .\scripts\dev-up.ps1
 .\scripts\verify-databases.ps1
 .\scripts\evaluate-retrieval.ps1 -BaselineCheck
+.\scripts\audit-memory-maintenance.ps1
 .\scripts\verify.ps1 -Mode Full
 .\scripts\start-api.ps1 -Reload
 .\scripts\dev-down.ps1
@@ -68,3 +69,12 @@ or unbounded-delete mode.
 retrieval dataset only against `second_brain_test`. See
 `docs/RETRIEVAL_EVALUATION.md` for metrics, baseline policy, and optional JSON
 output.
+
+## Memory maintenance audit
+
+`audit-memory-maintenance.ps1` defaults to the verified `second_brain`
+development database and supports `-TestDatabase`, `-DetailLimit 0..1000`, and
+optional `-OutputPath`. It prints a compact summary and writes JSON only when
+requested. Parsed and live identity must match before queries. The transaction
+is database-enforced read-only; the command has no mutation, repair, Docker, or
+provider mode.

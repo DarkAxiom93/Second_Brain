@@ -7,7 +7,7 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 37 are
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 38 are
 complete. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
@@ -94,13 +94,23 @@ identity and creation time. Concurrent stale winners become unchanged; deleted
 or newly inactive candidates are skipped. Missing embeddings are never created,
 and there is no automatic or scheduled re-embedding.
 
+The developer-only `scripts/audit-memory-maintenance.ps1` command produces a
+deterministic, read-only point-in-time report over Memory status, project
+assignment, missing/stale active embeddings, due/future active expiration
+timestamps, inconsistent expired state, and embeddings on non-active Memories.
+It captures one UTC instant, returns full counts with bounded IDs ordered by
+creation time and UUID, reuses the controlled re-embedding staleness predicate,
+validates parsed/live database identity, and runs in a database read-only
+transaction. It resolves no provider, exposes no API, and performs no repair or
+application-data write.
+
 Read `AGENTS.md` and stable docs before work. One checkpoint at a time; preserve
 exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently completed: Checkpoint 37, controlled batch Memory re-embedding.
-Scheduled expiration processing remains deferred. Continue one approved
+Most recently completed: Checkpoint 38, read-only Memory maintenance auditing.
+Maintenance execution and scheduled expiration processing remain deferred. Continue one approved
 checkpoint at a time and attach the latest checkpoint report to the new
 conversation.
 
