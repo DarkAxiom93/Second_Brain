@@ -36,7 +36,8 @@ Project workflow for paginated listing, creation, and detail retrieval, plus
 Source listing, creation, detail, existing relationship summaries, explicit
 JSON/TXT/PDF ingestion, document/chunk inspection, and the complete proposal
 generation, review, rejection, approval, and promotion workflow, plus a Memory
-browser with quality/lifecycle actions and read-only advisories. Future: search, chat with
+browser with quality/lifecycle actions and read-only advisories, plus explicit
+lexical, semantic, and hybrid Memory search. Future: chat with
 citations, settings, authentication, and additional write workflows.
 
 ## Future agents and integrations

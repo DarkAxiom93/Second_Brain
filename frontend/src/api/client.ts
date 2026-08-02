@@ -68,6 +68,11 @@ export type MemoryRead = {
   importance: number; confidence: number; status: MemoryStatus; event_time: string | null;
   expires_at: string | null; supersedes_id: string | null; created_at: string; updated_at: string;
 };
+export type SearchMode = "lexical" | "semantic" | "hybrid";
+export type MemorySearchFilters = {
+  project_id?: string; memory_type?: MemoryRead["memory_type"]; status?: MemoryStatus;
+  importance_min?: number; importance_max?: number; confidence_min?: number; confidence_max?: number;
+};
 export type LinkedSource = {
   link_id: string; memory_id: string; source_id: string; source_location: string | null;
   linked_at: string; source_type: string; name: string; reference: string | null;
@@ -103,6 +108,7 @@ export class SourceDocumentNotFoundError extends Error {
 export class ProposalNotFoundError extends Error { constructor() { super("Proposal not found."); this.name = "ProposalNotFoundError"; } }
 export class MemoryNotFoundError extends Error { constructor() { super("Memory not found."); this.name = "MemoryNotFoundError"; } }
 export class ApiConflictError extends Error { constructor() { super("The proposal changed. Refresh and try again."); this.name = "ApiConflictError"; } }
+export class SearchProviderError extends Error { constructor(message: string) { super(message); this.name = "SearchProviderError"; } }
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
@@ -125,6 +131,7 @@ async function request<T>(
   externalSignal?: AbortSignal,
   init?: { method: "POST" | "PUT"; body?: unknown },
   notFoundError?: "project" | "source" | "document" | "proposal" | "memory",
+  searchErrors = false,
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -151,6 +158,16 @@ async function request<T>(
     }
     if (response.status === 409) throw new ApiConflictError();
     if (!response.ok) {
+      if (searchErrors && [502, 503].includes(response.status)) {
+        let detail = "";
+        try { const value: unknown = await response.json(); if (typeof value === "object" && value !== null && (value as Record<string, unknown>).detail && typeof (value as Record<string, unknown>).detail === "string") detail = (value as Record<string, string>).detail; } catch { /* expose no response body */ }
+        const safe: Record<string, string> = {
+          "embedding provider unavailable": "Semantic search is not configured on this local workspace.",
+          "embedding provider failed": "The embedding provider could not complete the search.",
+          "invalid embedding response": "The embedding provider returned an unusable response.",
+        };
+        if (safe[detail]) throw new SearchProviderError(safe[detail]);
+      }
       throw new SafeApiError();
     }
     const payload: unknown = await response.json();
@@ -159,7 +176,7 @@ async function request<T>(
     }
     return payload;
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof ApiConflictError) {
+    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof ApiConflictError || error instanceof SearchProviderError) {
       throw error;
     }
     throw new SafeApiError();
@@ -206,6 +223,16 @@ function isSimilarity(value: unknown): value is SimilarityRead { if (typeof valu
 function isContradiction(value: unknown): value is ContradictionRead { if (typeof value !== "object" || value === null || Array.isArray(value)) return false; const r = value as Record<string, unknown>; return typeof r.target_memory_id === "string" && isProjectId(r.target_memory_id) && Array.isArray(r.candidates) && r.candidates.every(v => { if (typeof v !== "object" || v === null || Array.isArray(v)) return false; const c = v as Record<string, unknown>; return typeof c.memory_id === "string" && isProjectId(c.memory_id) && c.classification === "potential_contradiction" && ["explicit_negation", "opposing_boolean_state"].includes(c.evidence_type as string) && score(c.lexical_similarity) && score(c.semantic_similarity) && [c.reason, c.target_state, c.candidate_state].every(x => typeof x === "string"); }); }
 
 export function listMemories(query: URLSearchParams, signal?: AbortSignal) { return request(`/memories?${query}`, (v): v is MemoryRead[] => Array.isArray(v) && v.every(isMemory), signal); }
+export function searchMemories(mode: SearchMode, query: string, filters: MemorySearchFilters, limit: number, signal?: AbortSignal) {
+  if (mode === "lexical") {
+    const params = new URLSearchParams({ query, limit: String(limit), offset: "0" });
+    Object.entries(filters).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
+    return request(`/memories?${params}`, (v): v is MemoryRead[] => Array.isArray(v) && v.every(isMemory), signal, undefined, undefined, true);
+  }
+  return request("/memories/search", (v): v is MemoryRead[] => Array.isArray(v) && v.every(isMemory), signal, {
+    method: "POST", body: { query, mode, filters, pagination: { limit, offset: 0 } },
+  }, undefined, true);
+}
 export function getMemory(id: string, signal?: AbortSignal) { return request(`/memories/${id}`, isMemory, signal, undefined, "memory"); }
 export function listMemorySources(id: string, signal?: AbortSignal) { return request(`/memories/${id}/sources?limit=100&offset=0`, (v): v is LinkedSource[] => Array.isArray(v) && v.every(isLinkedSource), signal, undefined, "memory"); }
 export function getSimilarities(id: string, signal?: AbortSignal) { return request(`/memories/${id}/similarities?limit=10`, isSimilarity, signal, undefined, "memory"); }

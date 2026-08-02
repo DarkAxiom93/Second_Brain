@@ -136,6 +136,10 @@ textarea { min-height: 6rem; resize: vertical; }
 .advisory { display: grid; gap: .75rem; border-top: 1px solid #d1d8d0; padding-top: 1.25rem; }
 .evidence { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.search-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.search-grid > div { display: grid; gap: .65rem; align-content: start; }
+.search-preview { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 4; white-space: pre-wrap; }
+.search-results { counter-reset: none; padding: 0; }
 
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: 1fr; }
@@ -145,6 +149,7 @@ textarea { min-height: 6rem; resize: vertical; }
   .sidebar__note { display: none; }
   .main-content { padding: 2rem 1.25rem; }
   .service-grid { grid-template-columns: 1fr; }
+  .search-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

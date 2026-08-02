@@ -51,7 +51,8 @@ history. A dash means Alembic had not yet been introduced.
 | 44 | Sources browser and Source creation UI | Complete | `0009_memory_expiration` | `892791f` |
 | 45 | Document ingestion and document browser UI | Complete | `0009_memory_expiration` | `c0716b1` |
 | 46 | Proposal generation, review, and promotion UI | Complete | `0009_memory_expiration` | `00e8420` |
-| 47 | Memories browser and quality actions UI | In progress | `0009_memory_expiration` | Pending review |
+| 47 | Memories browser and quality actions UI | Complete | `0009_memory_expiration` | `0fb1705` |
+| 48 | Lexical, semantic, and hybrid search UI | In progress | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

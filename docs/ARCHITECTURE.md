@@ -19,8 +19,10 @@ read-only paginated chunk browser. Proposals provides explicit SourceDocument-tr
 generation, a filtered paginated review queue, evidence/provenance detail, human
 approval or rejection, and separate explicit promotion. Memories provides
 persisted-field filtering and pagination, safe detail provenance, explicit
-quality/supersession/expiration actions, and read-only quality advisories. Other
-named screens remain routing placeholders.
+quality/supersession/expiration actions, and read-only quality advisories.
+Search provides explicit lexical, semantic, and hybrid retrieval through the
+existing Memory contracts and preserves backend ordering. Other named screens
+remain routing placeholders.
 The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 

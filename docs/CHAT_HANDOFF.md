@@ -1,9 +1,14 @@
 # Second Brain chat handoff
 
-Checkpoint 46 is implemented locally and awaiting review. The proposal generation,
-queue, detail, review, rejection, and promotion UI uses the existing backend contracts.
-See `docs/checkpoint-46-report.md` for verification and smoke results. Do not begin
-Checkpoint 47 until these changes are reviewed, committed, and pushed.
+Checkpoint 48 is implemented locally and approved for commit, but is not yet
+recorded as committed or pushed in this handoff. The functional `/search` screen
+uses the existing lexical `GET /memories` contract and semantic/hybrid `POST
+/memories/search` contract. It preserves backend order, exposes only supported
+persisted-field filters, validates public `MemoryRead[]` responses, and links
+results to Memory detail without N+1 reads or invented scores. See
+`docs/checkpoint-48-report.md` for Full verification and read-only browser-smoke
+evidence. Do not begin Checkpoint 49 until Checkpoint 48 is committed, reviewed,
+pushed, and the repository is clean.
 
 Second Brain is a local knowledge-memory API. The repository is normally at
 `C:\Users\user\Desktop\second-brain` on Windows with Python 3.12 in `.venv`.
@@ -12,8 +17,8 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 44 are
-complete; Checkpoint 45 is implemented and pending review. Completed capabilities include:
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 47 are
+complete; Checkpoint 48 is implemented and approved for commit. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
 proposal generation, human review, explicit promotion, and reusable developer
@@ -140,7 +145,8 @@ lists its real document and links to exact-contract JSON/TXT/PDF ingestion.
 `/source-documents/:documentId` shows public metadata and paginated chunk evidence.
 All screens use strict response validation, cancellation, accessible states, and
 manual retry. There is no automatic proposal generation, edit, delete, polling,
-browser persistence, or optimistic document. The remaining named screens are
+browser persistence, or optimistic document. `/search` is now functional for
+explicit lexical, semantic, and hybrid retrieval; Answers and Settings remain
 placeholders.
 
 Frontend setup, development, and verification use

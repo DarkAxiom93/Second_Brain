@@ -40,7 +40,6 @@ describe("application shell", () => {
   });
 
   it.each([
-    ["/search", "Search"],
     ["/answers", "Answers"],
     ["/settings", "Settings"],
   ])("renders the %s placeholder without a backend request", (path, title) => {
@@ -49,6 +48,15 @@ describe("application shell", () => {
     renderAt(path);
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.getByText(/later user-interface checkpoint/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("opens functional Search without requesting before submission", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    renderAt("/search");
+    expect(screen.getByRole("heading", { name: "Search Memories" })).toBeInTheDocument();
+    expect(screen.getByText(/Editing fields does not run a request/)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
