@@ -40,7 +40,6 @@ describe("application shell", () => {
   });
 
   it.each([
-    ["/memories", "Memories"],
     ["/search", "Search"],
     ["/answers", "Answers"],
     ["/settings", "Settings"],
@@ -51,6 +50,14 @@ describe("application shell", () => {
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.getByText(/later user-interface checkpoint/i)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the functional Memories browser", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+    renderAt("/memories");
+    expect(await screen.findByText("No Memories match these filters.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/memories?limit=20&offset=0", expect.anything());
   });
 
   it("opens the functional proposal queue", async () => {

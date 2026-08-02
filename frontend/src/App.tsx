@@ -6,6 +6,7 @@ import { ProjectDetail, Projects } from "./Projects";
 import { SourceDetail, Sources } from "./Sources";
 import { DocumentIngestion, SourceDocumentDetail } from "./Documents";
 import { ProposalDetail, Proposals } from "./Proposals";
+import { Memories, MemoryDetail } from "./Memories";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -134,7 +135,9 @@ export function App() {
           <Route path="/source-documents/:documentId" element={<SourceDocumentDetail />} />
           <Route path="/proposals" element={<Proposals />} />
           <Route path="/proposals/:proposalId" element={<ProposalDetail />} />
-          {navigation.slice(4).map(([path, label]) => (
+          <Route path="/memories" element={<Memories />} />
+          <Route path="/memories/:memoryId" element={<MemoryDetail />} />
+          {navigation.slice(5).map(([path, label]) => (
             <Route key={path} path={path} element={<Placeholder title={label} />} />
           ))}
           <Route path="*" element={<NotFound />} />

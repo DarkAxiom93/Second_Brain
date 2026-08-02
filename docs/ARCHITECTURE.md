@@ -17,8 +17,10 @@ relationship listing for safe provenance detail. Source detail also lists its
 persisted document, links to explicit JSON/TXT/PDF ingestion, and provides a
 read-only paginated chunk browser. Proposals provides explicit SourceDocument-triggered
 generation, a filtered paginated review queue, evidence/provenance detail, human
-approval or rejection, and separate explicit promotion. Other named screens remain
-routing placeholders.
+approval or rejection, and separate explicit promotion. Memories provides
+persisted-field filtering and pagination, safe detail provenance, explicit
+quality/supersession/expiration actions, and read-only quality advisories. Other
+named screens remain routing placeholders.
 The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 

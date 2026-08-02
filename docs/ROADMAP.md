@@ -35,8 +35,8 @@ shell, deterministic routing, a read-only health/readiness dashboard, and a
 Project workflow for paginated listing, creation, and detail retrieval, plus
 Source listing, creation, detail, existing relationship summaries, explicit
 JSON/TXT/PDF ingestion, document/chunk inspection, and the complete proposal
-generation, review, rejection, approval, and promotion workflow. Future: Memory
-browser, search, chat with
+generation, review, rejection, approval, and promotion workflow, plus a Memory
+browser with quality/lifecycle actions and read-only advisories. Future: search, chat with
 citations, settings, authentication, and additional write workflows.
 
 ## Future agents and integrations

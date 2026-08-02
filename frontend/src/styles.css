@@ -129,6 +129,11 @@ textarea { min-height: 6rem; resize: vertical; }
 .proposal-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; }
 .proposal-list h3, .proposal-list p { margin: 0 0 .5rem; }
 .proposal-list a { color: #173e32; }
+.memory-list, .advisory-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.memory-list li, .advisory-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; overflow-wrap: anywhere; }
+.memory-list h3, .memory-list p, .advisory-list p { margin: 0 0 .5rem; }
+.memory-list a, .advisory-list a { color: #173e32; }
+.advisory { display: grid; gap: .75rem; border-top: 1px solid #d1d8d0; padding-top: 1.25rem; }
 .evidence { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
 

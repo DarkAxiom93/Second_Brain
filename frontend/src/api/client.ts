@@ -61,6 +61,20 @@ export type MemoryProposalDetail = MemoryProposal & {
   proposal_hash: string; run_status: "pending" | "completed" | "failed"; source_chunk_available: boolean;
 };
 export type ProposalGeneration = { id: string; proposal_count: number };
+export type MemoryStatus = "active" | "superseded" | "invalid" | "archived" | "expired";
+export type MemoryRead = {
+  id: string; project_id: string | null; content: string; source: string | null;
+  title: string | null; summary: string | null; memory_type: "working" | "episodic" | "semantic" | "decision" | "procedural" | "preference" | "temporary";
+  importance: number; confidence: number; status: MemoryStatus; event_time: string | null;
+  expires_at: string | null; supersedes_id: string | null; created_at: string; updated_at: string;
+};
+export type LinkedSource = {
+  link_id: string; memory_id: string; source_id: string; source_location: string | null;
+  linked_at: string; source_type: string; name: string; reference: string | null;
+  checksum: string | null; source_created_at: string; source_updated_at: string;
+};
+export type SimilarityRead = { target_memory_id: string; candidates: Array<{ memory_id: string; classification: "exact_duplicate" | "similar"; lexical_similarity: number | null; semantic_similarity: number | null; reason: string }> };
+export type ContradictionRead = { target_memory_id: string; candidates: Array<{ memory_id: string; classification: "potential_contradiction"; evidence_type: "explicit_negation" | "opposing_boolean_state"; reason: string; lexical_similarity: number | null; semantic_similarity: number | null; target_state: string; candidate_state: string }> };
 
 export class SafeApiError extends Error {
   constructor() {
@@ -87,6 +101,7 @@ export class SourceDocumentNotFoundError extends Error {
   constructor() { super("Source document not found."); this.name = "SourceDocumentNotFoundError"; }
 }
 export class ProposalNotFoundError extends Error { constructor() { super("Proposal not found."); this.name = "ProposalNotFoundError"; } }
+export class MemoryNotFoundError extends Error { constructor() { super("Memory not found."); this.name = "MemoryNotFoundError"; } }
 export class ApiConflictError extends Error { constructor() { super("The proposal changed. Refresh and try again."); this.name = "ApiConflictError"; } }
 
 function apiBase(): string {
@@ -109,7 +124,7 @@ async function request<T>(
   validate: (value: unknown) => value is T,
   externalSignal?: AbortSignal,
   init?: { method: "POST" | "PUT"; body?: unknown },
-  notFoundError?: "project" | "source" | "document" | "proposal",
+  notFoundError?: "project" | "source" | "document" | "proposal" | "memory",
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -131,7 +146,8 @@ async function request<T>(
       if (notFoundError === "project") throw new ProjectNotFoundError();
       if (notFoundError === "source") throw new SourceNotFoundError();
       if (notFoundError === "document") throw new SourceDocumentNotFoundError();
-      throw new ProposalNotFoundError();
+      if (notFoundError === "proposal") throw new ProposalNotFoundError();
+      throw new MemoryNotFoundError();
     }
     if (response.status === 409) throw new ApiConflictError();
     if (!response.ok) {
@@ -143,7 +159,7 @@ async function request<T>(
     }
     return payload;
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof ApiConflictError) {
+    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof ApiConflictError) {
       throw error;
     }
     throw new SafeApiError();
@@ -161,9 +177,42 @@ export function isProjectId(value: string): boolean {
 
 export const isSourceId = isProjectId;
 
+const nullableUuid = (value: unknown): value is string | null => value === null || (typeof value === "string" && isProjectId(value));
+
 function isTimestamp(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && !Number.isNaN(Date.parse(value));
 }
+
+const nullableTimestamp = (value: unknown): value is string | null => value === null || isTimestamp(value);
+function isMemory(value: unknown): value is MemoryRead {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["confidence", "content", "created_at", "event_time", "expires_at", "id", "importance", "memory_type", "project_id", "source", "status", "summary", "supersedes_id", "title", "updated_at"];
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) && typeof r.id === "string" && isProjectId(r.id) && nullableUuid(r.project_id) &&
+    typeof r.content === "string" && [r.source, r.title, r.summary].every(isNullableString) &&
+    ["working", "episodic", "semantic", "decision", "procedural", "preference", "temporary"].includes(r.memory_type as string) &&
+    typeof r.importance === "number" && Number.isFinite(r.importance) && r.importance >= 0 && r.importance <= 1 && typeof r.confidence === "number" && Number.isFinite(r.confidence) && r.confidence >= 0 && r.confidence <= 1 &&
+    ["active", "superseded", "invalid", "archived", "expired"].includes(r.status as string) && nullableTimestamp(r.event_time) && nullableTimestamp(r.expires_at) && nullableUuid(r.supersedes_id) && isTimestamp(r.created_at) && isTimestamp(r.updated_at);
+}
+
+function isLinkedSource(value: unknown): value is LinkedSource {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>; const keys = ["checksum", "link_id", "linked_at", "memory_id", "name", "reference", "source_created_at", "source_id", "source_location", "source_type", "source_updated_at"];
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) && [r.link_id, r.memory_id, r.source_id].every(v => typeof v === "string" && isProjectId(v)) && [r.source_location, r.reference, r.checksum].every(isNullableString) && typeof r.name === "string" && typeof r.source_type === "string" && [r.linked_at, r.source_created_at, r.source_updated_at].every(isTimestamp);
+}
+
+const score = (value: unknown) => value === null || (typeof value === "number" && Number.isFinite(value));
+function isSimilarity(value: unknown): value is SimilarityRead { if (typeof value !== "object" || value === null || Array.isArray(value)) return false; const r = value as Record<string, unknown>; return typeof r.target_memory_id === "string" && isProjectId(r.target_memory_id) && Array.isArray(r.candidates) && r.candidates.every(v => { if (typeof v !== "object" || v === null || Array.isArray(v)) return false; const c = v as Record<string, unknown>; return typeof c.memory_id === "string" && isProjectId(c.memory_id) && ["exact_duplicate", "similar"].includes(c.classification as string) && score(c.lexical_similarity) && score(c.semantic_similarity) && typeof c.reason === "string"; }); }
+function isContradiction(value: unknown): value is ContradictionRead { if (typeof value !== "object" || value === null || Array.isArray(value)) return false; const r = value as Record<string, unknown>; return typeof r.target_memory_id === "string" && isProjectId(r.target_memory_id) && Array.isArray(r.candidates) && r.candidates.every(v => { if (typeof v !== "object" || v === null || Array.isArray(v)) return false; const c = v as Record<string, unknown>; return typeof c.memory_id === "string" && isProjectId(c.memory_id) && c.classification === "potential_contradiction" && ["explicit_negation", "opposing_boolean_state"].includes(c.evidence_type as string) && score(c.lexical_similarity) && score(c.semantic_similarity) && [c.reason, c.target_state, c.candidate_state].every(x => typeof x === "string"); }); }
+
+export function listMemories(query: URLSearchParams, signal?: AbortSignal) { return request(`/memories?${query}`, (v): v is MemoryRead[] => Array.isArray(v) && v.every(isMemory), signal); }
+export function getMemory(id: string, signal?: AbortSignal) { return request(`/memories/${id}`, isMemory, signal, undefined, "memory"); }
+export function listMemorySources(id: string, signal?: AbortSignal) { return request(`/memories/${id}/sources?limit=100&offset=0`, (v): v is LinkedSource[] => Array.isArray(v) && v.every(isLinkedSource), signal, undefined, "memory"); }
+export function getSimilarities(id: string, signal?: AbortSignal) { return request(`/memories/${id}/similarities?limit=10`, isSimilarity, signal, undefined, "memory"); }
+export function getContradictions(id: string, signal?: AbortSignal) { return request(`/memories/${id}/contradictions?limit=10`, isContradiction, signal, undefined, "memory"); }
+export function refineMemory(id: string, body: { confidence: number; importance: number }, signal?: AbortSignal) { return request(`/memories/${id}/quality`, (v): v is { refinement_status: "updated" | "unchanged"; memory: MemoryRead } => typeof v === "object" && v !== null && ["updated", "unchanged"].includes((v as Record<string, unknown>).refinement_status as string) && isMemory((v as Record<string, unknown>).memory), signal, { method: "POST", body }, "memory"); }
+export function supersedeMemory(id: string, replacement_memory_id: string, signal?: AbortSignal) { return request(`/memories/${id}/supersede`, (v): v is { supersession_status: "updated" | "unchanged"; superseded_memory: MemoryRead; replacement_memory: MemoryRead } => { if (typeof v !== "object" || v === null || Array.isArray(v)) return false; const r = v as Record<string, unknown>; return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(["replacement_memory", "superseded_memory", "supersession_status"]) && ["updated", "unchanged"].includes(r.supersession_status as string) && isMemory(r.superseded_memory) && isMemory(r.replacement_memory); }, signal, { method: "POST", body: { replacement_memory_id } }, "memory"); }
+export function expireMemory(id: string, signal?: AbortSignal) { return request(`/memories/${id}/expire`, (v): v is { expiration_status: "updated" | "unchanged"; memory: MemoryRead } => { if (typeof v !== "object" || v === null || Array.isArray(v)) return false; const r = v as Record<string, unknown>; return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(["expiration_status", "memory"]) && ["updated", "unchanged"].includes(r.expiration_status as string) && isMemory(r.memory); }, signal, { method: "POST" }, "memory"); }
 
 function isProject(value: unknown): value is ProjectRead {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
