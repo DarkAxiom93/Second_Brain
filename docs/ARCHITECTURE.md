@@ -21,8 +21,10 @@ approval or rejection, and separate explicit promotion. Memories provides
 persisted-field filtering and pagination, safe detail provenance, explicit
 quality/supersession/expiration actions, and read-only quality advisories.
 Search provides explicit lexical, semantic, and hybrid retrieval through the
-existing Memory contracts and preserves backend ordering. Other named screens
-remain routing placeholders.
+existing Memory contracts and preserves backend ordering. Answers provides an
+explicit stateless question workflow through the existing answer contract,
+preserves returned citation order, and links returned public Memory IDs without
+follow-up requests. Settings remains a routing placeholder.
 The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 

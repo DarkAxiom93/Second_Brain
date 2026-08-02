@@ -8,6 +8,7 @@ import { DocumentIngestion, SourceDocumentDetail } from "./Documents";
 import { ProposalDetail, Proposals } from "./Proposals";
 import { Memories, MemoryDetail } from "./Memories";
 import { Search } from "./Search";
+import { Answers } from "./Answers";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -139,7 +140,8 @@ export function App() {
           <Route path="/memories" element={<Memories />} />
           <Route path="/memories/:memoryId" element={<MemoryDetail />} />
           <Route path="/search" element={<Search />} />
-          {navigation.slice(6).map(([path, label]) => (
+          <Route path="/answers" element={<Answers />} />
+          {navigation.slice(7).map(([path, label]) => (
             <Route key={path} path={path} element={<Placeholder title={label} />} />
           ))}
           <Route path="*" element={<NotFound />} />

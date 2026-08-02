@@ -69,6 +69,9 @@ export type MemoryRead = {
   expires_at: string | null; supersedes_id: string | null; created_at: string; updated_at: string;
 };
 export type SearchMode = "lexical" | "semantic" | "hybrid";
+export type AnswerRequest = { query: string; project_id: string | null; search_mode: SearchMode; limit: number };
+export type AnswerCitation = { label: string; rank: number; memory: MemoryRead; lexical_score: number | null; semantic_score: number | null };
+export type AnswerRead = { answer_status: "answered" | "insufficient_evidence"; answer: string; search_mode: SearchMode; citations: AnswerCitation[] };
 export type MemorySearchFilters = {
   project_id?: string; memory_type?: MemoryRead["memory_type"]; status?: MemoryStatus;
   importance_min?: number; importance_max?: number; confidence_min?: number; confidence_max?: number;
@@ -109,6 +112,7 @@ export class ProposalNotFoundError extends Error { constructor() { super("Propos
 export class MemoryNotFoundError extends Error { constructor() { super("Memory not found."); this.name = "MemoryNotFoundError"; } }
 export class ApiConflictError extends Error { constructor() { super("The proposal changed. Refresh and try again."); this.name = "ApiConflictError"; } }
 export class SearchProviderError extends Error { constructor(message: string) { super(message); this.name = "SearchProviderError"; } }
+export class AnswerProviderError extends Error { constructor(message: string) { super(message); this.name = "AnswerProviderError"; } }
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
@@ -132,6 +136,7 @@ async function request<T>(
   init?: { method: "POST" | "PUT"; body?: unknown },
   notFoundError?: "project" | "source" | "document" | "proposal" | "memory",
   searchErrors = false,
+  answerErrors = false,
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -168,6 +173,19 @@ async function request<T>(
         };
         if (safe[detail]) throw new SearchProviderError(safe[detail]);
       }
+      if (answerErrors && [502, 503].includes(response.status)) {
+        let detail = "";
+        try { const value: unknown = await response.json(); if (typeof value === "object" && value !== null && typeof (value as Record<string, unknown>).detail === "string") detail = (value as Record<string, string>).detail; } catch { /* expose no response body */ }
+        const safe: Record<string, string> = {
+          "embedding provider unavailable": "Semantic retrieval is not configured on this local workspace.",
+          "embedding provider failed": "The embedding provider could not retrieve answer evidence.",
+          "invalid embedding response": "The embedding provider returned an unusable response.",
+          "answer provider unavailable": "Answer generation is not configured on this local workspace.",
+          "answer provider failed": "The answer provider could not complete this request.",
+          "database unavailable": "The local answer database is unavailable.",
+        };
+        if (safe[detail]) throw new AnswerProviderError(safe[detail]);
+      }
       throw new SafeApiError();
     }
     const payload: unknown = await response.json();
@@ -176,7 +194,7 @@ async function request<T>(
     }
     return payload;
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof ApiConflictError || error instanceof SearchProviderError) {
+    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof ApiConflictError || error instanceof SearchProviderError || error instanceof AnswerProviderError) {
       throw error;
     }
     throw new SafeApiError();
@@ -210,6 +228,23 @@ function isMemory(value: unknown): value is MemoryRead {
     ["working", "episodic", "semantic", "decision", "procedural", "preference", "temporary"].includes(r.memory_type as string) &&
     typeof r.importance === "number" && Number.isFinite(r.importance) && r.importance >= 0 && r.importance <= 1 && typeof r.confidence === "number" && Number.isFinite(r.confidence) && r.confidence >= 0 && r.confidence <= 1 &&
     ["active", "superseded", "invalid", "archived", "expired"].includes(r.status as string) && nullableTimestamp(r.event_time) && nullableTimestamp(r.expires_at) && nullableUuid(r.supersedes_id) && isTimestamp(r.created_at) && isTimestamp(r.updated_at);
+}
+
+function isAnswer(value: unknown): value is AnswerRead {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  if (JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(["answer", "answer_status", "citations", "search_mode"])) return false;
+  if (!["answered", "insufficient_evidence"].includes(r.answer_status as string) || typeof r.answer !== "string" || !["lexical", "semantic", "hybrid"].includes(r.search_mode as string) || !Array.isArray(r.citations)) return false;
+  return r.citations.every((value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+    const c = value as Record<string, unknown>;
+    return JSON.stringify(Object.keys(c).sort()) === JSON.stringify(["label", "lexical_score", "memory", "rank", "semantic_score"]) &&
+      typeof c.label === "string" && Number.isInteger(c.rank) && (c.rank as number) >= 1 && isMemory(c.memory) && score(c.lexical_score) && score(c.semantic_score);
+  });
+}
+
+export function createAnswer(body: AnswerRequest, signal?: AbortSignal) {
+  return request("/answers", isAnswer, signal, { method: "POST", body }, undefined, false, true);
 }
 
 function isLinkedSource(value: unknown): value is LinkedSource {

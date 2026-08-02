@@ -140,6 +140,10 @@ textarea { min-height: 6rem; resize: vertical; }
 .search-grid > div { display: grid; gap: .65rem; align-content: start; }
 .search-preview { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 4; white-space: pre-wrap; }
 .search-results { counter-reset: none; padding: 0; }
+.answer-region { max-width: 60rem; }
+.answer-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.answer-evidence { padding: 0; }
+.answer-evidence h4 { margin: 0 0 .5rem; }
 
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: 1fr; }

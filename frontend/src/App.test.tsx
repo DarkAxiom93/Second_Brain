@@ -39,15 +39,18 @@ describe("application shell", () => {
     }
   });
 
-  it.each([
-    ["/answers", "Answers"],
-    ["/settings", "Settings"],
-  ])("renders the %s placeholder without a backend request", (path, title) => {
+  it.each([["/settings", "Settings"]])("renders the %s placeholder without a backend request", (path, title) => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     renderAt(path);
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.getByText(/later user-interface checkpoint/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("opens functional Answers without requesting before submission", () => {
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock); renderAt("/answers");
+    expect(screen.getByRole("heading", { name: "Ask a question" })).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
