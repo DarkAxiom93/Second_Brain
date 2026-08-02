@@ -11,7 +11,9 @@ routes after removing `/api`. The browser uses same-origin relative requests by
 default, so the backend requires no CORS changes. The initial dashboard reads
 only `/health` and `/ready`. Projects uses the existing paginated list and
 creation contracts plus read-only single-Project retrieval; its routes provide
-list, creation, and detail screens. Other named screens remain routing
+list, creation, and detail screens. Sources uses paginated list and creation
+contracts, read-only single-Source retrieval, and the existing Source-to-Memory
+relationship listing for safe provenance detail. Other named screens remain routing
 placeholders. The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 

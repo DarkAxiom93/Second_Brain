@@ -228,8 +228,12 @@ def test_linked_route_database_failure_is_generic(
 
 
 def test_existing_route_scope_remains_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
     route_client: tuple[TestClient, Mock],
 ) -> None:
     client, _ = route_client
-    assert client.get("/sources").status_code == 405
+    monkeypatch.setattr(
+        source_routes.source_repository, "list_sources", Mock(return_value=[])
+    )
+    assert client.get("/sources").status_code == 200
     assert client.get("/api/sources").status_code == 404

@@ -40,7 +40,6 @@ describe("application shell", () => {
   });
 
   it.each([
-    ["/sources", "Sources"],
     ["/proposals", "Proposals"],
     ["/memories", "Memories"],
     ["/search", "Search"],
@@ -53,6 +52,14 @@ describe("application shell", () => {
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.getByText(/later user-interface checkpoint/i)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the functional Sources screen from navigation", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
+    renderAt();
+    await userEvent.click(screen.getByRole("link", { name: "Sources" }));
+    expect(await screen.findByRole("heading", { name: "Create a source" })).toBeInTheDocument();
+    expect(screen.queryByText(/later user-interface checkpoint/i)).not.toBeInTheDocument();
   });
 
   it("renders Not Found for an unknown route without contacting the backend", () => {

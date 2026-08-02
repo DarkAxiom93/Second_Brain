@@ -82,6 +82,17 @@ def get_source(session: Session, source_id: uuid.UUID) -> Source | None:
     return session.scalar(select(Source).where(Source.id == source_id))
 
 
+def list_sources(session: Session, *, limit: int, offset: int) -> list[Source]:
+    """Return a deterministic page of Sources."""
+    statement = (
+        select(Source)
+        .order_by(Source.created_at.desc(), Source.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list(session.scalars(statement).all())
+
+
 def upsert_document(
     session: Session,
     *,

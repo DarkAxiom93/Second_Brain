@@ -129,12 +129,59 @@ def test_database_failure_is_generic(
     session.rollback.assert_called_once_with()
 
 
+def test_source_listing_and_detail_are_read_only(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    now = datetime.now(UTC)
+    source = Source(
+        id=uuid.uuid4(),
+        source_type="note",
+        name="Notes",
+        created_at=now,
+        updated_at=now,
+    )
+    listing = Mock(return_value=[source])
+    retrieval = Mock(return_value=source)
+    monkeypatch.setattr(source_routes.source_repository, "list_sources", listing)
+    monkeypatch.setattr(source_routes.source_repository, "get_source", retrieval)
+    assert client.get("/sources?limit=20&offset=3").json()[0]["id"] == str(source.id)
+    assert client.get(f"/sources/{source.id}").json()["name"] == "Notes"
+    listing.assert_called_once_with(session, limit=20, offset=3)
+    retrieval.assert_called_once_with(session, source.id)
+    session.commit.assert_not_called()
+    session.flush.assert_not_called()
+
+
+def test_source_detail_validation_missing_and_database_failure(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    retrieval = Mock(return_value=None)
+    monkeypatch.setattr(source_routes.source_repository, "get_source", retrieval)
+    assert client.get("/sources/not-a-uuid").status_code == 422
+    retrieval.assert_not_called()
+    response = client.get(f"/sources/{uuid.uuid4()}")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "source not found"}
+    failure = OperationalError("secret SQL", {}, Exception("password=secret"))
+    retrieval.side_effect = failure
+    response = client.get(f"/sources/{uuid.uuid4()}")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    assert "secret" not in response.text
+    session.commit.assert_not_called()
+    session.flush.assert_not_called()
+
+
 def test_only_approved_source_paths_exist(
     route_client: tuple[TestClient, Mock],
 ) -> None:
     client, _ = route_client
-    assert client.get("/sources").status_code == 405
     assert client.get("/api/sources").status_code == 404
+    paths = client.app.openapi()["paths"]
+    assert set(paths["/sources"]) == {"get", "post"}
+    assert set(paths["/sources/{source_id}"]) == {"get"}
 
 
 def test_ingest_unknown_source_returns_exact_404(

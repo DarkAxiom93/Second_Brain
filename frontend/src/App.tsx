@@ -3,6 +3,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 
 import { getHealth, getReadiness } from "./api/client";
 import { ProjectDetail, Projects } from "./Projects";
+import { SourceDetail, Sources } from "./Sources";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -125,7 +126,9 @@ export function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:projectId" element={<ProjectDetail />} />
-          {navigation.slice(2).map(([path, label]) => (
+          <Route path="/sources" element={<Sources />} />
+          <Route path="/sources/:sourceId" element={<SourceDetail />} />
+          {navigation.slice(3).map(([path, label]) => (
             <Route key={path} path={path} element={<Placeholder title={label} />} />
           ))}
           <Route path="*" element={<NotFound />} />

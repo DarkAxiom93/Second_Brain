@@ -7,8 +7,8 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 42 are
-complete; Checkpoint 43 is implemented and pending review. Completed capabilities include:
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 43 are
+complete; Checkpoint 44 is implemented and pending review. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
 proposal generation, human review, explicit promotion, and reusable developer
@@ -125,8 +125,15 @@ Project, displays all safe fields, distinguishes missing from generic failure,
 and links back to the list. Loading, populated, empty, validation, missing, and
 safe error states are accessible; retry is manual and requests are cancelled on
 unmount. There is no polling, browser persistence, optimistic creation, fake
-data, Project edit, or Project delete. Sources remains the next planned frontend
-checkpoint; the remaining named screens are placeholders.
+data, Project edit, or Project delete.
+
+The `/sources` screen now lists and creates Sources with the exact existing
+contract and real limit/offset pagination. `/sources/:sourceId` validates UUIDs,
+retrieves every safe Source field, and summarizes existing Source-to-Memory
+relationships through the established read-only endpoint. Both screens use
+strict response validation, cancellation, accessible states, and manual retry;
+there is no ingestion, edit, delete, linking, polling, persistence, or optimistic
+behavior. The remaining named screens are placeholders.
 
 Frontend setup, development, and verification use
 `scripts/frontend-setup.ps1`, `scripts/frontend-dev.ps1`, and

@@ -1,4 +1,4 @@
-"""Source creation endpoint."""
+"""Source creation, retrieval, and existing relationship endpoints."""
 
 import uuid
 from datetime import UTC, datetime
@@ -46,6 +46,11 @@ from app.schemas.source import (
 )
 
 router = APIRouter(prefix="/sources", tags=["sources"])
+
+
+def database_unavailable() -> HTTPException:
+    """Build the established public database-failure response."""
+    return HTTPException(status_code=503, detail="database unavailable")
 
 
 @router.post(
@@ -202,6 +207,41 @@ def create_source(
     except SQLAlchemyError:
         session.rollback()
         raise HTTPException(status_code=503, detail="database unavailable") from None
+    return source
+
+
+@router.get("", response_model=list[SourceRead])
+def list_sources(
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[Source]:
+    """List a validated, deterministic page of Sources."""
+    try:
+        return source_repository.list_sources(session, limit=limit, offset=offset)
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+
+
+@router.get(
+    "/{source_id}",
+    response_model=SourceRead,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Source not found"},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {"description": "Database unavailable"},
+    },
+)
+def get_source(
+    source_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> Source:
+    """Retrieve one Source without changing database state."""
+    try:
+        source = source_repository.get_source(session, source_id)
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+    if source is None:
+        raise HTTPException(status_code=404, detail="source not found")
     return source
 
 

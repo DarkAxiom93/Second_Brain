@@ -59,6 +59,21 @@ def test_create_source_repository_persists_nullable_and_duplicate_checksum() -> 
         assert second.checksum == third.checksum == "same"
 
 
+def test_source_listing_pagination_and_detail() -> None:
+    client = TestClient(create_app())
+    created = [
+        client.post("/sources", json={"source_type": "note", "name": name}).json()
+        for name in ("One", "Two", "Three")
+    ]
+    listing = client.get("/sources").json()
+    assert len(listing) == 3
+    assert client.get("/sources?limit=2&offset=1").json() == listing[1:3]
+    assert client.get(f"/sources/{created[0]['id']}").json() == created[0]
+    missing = client.get("/sources/00000000-0000-0000-0000-000000000001")
+    assert missing.status_code == 404
+    assert missing.json() == {"detail": "source not found"}
+
+
 def test_source_endpoint_and_link_cardinalities_preserve_legacy_source() -> None:
     client = TestClient(create_app())
     project = client.post("/projects", json={"name": "Project"}).json()
