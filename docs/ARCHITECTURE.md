@@ -24,7 +24,10 @@ Search provides explicit lexical, semantic, and hybrid retrieval through the
 existing Memory contracts and preserves backend ordering. Answers provides an
 explicit stateless question workflow through the existing answer contract,
 preserves returned citation order, and links returned public Memory IDs without
-follow-up requests. Settings remains a routing placeholder.
+follow-up requests. Settings is a read-only local operations dashboard over
+health, readiness, safe diagnostics, aggregate maintenance findings, and
+embedding coverage. It refreshes only on initial load or explicit manual action
+and exposes no repair, migration, embedding, export, or import control.
 The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 
@@ -107,6 +110,15 @@ service worker, or provider integration.
   Alembic consistency, required tables, and safe aggregate counts. Provider
   configuration is inspected without resolution or network calls; optional API
   probes are restricted to credential-free loopback targets.
+- `GET /operations/diagnostics` reuses the established configuration, PostgreSQL,
+  pgvector, Alembic, required-table, and aggregate-count checks inside the request
+  session's database-enforced read-only transaction. Its public contract removes
+  the target database and all diagnostic metadata; each check exposes only its
+  ID, category, status, and safe message.
+- `GET /operations/maintenance-audit` reuses the established audit with a zero
+  detail limit and exposes aggregate status and finding counts only. Memory UUID
+  samples and truncation details remain private. The underlying audit has no
+  Project-scoped contract, so the route accepts no Project filter.
 
 ```mermaid
 flowchart LR

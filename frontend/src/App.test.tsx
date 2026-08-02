@@ -39,13 +39,12 @@ describe("application shell", () => {
     }
   });
 
-  it.each([["/settings", "Settings"]])("renders the %s placeholder without a backend request", (path, title) => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    renderAt(path);
-    expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    expect(screen.getByText(/later user-interface checkpoint/i)).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+  it("opens the functional Settings dashboard", () => {
+    const fetchMock = vi.fn(() => new Promise(() => undefined));
+    vi.stubGlobal("fetch", fetchMock); renderAt("/settings");
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "System diagnostics" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it("opens functional Answers without requesting before submission", () => {

@@ -53,7 +53,8 @@ history. A dash means Alembic had not yet been introduced.
 | 46 | Proposal generation, review, and promotion UI | Complete | `0009_memory_expiration` | `00e8420` |
 | 47 | Memories browser and quality actions UI | Complete | `0009_memory_expiration` | `0fb1705` |
 | 48 | Lexical, semantic, and hybrid search UI | Complete | `0009_memory_expiration` | `3c469f0` |
-| 49 | Evidence-backed answers UI | In progress | `0009_memory_expiration` | Pending review |
+| 49 | Evidence-backed answers UI | Complete | `0009_memory_expiration` | `3fb5b7b` |
+| 50 | Read-only operations and Settings dashboard | In progress | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

@@ -502,6 +502,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/memory-proposals/{proposal_id}/promote",
         "/memory-embeddings/batch",
         "/memory-embeddings/reembed",
+        "/operations/diagnostics",
+        "/operations/maintenance-audit",
         "/sources",
         "/sources/{source_id}",
         "/sources/{source_id}/document/file",

@@ -9,6 +9,7 @@ import { ProposalDetail, Proposals } from "./Proposals";
 import { Memories, MemoryDetail } from "./Memories";
 import { Search } from "./Search";
 import { Answers } from "./Answers";
+import { Settings } from "./Settings";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -85,16 +86,6 @@ function Dashboard() {
   );
 }
 
-function Placeholder({ title }: { title: string }) {
-  return (
-    <header className="page-header">
-      <p className="eyebrow">Future screen</p>
-      <h1>{title}</h1>
-      <p>This area is reserved for a later user-interface checkpoint.</p>
-    </header>
-  );
-}
-
 function NotFound() {
   return (
     <header className="page-header">
@@ -141,9 +132,7 @@ export function App() {
           <Route path="/memories/:memoryId" element={<MemoryDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/answers" element={<Answers />} />
-          {navigation.slice(7).map(([path, label]) => (
-            <Route key={path} path={path} element={<Placeholder title={label} />} />
-          ))}
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

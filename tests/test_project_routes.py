@@ -244,6 +244,8 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/memory-proposals/{proposal_id}/promote",
         "/memory-embeddings/batch",
         "/memory-embeddings/reembed",
+        "/operations/diagnostics",
+        "/operations/maintenance-audit",
         "/sources",
         "/sources/{source_id}",
         "/sources/{source_id}/document/file",

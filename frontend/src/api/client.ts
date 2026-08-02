@@ -3,6 +3,23 @@ const REQUEST_TIMEOUT_MS = 5_000;
 
 export type HealthResponse = { status: "ok" };
 export type ReadinessResponse = { status: "ready" };
+export type DiagnosticStatus = "passed" | "warning" | "failed";
+export type OperationsDiagnostics = {
+  diagnostics_status: "healthy" | "unhealthy";
+  captured_at: string;
+  warning_count: number;
+  failure_count: number;
+  checks: Array<{ check_id: string; category: string; status: DiagnosticStatus; message: string }>;
+  aggregate_counts: Record<string, number>;
+};
+export type OperationsMaintenanceAudit = {
+  captured_at: string;
+  total_memories: number;
+  project_assigned_memories: number;
+  unassigned_memories: number;
+  counts_by_status: Record<string, number>;
+  findings: Array<{ finding_id: string; count: number }>;
+};
 export type ProjectRead = {
   id: string;
   name: string;
@@ -459,4 +476,66 @@ export function getReadiness(signal?: AbortSignal): Promise<ReadinessResponse> {
     (value): value is ReadinessResponse => hasExactStatus(value, "ready"),
     signal,
   );
+}
+
+const isCount = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0;
+
+function isCountRecord(value: unknown): value is Record<string, number> {
+  return typeof value === "object" && value !== null && !Array.isArray(value) &&
+    Object.entries(value).every(([key, count]) => key.length > 0 && isCount(count));
+}
+
+function isOperationsDiagnostics(value: unknown): value is OperationsDiagnostics {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["aggregate_counts", "captured_at", "checks", "diagnostics_status", "failure_count", "warning_count"];
+  if (JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(keys.sort()) ||
+      !["healthy", "unhealthy"].includes(r.diagnostics_status as string) ||
+      !isTimestamp(r.captured_at) || !isCount(r.warning_count) || !isCount(r.failure_count) ||
+      !isCountRecord(r.aggregate_counts) || !Array.isArray(r.checks)) return false;
+  let previous = "";
+  let warnings = 0;
+  let failures = 0;
+  for (const value of r.checks) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+    const check = value as Record<string, unknown>;
+    if (JSON.stringify(Object.keys(check).sort()) !== JSON.stringify(["category", "check_id", "message", "status"]) ||
+        typeof check.check_id !== "string" || typeof check.category !== "string" ||
+        typeof check.message !== "string" || !["passed", "warning", "failed"].includes(check.status as string)) return false;
+    const order = `${check.category}\u0000${check.check_id}`;
+    if (order < previous) return false;
+    previous = order;
+    warnings += check.status === "warning" ? 1 : 0;
+    failures += check.status === "failed" ? 1 : 0;
+  }
+  return warnings === r.warning_count && failures === r.failure_count &&
+    r.diagnostics_status === (failures ? "unhealthy" : "healthy");
+}
+
+function isOperationsMaintenance(value: unknown): value is OperationsMaintenanceAudit {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["captured_at", "counts_by_status", "findings", "project_assigned_memories", "total_memories", "unassigned_memories"];
+  if (JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(keys.sort()) || !isTimestamp(r.captured_at) ||
+      !isCount(r.total_memories) || !isCount(r.project_assigned_memories) || !isCount(r.unassigned_memories) ||
+      (r.project_assigned_memories as number) + (r.unassigned_memories as number) !== r.total_memories ||
+      !isCountRecord(r.counts_by_status) || !Array.isArray(r.findings)) return false;
+  let previous = "";
+  return r.findings.every((value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+    const finding = value as Record<string, unknown>;
+    const valid = JSON.stringify(Object.keys(finding).sort()) === JSON.stringify(["count", "finding_id"]) &&
+      typeof finding.finding_id === "string" && isCount(finding.count) && finding.finding_id >= previous;
+    previous = typeof finding.finding_id === "string" ? finding.finding_id : previous;
+    return valid;
+  });
+}
+
+export function getOperationsDiagnostics(signal?: AbortSignal) {
+  return request("/operations/diagnostics", isOperationsDiagnostics, signal);
+}
+
+export function getOperationsMaintenanceAudit(signal?: AbortSignal) {
+  return request("/operations/maintenance-audit", isOperationsMaintenance, signal);
 }

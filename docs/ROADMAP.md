@@ -38,8 +38,9 @@ JSON/TXT/PDF ingestion, document/chunk inspection, and the complete proposal
 generation, review, rejection, approval, and promotion workflow, plus a Memory
 browser with quality/lifecycle actions and read-only advisories, plus explicit
 lexical, semantic, and hybrid Memory search, plus explicit evidence-backed
-answers with returned Memory citations. Future: chat with citations, settings,
-authentication, and additional write workflows.
+answers with returned Memory citations, plus a read-only operations and settings
+dashboard with explicit manual refresh. Future: chat with citations,
+authentication, Export/Import UI, and additional write workflows.
 
 ## Future agents and integrations
 
