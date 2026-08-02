@@ -40,6 +40,7 @@ def test_post_then_get_project_and_duplicate_names() -> None:
     first = client.post("/projects", json=payload)
     second = client.post("/projects", json=payload)
     listing = client.get("/projects")
+    detail = client.get(f"/projects/{first.json()['id']}")
 
     assert first.status_code == 201
     assert second.status_code == 201
@@ -47,6 +48,17 @@ def test_post_then_get_project_and_duplicate_names() -> None:
     assert first.json()["description"] == payload["description"]
     assert len(listing.json()) == 2
     assert first.json()["id"] in {project["id"] for project in listing.json()}
+    assert detail.status_code == 200
+    assert detail.json() == first.json()
+
+
+def test_get_missing_project_returns_exact_404() -> None:
+    response = TestClient(create_app()).get(
+        "/projects/00000000-0000-0000-0000-000000000001"
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "project not found"}
 
 
 def test_invalid_project_does_not_insert_or_touch_memories() -> None:

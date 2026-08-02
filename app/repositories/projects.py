@@ -1,5 +1,7 @@
 """Persistence operations for projects."""
 
+import uuid
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -32,3 +34,9 @@ def list_projects(
         .offset(offset)
     )
     return list(session.scalars(statement).all())
+
+
+def get_project(session: Session, project_id: uuid.UUID) -> Project | None:
+    """Return one Project by identifier without mutating the session."""
+
+    return session.scalar(select(Project).where(Project.id == project_id))

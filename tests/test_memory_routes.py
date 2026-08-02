@@ -484,6 +484,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/health",
         "/ready",
         "/projects",
+        "/projects/{project_id}",
         "/memories",
         "/memories/search",
         "/memories/{memory_id}",

@@ -1,5 +1,6 @@
-"""Project creation and listing endpoints."""
+"""Project creation and retrieval endpoints."""
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -56,3 +57,31 @@ def list_projects(
         )
     except SQLAlchemyError:
         raise database_unavailable() from None
+
+
+@router.get(
+    "/{project_id}",
+    response_model=ProjectRead,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Project not found"},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Database unavailable",
+        },
+    },
+)
+def get_project(
+    project_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> Project:
+    """Retrieve one Project without changing database state."""
+
+    try:
+        project = project_repository.get_project(session, project_id)
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="project not found",
+        )
+    return project

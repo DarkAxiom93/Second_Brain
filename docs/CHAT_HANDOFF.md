@@ -7,8 +7,8 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 38 are
-complete. Completed capabilities include:
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 42 are
+complete; Checkpoint 43 is implemented and pending review. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
 proposal generation, human review, explicit promotion, and reusable developer
@@ -109,24 +109,37 @@ exact API behavior; use the test database for integration tests; never downgrade
 development, expose secrets, call paid providers without approval, delete
 volumes, or commit/push without approval. Run Full verification with zero skips.
 
-Most recently implemented: Checkpoint 42, the local React/TypeScript web UI
-foundation. The responsive shell provides deterministic routes for Dashboard,
-Projects, Sources, Proposals, Memories, Search, Answers, and Settings. Only the
-Dashboard is functional: it performs bounded, strictly validated, read-only
-`/health` and `/ready` requests through the Vite `/api` development proxy.
-Other routes are explicit placeholders and unknown routes render a client-local
-Not Found page without contacting the backend.
+Most recently implemented: Checkpoint 43, the Project retrieval API and Projects
+UI. `GET /projects/{project_id}` returns the complete `ProjectRead`, returns
+exactly `{"detail":"project not found"}` for a valid missing UUID, preserves
+FastAPI malformed-UUID validation, and maps database failures to the established
+generic 503. It is read-only and does not commit or flush. Existing `GET
+/projects` and `POST /projects` contracts are unchanged.
+
+The `/projects` screen lists Projects with real `limit=20`/`offset` pagination
+and provides a controlled, trimmed creation form. Validation focuses the first
+invalid field, submission is single-flight, successful responses are strictly
+validated before navigation, and failed creation remains on the form. The
+`/projects/:projectId` screen validates the route UUID locally, retrieves one
+Project, displays all safe fields, distinguishes missing from generic failure,
+and links back to the list. Loading, populated, empty, validation, missing, and
+safe error states are accessible; retry is manual and requests are cancelled on
+unmount. There is no polling, browser persistence, optimistic creation, fake
+data, Project edit, or Project delete. Sources remains the next planned frontend
+checkpoint; the remaining named screens are placeholders.
 
 Frontend setup, development, and verification use
 `scripts/frontend-setup.ps1`, `scripts/frontend-dev.ps1`, and
 `scripts/verify-frontend.ps1`. Full project verification now includes frontend
 lint, TypeScript checking, non-watch Vitest, and the production build. The UI
 has no authentication, application-data write workflow, persistent browser
-storage, provider call, analytics, or telemetry. Future UI checkpoints will
-implement the placeholder screens. Maintenance execution, scheduled expiration
-processing, and persistent observability remain deferred. Continue one approved
-checkpoint at a time and attach `docs/checkpoint-42-report.md` to the new
-conversation.
+storage, provider call, analytics, or telemetry. Checkpoint 43 Full verification
+passed 624 Python tests and 25 frontend tests with zero skips after the explicitly
+approved recreation of only the exhausted `second_brain_test` database. The
+development database remained Projects=1 and Memories=1. Maintenance execution,
+scheduled expiration processing, and persistent observability remain deferred.
+Continue one approved checkpoint at a time and attach
+`docs/checkpoint-43-report.md` to the new conversation.
 
 ## Copy from PowerShell
 

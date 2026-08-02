@@ -40,7 +40,6 @@ describe("application shell", () => {
   });
 
   it.each([
-    ["/projects", "Projects"],
     ["/sources", "Sources"],
     ["/proposals", "Proposals"],
     ["/memories", "Memories"],

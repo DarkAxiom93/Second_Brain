@@ -9,8 +9,8 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, a { font: inherit; }
-a:focus-visible, button:focus-visible {
+button, a, input, textarea { font: inherit; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 3px solid #f2a93b;
   outline-offset: 3px;
 }
@@ -92,6 +92,34 @@ button {
   cursor: pointer;
 }
 button:hover { background: #275c4b; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.panel {
+  display: grid;
+  gap: 1rem;
+  max-width: 46rem;
+  margin-top: 2rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #d1d8d0;
+  border-radius: 1rem;
+  background: #fff;
+}
+.panel h2 { margin: 0; }
+form { display: grid; gap: .65rem; }
+label { font-weight: 700; }
+label span { color: #657168; font-weight: 400; }
+input, textarea { width: 100%; border: 1px solid #9da9a1; border-radius: .45rem; padding: .7rem; }
+textarea { min-height: 6rem; resize: vertical; }
+.field-error { margin: 0; color: #a13125; }
+.project-list { display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
+.project-list li { padding: 1rem; border-radius: .65rem; background: #f2f6f0; }
+.project-list a { color: #173e32; font-weight: 750; }
+.project-list p { margin: .35rem 0 0; color: #536159; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.detail-list { display: grid; gap: 1rem; margin: 0; }
+.detail-list div { display: grid; gap: .25rem; }
+.detail-list dt { color: #59665f; font-size: .8rem; }
+.detail-list dd { margin: 0; overflow-wrap: anywhere; }
+.back-link { color: #275c4b; font-weight: 700; }
 
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: 1fr; }

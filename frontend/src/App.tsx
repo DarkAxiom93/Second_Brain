@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 
 import { getHealth, getReadiness } from "./api/client";
+import { ProjectDetail, Projects } from "./Projects";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -122,7 +123,9 @@ export function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          {navigation.slice(1).map(([path, label]) => (
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:projectId" element={<ProjectDetail />} />
+          {navigation.slice(2).map(([path, label]) => (
             <Route key={path} path={path} element={<Placeholder title={label} />} />
           ))}
           <Route path="*" element={<NotFound />} />

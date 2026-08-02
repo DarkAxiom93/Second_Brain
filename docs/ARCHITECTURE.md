@@ -9,9 +9,11 @@ A client-only React and TypeScript application lives in `frontend/`. Vite serves
 the local development UI and proxies `/api/*` to the existing loopback FastAPI
 routes after removing `/api`. The browser uses same-origin relative requests by
 default, so the backend requires no CORS changes. The initial dashboard reads
-only `/health` and `/ready`; all other named screens are routing placeholders.
-The frontend has no authentication, persistent browser storage, service worker,
-provider integration, or write workflow.
+only `/health` and `/ready`. Projects uses the existing paginated list and
+creation contracts plus read-only single-Project retrieval; its routes provide
+list, creation, and detail screens. Other named screens remain routing
+placeholders. The frontend has no authentication, persistent browser storage,
+service worker, or provider integration.
 
 ## Components and data
 
