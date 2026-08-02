@@ -40,7 +40,6 @@ describe("application shell", () => {
   });
 
   it.each([
-    ["/proposals", "Proposals"],
     ["/memories", "Memories"],
     ["/search", "Search"],
     ["/answers", "Answers"],
@@ -52,6 +51,13 @@ describe("application shell", () => {
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.getByText(/later user-interface checkpoint/i)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the functional proposal queue", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock); renderAt("/proposals");
+    expect(await screen.findByText("No proposals match these filters.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/memory-proposals?review_status=pending&limit=20&offset=0", expect.anything());
   });
 
   it("opens the functional Sources screen from navigation", async () => {

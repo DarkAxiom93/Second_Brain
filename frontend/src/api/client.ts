@@ -46,6 +46,21 @@ export type SourceChunkRead = {
   created_at: string;
 };
 export type TextIngestion = { text: string; original_filename: string | null; chunk_size: number; chunk_overlap: number };
+export type ReviewStatus = "pending" | "approved" | "rejected";
+export type MemoryProposal = {
+  id: string; run_id: string; source_id: string; document_id: string; source_chunk_id: string | null;
+  project_id: string | null; proposal_index: number; title: string | null; summary: string | null;
+  content: string; memory_type: "working" | "episodic" | "semantic" | "decision" | "procedural" | "preference" | "temporary";
+  importance: number; confidence: number; source_locator: string | null; review_status: ReviewStatus;
+  review_note: string | null; reviewed_at: string | null; memory_id: string | null; created_at: string;
+  updated_at: string; source_type: string; source_name: string; original_filename: string | null;
+  run_provider: string; run_model: string; run_prompt_version: string;
+};
+export type MemoryProposalDetail = MemoryProposal & {
+  source_chunk_hash: string; evidence_text: string; evidence_char_start: number; evidence_char_end: number;
+  proposal_hash: string; run_status: "pending" | "completed" | "failed"; source_chunk_available: boolean;
+};
+export type ProposalGeneration = { id: string; proposal_count: number };
 
 export class SafeApiError extends Error {
   constructor() {
@@ -71,6 +86,8 @@ export class SourceNotFoundError extends Error {
 export class SourceDocumentNotFoundError extends Error {
   constructor() { super("Source document not found."); this.name = "SourceDocumentNotFoundError"; }
 }
+export class ProposalNotFoundError extends Error { constructor() { super("Proposal not found."); this.name = "ProposalNotFoundError"; } }
+export class ApiConflictError extends Error { constructor() { super("The proposal changed. Refresh and try again."); this.name = "ApiConflictError"; } }
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
@@ -91,8 +108,8 @@ async function request<T>(
   path: string,
   validate: (value: unknown) => value is T,
   externalSignal?: AbortSignal,
-  init?: { method: "POST" | "PUT"; body: ProjectCreate | SourceCreate | TextIngestion | FormData },
-  notFoundError?: "project" | "source" | "document",
+  init?: { method: "POST" | "PUT"; body?: unknown },
+  notFoundError?: "project" | "source" | "document" | "proposal",
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -113,8 +130,10 @@ async function request<T>(
     if (notFoundError && response.status === 404) {
       if (notFoundError === "project") throw new ProjectNotFoundError();
       if (notFoundError === "source") throw new SourceNotFoundError();
-      throw new SourceDocumentNotFoundError();
+      if (notFoundError === "document") throw new SourceDocumentNotFoundError();
+      throw new ProposalNotFoundError();
     }
+    if (response.status === 409) throw new ApiConflictError();
     if (!response.ok) {
       throw new SafeApiError();
     }
@@ -124,7 +143,7 @@ async function request<T>(
     }
     return payload;
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError) {
+    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof ApiConflictError) {
       throw error;
     }
     throw new SafeApiError();
@@ -276,6 +295,43 @@ export function ingestSourceText(sourceId: string, body: TextIngestion, signal?:
 }
 export function ingestSourceFile(sourceId: string, body: FormData, signal?: AbortSignal): Promise<SourceDocumentRead> {
   return request(`/sources/${sourceId}/document/file`, isIngestionResult, signal, { method: "PUT", body }, "source");
+}
+
+const proposalKeys = ["confidence", "content", "created_at", "document_id", "id", "importance", "memory_id", "memory_type", "original_filename", "project_id", "proposal_index", "review_note", "review_status", "reviewed_at", "run_id", "run_model", "run_prompt_version", "run_provider", "source_chunk_id", "source_id", "source_locator", "source_name", "source_type", "summary", "title", "updated_at"];
+function isProposal(value: unknown): value is MemoryProposal {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>; const nullableUuid = (v: unknown) => v === null || (typeof v === "string" && isSourceId(v));
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify([...proposalKeys].sort()) &&
+    [r.id, r.run_id, r.source_id, r.document_id].every((v) => typeof v === "string" && isSourceId(v)) && nullableUuid(r.source_chunk_id) && nullableUuid(r.project_id) && nullableUuid(r.memory_id) &&
+    Number.isInteger(r.proposal_index) && typeof r.content === "string" && ["working", "episodic", "semantic", "decision", "procedural", "preference", "temporary"].includes(r.memory_type as string) &&
+    typeof r.importance === "number" && r.importance >= 0 && r.importance <= 1 && typeof r.confidence === "number" && r.confidence >= 0 && r.confidence <= 1 &&
+    ["pending", "approved", "rejected"].includes(r.review_status as string) && [r.title, r.summary, r.source_locator, r.review_note, r.original_filename].every(isNullableString) &&
+    (r.reviewed_at === null || isTimestamp(r.reviewed_at)) && isTimestamp(r.created_at) && isTimestamp(r.updated_at) &&
+    [r.source_type, r.source_name, r.run_provider, r.run_model, r.run_prompt_version].every((v) => typeof v === "string");
+}
+function isProposalDetail(value: unknown): value is MemoryProposalDetail {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>; const detailKeys = ["evidence_char_end", "evidence_char_start", "evidence_text", "proposal_hash", "run_status", "source_chunk_available", "source_chunk_hash"];
+  const base = Object.fromEntries(Object.entries(r).filter(([key]) => !detailKeys.includes(key)));
+  return isProposal(base) && JSON.stringify(Object.keys(r).sort()) === JSON.stringify([...proposalKeys, ...detailKeys].sort()) &&
+    typeof r.evidence_text === "string" && Number.isInteger(r.evidence_char_start) && Number.isInteger(r.evidence_char_end) &&
+    typeof r.source_chunk_hash === "string" && /^[0-9a-f]{64}$/.test(r.source_chunk_hash) && typeof r.proposal_hash === "string" && /^[0-9a-f]{64}$/.test(r.proposal_hash) &&
+    ["pending", "completed", "failed"].includes(r.run_status as string) && typeof r.source_chunk_available === "boolean";
+}
+export function listMemoryProposals(status: ReviewStatus | "all", projectId: string, limit: number, offset: number, signal?: AbortSignal) {
+  const query = new URLSearchParams({ review_status: status, limit: String(limit), offset: String(offset) }); if (projectId) query.set("project_id", projectId);
+  return request(`/memory-proposals?${query}`, (v): v is MemoryProposal[] => Array.isArray(v) && v.every(isProposal), signal);
+}
+export function getMemoryProposal(id: string, signal?: AbortSignal) { return request(`/memory-proposals/${id}`, isProposalDetail, signal, undefined, "proposal"); }
+export function reviewMemoryProposal(id: string, decision: "approve" | "reject", note: string | null, signal?: AbortSignal) {
+  return request(`/memory-proposals/${id}/${decision}`, (v): v is MemoryProposalDetail & { transition_status: "updated" | "unchanged" } => typeof v === "object" && v !== null && ["updated", "unchanged"].includes((v as Record<string, unknown>).transition_status as string) && isProposalDetail(Object.fromEntries(Object.entries(v).filter(([k]) => k !== "transition_status"))), signal, { method: "POST", body: { review_note: note } }, "proposal");
+}
+export function promoteMemoryProposal(id: string, signal?: AbortSignal) {
+  return request(`/memory-proposals/${id}/promote`, (v): v is { proposal_id: string; promotion_status: "created" | "unchanged"; memory: unknown } => typeof v === "object" && v !== null && isSourceId((v as Record<string, unknown>).proposal_id as string) && ["created", "unchanged"].includes((v as Record<string, unknown>).promotion_status as string) && typeof (v as Record<string, unknown>).memory === "object", signal, { method: "POST" }, "proposal");
+}
+export function generateMemoryProposals(sourceId: string, projectId: string | null, signal?: AbortSignal) {
+  const keys = ["completed_at", "created_at", "document_id", "error_code", "generation_status", "id", "input_hash", "model", "project_id", "prompt_version", "proposal_count", "provider", "run_status", "started_at", "updated_at"];
+  return request(`/sources/${sourceId}/memory-proposals`, (v): v is ProposalGeneration => { if (typeof v !== "object" || v === null || Array.isArray(v)) return false; const r = v as Record<string, unknown>; return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) && isSourceId(r.id as string) && isSourceId(r.document_id as string) && (r.project_id === null || isSourceId(r.project_id as string)) && [r.started_at, r.completed_at, r.created_at, r.updated_at].every(isTimestamp) && [r.provider, r.model, r.prompt_version].every(x => typeof x === "string") && typeof r.input_hash === "string" && /^[0-9a-f]{64}$/.test(r.input_hash) && r.run_status === "completed" && isNullableString(r.error_code) && Number.isInteger(r.proposal_count) && ["created", "retried", "unchanged"].includes(r.generation_status as string); }, signal, { method: "POST", body: { project_id: projectId, chunk_start: 0, chunk_limit: 10, max_proposals_per_chunk: 3 } });
 }
 
 export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {

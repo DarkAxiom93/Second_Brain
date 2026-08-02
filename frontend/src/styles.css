@@ -125,6 +125,12 @@ textarea { min-height: 6rem; resize: vertical; }
 .chunk-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; }
 .chunk-list pre { margin: .5rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .chunk-meta { color: #536159; font-size: .85rem; }
+.proposal-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.proposal-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; }
+.proposal-list h3, .proposal-list p { margin: 0 0 .5rem; }
+.proposal-list a { color: #173e32; }
+.evidence { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; }
 
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: 1fr; }

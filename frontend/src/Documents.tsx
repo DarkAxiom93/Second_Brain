@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
-  getSourceDocument, ingestSourceFile, ingestSourceText, isSourceId,
+  generateMemoryProposals, getSourceDocument, ingestSourceFile, ingestSourceText, isSourceId,
   listSourceChunks, SourceDocumentNotFoundError, type SourceChunkRead,
   type SourceDocumentRead,
 } from "./api/client";
@@ -73,6 +73,7 @@ export function SourceDocumentDetail() {
   const [chunks, setChunks] = useState<SourceChunkRead[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error" | "missing" | "invalid">(valid ? "loading" : "invalid");
   const [offset, setOffset] = useState(0); const [attempt, setAttempt] = useState(0);
+  const [generating, setGenerating] = useState(false); const [generationMessage, setGenerationMessage] = useState(""); const generation = useRef<AbortController | null>(null); const navigate = useNavigate();
   useEffect(() => {
     if (!valid) { setState("invalid"); return; }
     const controller = new AbortController(); setState("loading");
@@ -81,9 +82,12 @@ export function SourceDocumentDetail() {
       .catch((error: unknown) => { if (!controller.signal.aborted) setState(error instanceof SourceDocumentNotFoundError ? "missing" : "error"); });
     return () => controller.abort();
   }, [documentId, valid, offset, attempt]);
+  useEffect(() => () => generation.current?.abort(), []);
+  async function generate() { if (!document || generating || document.ingestion_status !== "extracted" || document.chunk_count === 0 || !window.confirm("Generate proposals from this document now?")) return; const controller = new AbortController(); generation.current = controller; setGenerating(true); setGenerationMessage(""); try { const result = await generateMemoryProposals(document.source_id, null, controller.signal); setGenerationMessage(`Generated ${result.proposal_count} proposal${result.proposal_count === 1 ? "" : "s"}.`); navigate(`/proposals?run=${result.id}`); } catch { if (!controller.signal.aborted) { setGenerationMessage("Proposal generation is unavailable. Check provider configuration and try again."); setGenerating(false); } } finally { if (generation.current === controller) generation.current = null; } }
   return <><header className="page-header"><p className="eyebrow">Source document</p><h1>Document detail</h1></header><section className="panel" aria-live="polite" aria-busy={state === "loading"}>
     {state === "loading" && <p>Loading document…</p>}{state === "invalid" && <><h2>Invalid document address</h2><p>The document identifier is malformed.</p></>}{state === "missing" && <><h2>Document not found</h2><p>The requested document does not exist.</p></>}{state === "error" && <><h2>Document unavailable</h2><p>The document could not be loaded.</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry</button></>}
     {state === "ready" && document && <><dl className="detail-list"><div><dt>ID</dt><dd>{document.id}</dd></div><div><dt>Media type</dt><dd>{document.media_type}</dd></div><div><dt>Original filename</dt><dd>{document.original_filename ?? "Not supplied"}</dd></div><div><dt>Size</dt><dd>{document.byte_size === null ? "Not available" : `${document.byte_size} bytes`}</dd></div><div><dt>Extraction status</dt><dd>{document.ingestion_status}</dd></div><div><dt>Extracted</dt><dd>{timestamp(document.extracted_at)}</dd></div><div><dt>Created</dt><dd>{timestamp(document.created_at)}</dd></div><div><dt>Updated</dt><dd>{timestamp(document.updated_at)}</dd></div><div><dt>Chunks</dt><dd>{document.chunk_count}</dd></div></dl><section aria-labelledby="chunks-heading"><h2 id="chunks-heading">Extracted chunks</h2>{chunks.length === 0 ? <p>No chunks found.</p> : <ol className="chunk-list" start={offset + 1}>{chunks.map((chunk) => <li key={chunk.id}><p className="chunk-meta">Chunk {chunk.chunk_index}{chunk.locator ? ` · ${chunk.locator}` : ""} · characters {chunk.char_start}–{chunk.char_end}</p><pre>{chunk.content}</pre></li>)}</ol>}<nav className="pagination" aria-label="Chunk pages"><button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - CHUNK_PAGE_SIZE))}>Previous</button><span>Page {offset / CHUNK_PAGE_SIZE + 1}</span><button type="button" disabled={chunks.length < CHUNK_PAGE_SIZE} onClick={() => setOffset(offset + CHUNK_PAGE_SIZE)}>Next</button></nav></section><Link className="back-link" to={`/sources/${document.source_id}`}>Back to source</Link></>}
+    {state === "ready" && document && <section aria-labelledby="generation-heading"><h2 id="generation-heading">Generate proposals</h2>{document.ingestion_status === "extracted" && document.chunk_count > 0 ? <><p>Explicitly run the configured extraction provider for this document’s Source.</p><button type="button" disabled={generating} onClick={generate}>{generating ? "Generating…" : "Generate proposals"}</button></> : <p>No usable extracted chunks are available. Ingest the document before generating proposals.</p>}{generationMessage && <p role="status">{generationMessage}</p>}</section>}
     {!document && <Link className="back-link" to="/sources">Back to sources</Link>}
   </section></>;
 }

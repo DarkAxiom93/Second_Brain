@@ -1,5 +1,10 @@
 # Second Brain chat handoff
 
+Checkpoint 46 is implemented locally and awaiting review. The proposal generation,
+queue, detail, review, rejection, and promotion UI uses the existing backend contracts.
+See `docs/checkpoint-46-report.md` for verification and smoke results. Do not begin
+Checkpoint 47 until these changes are reviewed, committed, and pushed.
+
 Second Brain is a local knowledge-memory API. The repository is normally at
 `C:\Users\user\Desktop\second-brain` on Windows with Python 3.12 in `.venv`.
 FastAPI runs on the host; PostgreSQL 16 + pgvector runs in Docker. Host database

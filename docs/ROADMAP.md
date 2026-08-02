@@ -34,8 +34,9 @@ Completed: maintainable local React/TypeScript workspace, responsive application
 shell, deterministic routing, a read-only health/readiness dashboard, and a
 Project workflow for paginated listing, creation, and detail retrieval, plus
 Source listing, creation, detail, existing relationship summaries, explicit
-JSON/TXT/PDF ingestion, and document/chunk inspection. Future: proposal review
-queue, Memory browser, search, chat with
+JSON/TXT/PDF ingestion, document/chunk inspection, and the complete proposal
+generation, review, rejection, approval, and promotion workflow. Future: Memory
+browser, search, chat with
 citations, settings, authentication, and additional write workflows.
 
 ## Future agents and integrations

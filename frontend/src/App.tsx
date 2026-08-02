@@ -5,6 +5,7 @@ import { getHealth, getReadiness } from "./api/client";
 import { ProjectDetail, Projects } from "./Projects";
 import { SourceDetail, Sources } from "./Sources";
 import { DocumentIngestion, SourceDocumentDetail } from "./Documents";
+import { ProposalDetail, Proposals } from "./Proposals";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -131,7 +132,9 @@ export function App() {
           <Route path="/sources/:sourceId" element={<SourceDetail />} />
           <Route path="/sources/:sourceId/ingest" element={<DocumentIngestion />} />
           <Route path="/source-documents/:documentId" element={<SourceDocumentDetail />} />
-          {navigation.slice(3).map(([path, label]) => (
+          <Route path="/proposals" element={<Proposals />} />
+          <Route path="/proposals/:proposalId" element={<ProposalDetail />} />
+          {navigation.slice(4).map(([path, label]) => (
             <Route key={path} path={path} element={<Placeholder title={label} />} />
           ))}
           <Route path="*" element={<NotFound />} />

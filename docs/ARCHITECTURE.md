@@ -15,7 +15,10 @@ list, creation, and detail screens. Sources uses paginated list and creation
 contracts, read-only single-Source retrieval, and the existing Source-to-Memory
 relationship listing for safe provenance detail. Source detail also lists its
 persisted document, links to explicit JSON/TXT/PDF ingestion, and provides a
-read-only paginated chunk browser. Other named screens remain routing placeholders.
+read-only paginated chunk browser. Proposals provides explicit SourceDocument-triggered
+generation, a filtered paginated review queue, evidence/provenance detail, human
+approval or rejection, and separate explicit promotion. Other named screens remain
+routing placeholders.
 The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 
