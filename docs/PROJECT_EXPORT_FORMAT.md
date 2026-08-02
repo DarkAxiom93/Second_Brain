@@ -80,3 +80,27 @@ An export/import/export round trip preserves canonical application data-file
 content and relationships; only package metadata such as export time and ZIP
 byte layout may vary. Version 1 has no encryption, merge, remapping,
 partial-restore, or automatic restore facility.
+
+## Local operations API and UI
+
+The Settings UI lists Projects in bounded pages and exports only after an
+explicit action. `POST /operations/project-exports/{project_id}` returns one
+streamed `.sbexport` attachment. The browser accepts only a reviewed UUID-based
+filename, does not persist the bundle, and revokes its temporary object URL.
+
+Import uses raw streamed request bodies rather than multipart forms or client
+filesystem paths. `POST /operations/project-imports/validate` performs complete
+archive, graph, revision, database-identity, and conflict validation without a
+flush, commit, or persistent write. Its safe plan contains only format and
+Project identity, revision, entity counts, bundle SHA-256, and concise warning
+or conflict categories. A valid conflicting bundle is distinct from a malformed
+bundle.
+
+`POST /operations/project-imports/execute` requires the manifest Project UUID
+and validated bundle SHA-256, then revalidates the same uploaded bytes and all
+target conflicts before one atomic commit. It never merges, overwrites, remaps,
+repairs, partially imports, or records import history. All three routes accept
+only direct IPv4/IPv6 loopback clients, ignore forwarding headers, require a
+distinct exact `X-Second-Brain-Operation` value, and return `Cache-Control:
+no-store`. Request-owned temporary files are unique and exactly removed after
+success or failure. Bundles remain private and unencrypted.

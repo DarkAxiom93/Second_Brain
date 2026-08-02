@@ -2,7 +2,9 @@
 
 from collections.abc import Generator
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import Mock
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
@@ -12,9 +14,11 @@ from app.db.dependencies import get_db_session
 from app.diagnostics.models import DiagnosticCheck
 from app.main import create_app
 from app.memory_maintenance.models import AuditCategory, MemoryMaintenanceAudit
+from app.project_export.models import ExportManifest
+from app.project_import.models import ImportConflictError, ImportResult
 
 
-def _client(session: Mock) -> TestClient:
+def _client(session: Mock, *, loopback: bool = False) -> TestClient:
     def override_session() -> Generator[Mock, None, None]:
         yield session
 
@@ -23,7 +27,13 @@ def _client(session: Mock) -> TestClient:
     application.dependency_overrides[get_settings] = lambda: Settings(
         database_url=("postgresql+psycopg://user:value@127.0.0.1:5433/second_brain")
     )
-    return TestClient(application)
+    return TestClient(
+        application, client=("127.0.0.1", 54321) if loopback else ("testclient", 50000)
+    )
+
+
+def _local_client(session: Mock) -> TestClient:
+    return _client(session, loopback=True)
 
 
 def test_diagnostics_exposes_only_safe_ordered_fields(monkeypatch) -> None:
@@ -157,3 +167,144 @@ def test_operations_are_documented_get_routes() -> None:
     schema = create_app().openapi()
     assert set(schema["paths"]["/operations/diagnostics"]) >= {"get"}
     assert set(schema["paths"]["/operations/maintenance-audit"]) >= {"get"}
+
+
+def test_project_export_requires_direct_loopback_and_exact_header(monkeypatch) -> None:
+    session = Mock()
+    called = Mock()
+    monkeypatch.setattr("app.api.routes.operations.export_project", called)
+    project_id = uuid4()
+    client = _client(session)
+
+    assert client.post(f"/operations/project-exports/{project_id}").status_code == 403
+    response = client.post(
+        f"/operations/project-exports/{project_id}",
+        headers={
+            "X-Second-Brain-Operation": "project-export-v1",
+            "X-Forwarded-For": "127.0.0.1",
+        },
+    )
+    assert response.status_code == 403
+    called.assert_not_called()
+
+
+def test_project_export_streams_safe_attachment_and_cleans_exact_file(
+    monkeypatch,
+) -> None:
+    session = Mock()
+    session.scalar.return_value = "second_brain"
+    created: list[Path] = []
+
+    def fake_export(_session, project_id, output, **_kwargs):
+        created.append(output)
+        output.write_bytes(b"bundle")
+
+    monkeypatch.setattr("app.api.routes.operations.export_project", fake_export)
+    project_id = uuid4()
+    response = _local_client(session).post(
+        f"/operations/project-exports/{project_id}",
+        headers={"X-Second-Brain-Operation": "project-export-v1"},
+    )
+    assert response.status_code == 200
+    assert response.content == b"bundle"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert (
+        response.headers["content-disposition"]
+        == f'attachment; filename="project-{project_id}.sbexport"'
+    )
+    assert created and not created[0].exists()
+    session.commit.assert_not_called()
+
+
+def test_import_validation_returns_safe_conflict_plan_and_cleans_upload(
+    monkeypatch,
+) -> None:
+    session = Mock()
+    session.scalar.return_value = "second_brain"
+    project_id = uuid4()
+    manifest = ExportManifest(
+        exported_at=datetime(2026, 8, 2, tzinfo=UTC),
+        source_alembic_revision="0009_memory_expiration",
+        project_id=project_id,
+        project_name="Safe Project",
+        entity_counts={"project": 1},
+        files=[],
+    )
+    paths: list[Path] = []
+    monkeypatch.setattr(
+        "app.api.routes.operations.load_bundle",
+        lambda path: (paths.append(path) or manifest, {}, "a" * 64),
+    )
+    monkeypatch.setattr(
+        "app.api.routes.operations.import_project",
+        Mock(side_effect=ImportConflictError("project.json primary-key conflict")),
+    )
+    response = _local_client(session).post(
+        "/operations/project-imports/validate",
+        content=b"zip",
+        headers={
+            "Content-Type": "application/octet-stream",
+            "X-Second-Brain-Operation": "project-import-validate-v1",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["validation_status"] == "valid" and body["importable"] is False
+    assert body["conflicts"] == ["project.json primary-key conflict"]
+    assert "path" not in response.text.lower()
+    assert paths and not paths[0].exists()
+    session.commit.assert_not_called()
+
+
+def test_import_execute_requires_exact_confirmations_and_commits_once(
+    monkeypatch,
+) -> None:
+    session = Mock()
+    session.scalar.return_value = "second_brain"
+    project_id = uuid4()
+    manifest = ExportManifest(
+        exported_at=datetime(2026, 8, 2, tzinfo=UTC),
+        source_alembic_revision="0009_memory_expiration",
+        project_id=project_id,
+        project_name="Safe Project",
+        entity_counts={"project": 1},
+        files=[],
+    )
+    result = ImportResult(
+        import_status="imported",
+        format_name=manifest.format_name,
+        format_version=1,
+        project_id=project_id,
+        project_name="Safe Project",
+        source_alembic_revision="0009_memory_expiration",
+        entity_counts={"project": 1},
+        bundle_sha256="b" * 64,
+    )
+    monkeypatch.setattr(
+        "app.api.routes.operations.load_bundle", lambda _path: (manifest, {}, "b" * 64)
+    )
+    importer = Mock(return_value=result)
+    monkeypatch.setattr("app.api.routes.operations.import_project", importer)
+    query = f"expected_project_id={project_id}&expected_bundle_sha256={'b' * 64}"
+    response = _local_client(session).post(
+        f"/operations/project-imports/execute?{query}",
+        content=b"zip",
+        headers={
+            "Content-Type": "application/octet-stream",
+            "X-Second-Brain-Operation": "project-import-execute-v1",
+        },
+    )
+    assert response.status_code == 200
+    assert set(response.json()) == {
+        "import_status",
+        "format_name",
+        "format_version",
+        "project_id",
+        "project_name",
+        "source_alembic_revision",
+        "entity_counts",
+        "bundle_sha256",
+    }
+    session.commit.assert_called_once_with()
+    importer.assert_called_once()

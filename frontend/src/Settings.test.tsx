@@ -26,6 +26,13 @@ const maintenance = (missing = 1) => ({
     { finding_id: "non_active_with_embedding", count: 0 },
   ],
 });
+const projectId = "123e4567-e89b-42d3-a456-426614174000";
+const importPlan = {
+  validation_status: "valid", importable: true, format_name: "second-brain-project-export",
+  format_version: 1, project_id: projectId, project_name: "Safe Project",
+  source_alembic_revision: "0009_memory_expiration", entity_counts: { project: 1, memories: 2 },
+  bundle_sha256: "a".repeat(64), conflicts: [], warnings: [], conflict_count: 0, warning_count: 0,
+};
 
 function successfulFetch(status: "passed" | "warning" | "failed" = "passed", missing = 1) {
   return vi.fn()
@@ -98,5 +105,48 @@ describe("settings operations dashboard", () => {
     const view = render(<Settings />); view.unmount();
     expect(signals).toHaveLength(4); expect(signals.every((signal) => signal.aborted)).toBe(true);
     for (const name of [/repair/i, /migrate/i, /generate/i, /delete/i, /export/i, /import/i]) expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+  });
+
+  it("loads a Project page and exports only after an explicit action with safe URL cleanup", async () => {
+    const fetchMock = successfulFetch();
+    fetchMock.mockResolvedValueOnce(response([{ id: projectId, name: "Safe Project", description: null, created_at: "2026-08-02T10:00:00Z", updated_at: "2026-08-02T10:00:00Z" }]));
+    const headers = new Headers({ "Content-Disposition": `attachment; filename="project-${projectId}.sbexport"` });
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers, blob: vi.fn().mockResolvedValue(new Blob(["bundle"])) } as unknown as Response);
+    const createUrl = vi.fn(() => "blob:safe"); const revokeUrl = vi.fn();
+    vi.stubGlobal("fetch", fetchMock); vi.stubGlobal("URL", { createObjectURL: createUrl, revokeObjectURL: revokeUrl });
+    render(<Settings />); await screen.findByText(/Healthy: available/);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    await userEvent.click(screen.getByRole("button", { name: "Load Projects" }));
+    await userEvent.selectOptions(await screen.findByLabelText("Project"), projectId);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    await userEvent.click(screen.getByRole("button", { name: "Export selected Project" }));
+    await screen.findByText("Export download started.");
+    expect(createUrl).toHaveBeenCalledOnce(); expect(revokeUrl).toHaveBeenCalledWith("blob:safe");
+    const exportCall = fetchMock.mock.calls[5]; expect(String(exportCall[0])).toContain(`/project-exports/${projectId}`);
+    expect((exportCall[1] as RequestInit).headers).toMatchObject({ "X-Second-Brain-Operation": "project-export-v1" });
+  });
+
+  it("invalidates plans on file replacement and executes only after exact confirmation", async () => {
+    const fetchMock = successfulFetch();
+    fetchMock.mockResolvedValueOnce(response(importPlan));
+    fetchMock.mockResolvedValueOnce(response({ import_status: "imported", format_name: importPlan.format_name, format_version: 1, project_id: projectId, project_name: "Safe Project", source_alembic_revision: importPlan.source_alembic_revision, entity_counts: importPlan.entity_counts, bundle_sha256: importPlan.bundle_sha256 }));
+    vi.stubGlobal("fetch", fetchMock); render(<Settings />); await screen.findByText(/Healthy: available/);
+    const file = new File(["zip"], "safe.sbexport", { type: "application/octet-stream" });
+    await userEvent.upload(screen.getByLabelText(/Project export bundle/), file);
+    await userEvent.click(screen.getByRole("button", { name: "Validate bundle" }));
+    expect(await screen.findByRole("heading", { name: "Import plan: Importable" })).toHaveFocus();
+    const execute = screen.getByRole("button", { name: "Execute controlled import" }); expect(execute).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/exact manifest Project UUID/), projectId);
+    await userEvent.click(screen.getByLabelText(/explicitly confirm/)); expect(execute).toBeEnabled();
+    await userEvent.click(execute); const success = await screen.findByText(/Project imported successfully/); await waitFor(() => expect(success).toHaveFocus());
+    const call = fetchMock.mock.calls[5]; expect(String(call[0])).toContain(`expected_project_id=${projectId}`); expect(String(call[0])).toContain(`expected_bundle_sha256=${"a".repeat(64)}`); expect((call[1] as RequestInit).body).toBe(file);
+  });
+
+  it("rejects wrong extension and clears a validated plan when the selected file changes", async () => {
+    const fetchMock = successfulFetch(); fetchMock.mockResolvedValueOnce(response(importPlan)); vi.stubGlobal("fetch", fetchMock); render(<Settings />); await screen.findByText(/Healthy: available/);
+    const input = screen.getByLabelText(/Project export bundle/);
+    await userEvent.upload(input, new File(["x"], "unsafe.zip"), { applyAccept: false }); expect(screen.getByRole("alert")).toHaveTextContent(".sbexport extension");
+    await userEvent.upload(input, new File(["zip"], "first.sbexport")); await userEvent.click(screen.getByRole("button", { name: "Validate bundle" })); await screen.findByText("Import plan: Importable");
+    await userEvent.upload(input, new File(["other"], "second.sbexport")); expect(screen.queryByText("Import plan: Importable")).not.toBeInTheDocument(); expect(screen.getByRole("button", { name: "Execute controlled import" })).toBeDisabled();
   });
 });

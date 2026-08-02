@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -64,3 +65,38 @@ class OperationsMaintenanceAuditRead(BaseModel):
         if self.findings != sorted(self.findings, key=lambda item: item.finding_id):
             raise ValueError("maintenance findings must use deterministic ordering")
         return self
+
+
+class ProjectImportPlanRead(BaseModel):
+    """Content-free validation result, including safe target conflicts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    validation_status: Literal["valid"] = "valid"
+    importable: bool
+    format_name: str
+    format_version: int
+    project_id: UUID
+    project_name: str
+    source_alembic_revision: str
+    entity_counts: dict[str, int]
+    bundle_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    conflicts: list[str]
+    warnings: list[str]
+    conflict_count: int = Field(ge=0)
+    warning_count: int = Field(ge=0)
+
+
+class ProjectImportExecuteRead(BaseModel):
+    """Safe result for a completed atomic import."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    import_status: Literal["imported"]
+    format_name: str
+    format_version: int
+    project_id: UUID
+    project_name: str
+    source_alembic_revision: str
+    entity_counts: dict[str, int]
+    bundle_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")

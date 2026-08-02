@@ -12,8 +12,10 @@
   SQL, or complete internal document content.
 - Public operations schemas additionally exclude complete database URLs,
   environment values, filesystem paths, arbitrary diagnostic metadata, entity
-  UUID samples, and raw exceptions. Operations endpoints are aggregate-only,
-  database-enforced read-only, and advisory.
+  UUID samples, and raw exceptions. Diagnostics and maintenance operations are
+  aggregate-only, database-enforced read-only, and advisory. Bundle operations
+  expose only safe manifest summaries and require direct loopback plus an exact
+  operation header; forwarded-client headers never establish locality.
 - Prefer explicit actions to hidden automation: embedding, proposal generation,
   review, and promotion are separate operations.
 - Maintain backward compatibility unless the checkpoint explicitly changes the

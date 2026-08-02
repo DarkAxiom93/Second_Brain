@@ -24,10 +24,12 @@ Search provides explicit lexical, semantic, and hybrid retrieval through the
 existing Memory contracts and preserves backend ordering. Answers provides an
 explicit stateless question workflow through the existing answer contract,
 preserves returned citation order, and links returned public Memory IDs without
-follow-up requests. Settings is a read-only local operations dashboard over
+follow-up requests. Settings is a local operations dashboard over
 health, readiness, safe diagnostics, aggregate maintenance findings, and
-embedding coverage. It refreshes only on initial load or explicit manual action
-and exposes no repair, migration, embedding, export, or import control.
+embedding coverage. It also provides explicit, loopback-only version-1 Project
+export, import validation, and conflict-free import execution. Bundles stream
+through exact temporary files; validation remains read-only and execution owns
+one atomic commit. It exposes no repair, migration, or embedding control.
 The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 
@@ -119,6 +121,12 @@ service worker, or provider integration.
   detail limit and exposes aggregate status and finding counts only. Memory UUID
   samples and truncation details remain private. The underlying audit has no
   Project-scoped contract, so the route accepts no Project filter.
+- `POST /operations/project-exports/{project_id}` streams the established
+  deterministic bundle as a private attachment. `POST
+  /operations/project-imports/validate` and `/execute` accept bounded raw bundle
+  bodies. All three require the direct loopback client and a distinct exact
+  operation header, ignore forwarded-client headers, return `no-store`, and
+  remove only their request-owned temporary file.
 
 ```mermaid
 flowchart LR

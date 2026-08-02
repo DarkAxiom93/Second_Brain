@@ -20,6 +20,14 @@ export type OperationsMaintenanceAudit = {
   counts_by_status: Record<string, number>;
   findings: Array<{ finding_id: string; count: number }>;
 };
+export type ProjectImportPlan = {
+  validation_status: "valid"; importable: boolean; format_name: string; format_version: number;
+  project_id: string; project_name: string; source_alembic_revision: string;
+  entity_counts: Record<string, number>; bundle_sha256: string; conflicts: string[];
+  warnings: string[]; conflict_count: number; warning_count: number;
+};
+export type ProjectImportResult = Omit<ProjectImportPlan, "validation_status" | "importable" | "conflicts" | "warnings" | "conflict_count" | "warning_count"> & { import_status: "imported" };
+export type ProjectExportDownload = { blob: Blob; filename: string };
 export type ProjectRead = {
   id: string;
   name: string;
@@ -130,6 +138,7 @@ export class MemoryNotFoundError extends Error { constructor() { super("Memory n
 export class ApiConflictError extends Error { constructor() { super("The proposal changed. Refresh and try again."); this.name = "ApiConflictError"; } }
 export class SearchProviderError extends Error { constructor(message: string) { super(message); this.name = "SearchProviderError"; } }
 export class AnswerProviderError extends Error { constructor(message: string) { super(message); this.name = "AnswerProviderError"; } }
+export class ImportConflictError extends Error { constructor() { super("The bundle now conflicts with the target or its confirmation is stale."); this.name = "ImportConflictError"; } }
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
@@ -538,4 +547,52 @@ export function getOperationsDiagnostics(signal?: AbortSignal) {
 
 export function getOperationsMaintenanceAudit(signal?: AbortSignal) {
   return request("/operations/maintenance-audit", isOperationsMaintenance, signal);
+}
+
+const IMPORT_KEYS = ["bundle_sha256", "entity_counts", "format_name", "format_version", "project_id", "project_name", "source_alembic_revision"];
+function isImportBase(r: Record<string, unknown>): boolean {
+  return typeof r.format_name === "string" && Number.isInteger(r.format_version) &&
+    typeof r.project_id === "string" && UUID_PATTERN.test(r.project_id) && typeof r.project_name === "string" &&
+    typeof r.source_alembic_revision === "string" && isCountRecord(r.entity_counts) &&
+    typeof r.bundle_sha256 === "string" && /^[0-9a-f]{64}$/.test(r.bundle_sha256);
+}
+function isImportPlan(value: unknown): value is ProjectImportPlan {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>; const keys = [...IMPORT_KEYS, "conflict_count", "conflicts", "importable", "validation_status", "warning_count", "warnings"];
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) && r.validation_status === "valid" &&
+    typeof r.importable === "boolean" && isImportBase(r) && Array.isArray(r.conflicts) && r.conflicts.every(v => typeof v === "string") &&
+    Array.isArray(r.warnings) && r.warnings.every(v => typeof v === "string") && isCount(r.conflict_count) && isCount(r.warning_count) &&
+    r.conflict_count === r.conflicts.length && r.warning_count === r.warnings.length && r.importable === (r.conflict_count === 0);
+}
+function isImportResult(value: unknown): value is ProjectImportResult {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify([...IMPORT_KEYS, "import_status"].sort()) && r.import_status === "imported" && isImportBase(r);
+}
+async function rawOperation(path: string, file: File, operation: string, signal?: AbortSignal): Promise<Response> {
+  try {
+    return await fetch(`${apiBase()}${path}`, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/vnd.second-brain.project-export", "X-Second-Brain-Operation": operation }, body: file, signal, credentials: "same-origin" });
+  } catch { throw new SafeApiError(); }
+}
+export async function exportProject(projectId: string, signal?: AbortSignal): Promise<ProjectExportDownload> {
+  let response: Response;
+  try { response = await fetch(`${apiBase()}/operations/project-exports/${projectId}`, { method: "POST", headers: { "X-Second-Brain-Operation": "project-export-v1" }, signal, credentials: "same-origin" }); }
+  catch { throw new SafeApiError(); }
+  if (!response.ok) throw new SafeApiError();
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /^attachment; filename="?(project-[0-9a-f-]{36}\.sbexport)"?$/i.exec(disposition);
+  if (!match || !/^project-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.sbexport$/i.test(match[1])) throw new SafeApiError();
+  return { blob: await response.blob(), filename: match[1] };
+}
+export async function validateProjectImport(file: File, signal?: AbortSignal): Promise<ProjectImportPlan> {
+  const response = await rawOperation("/operations/project-imports/validate", file, "project-import-validate-v1", signal);
+  if (!response.ok) throw new SafeApiError();
+  const value: unknown = await response.json(); if (!isImportPlan(value)) throw new SafeApiError(); return value;
+}
+export async function executeProjectImport(file: File, projectId: string, hash: string, signal?: AbortSignal): Promise<ProjectImportResult> {
+  const query = new URLSearchParams({ expected_project_id: projectId, expected_bundle_sha256: hash });
+  const response = await rawOperation(`/operations/project-imports/execute?${query}`, file, "project-import-execute-v1", signal);
+  if (response.status === 409) throw new ImportConflictError();
+  if (!response.ok) throw new SafeApiError();
+  const value: unknown = await response.json(); if (!isImportResult(value)) throw new SafeApiError(); return value;
 }

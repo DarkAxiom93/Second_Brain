@@ -1,13 +1,27 @@
-"""Read-only, aggregate-only local operations endpoints."""
+"""Safe local operations endpoints."""
 
+import os
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
+from fastapi.responses import FileResponse
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 from app.core.config import Settings, get_settings
 from app.db.dependencies import get_db_session
@@ -19,14 +33,27 @@ from app.diagnostics.service import (
     validate_database_target,
 )
 from app.memory_maintenance.service import run_memory_maintenance_audit
+from app.project_export.models import ExportError, ProjectNotFoundError
+from app.project_export.service import export_project
+from app.project_import.models import ImportBundleError, ImportConflictError
+from app.project_import.service import MAX_ARCHIVE_BYTES, import_project, load_bundle
 from app.schemas.operations import (
     MaintenanceFindingRead,
     OperationsDiagnosticsRead,
     OperationsMaintenanceAuditRead,
+    ProjectImportExecuteRead,
+    ProjectImportPlanRead,
     PublicDiagnosticCheck,
 )
 
 router = APIRouter(prefix="/operations", tags=["operations"])
+
+OPERATION_HEADER = "X-Second-Brain-Operation"
+EXPORT_OPERATION = "project-export-v1"
+VALIDATE_OPERATION = "project-import-validate-v1"
+EXECUTE_OPERATION = "project-import-execute-v1"
+BUNDLE_MEDIA_TYPE = "application/vnd.second-brain.project-export"
+SAFE_HEADERS = {"Cache-Control": "no-store"}
 
 
 def _database_unavailable() -> HTTPException:
@@ -44,6 +71,86 @@ def _validate_development_target(settings: Settings) -> None:
     _, checks = validate_database_target(settings.database_url, "development")
     if any(item.status == "failed" for item in checks):
         raise _database_unavailable()
+
+
+def _protect_local_operation(
+    request: Request, supplied: str | None, expected: str
+) -> None:
+    host = request.client.host if request.client else None
+    if host not in {"127.0.0.1", "::1"} or supplied != expected:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="operation forbidden",
+            headers=SAFE_HEADERS,
+        )
+
+
+def _cleanup_exact(path: Path) -> None:
+    path.unlink(missing_ok=True)
+
+
+async def _receive_bundle(request: Request) -> Path:
+    content_type = (
+        request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    )
+    if content_type not in {
+        BUNDLE_MEDIA_TYPE,
+        "application/octet-stream",
+        "application/zip",
+    }:
+        raise HTTPException(
+            status_code=415,
+            detail="unsupported bundle content type",
+            headers=SAFE_HEADERS,
+        )
+    descriptor, name = tempfile.mkstemp(
+        prefix="second-brain-upload-", suffix=".sbexport"
+    )
+    path = Path(name)
+    size = 0
+    try:
+        with os.fdopen(descriptor, "wb") as output:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_ARCHIVE_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="bundle exceeds size limit",
+                        headers=SAFE_HEADERS,
+                    )
+                output.write(chunk)
+        if size == 0:
+            raise HTTPException(
+                status_code=400, detail="bundle is empty", headers=SAFE_HEADERS
+            )
+        return path
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+
+
+def _import_plan(path: Path, session: Session) -> ProjectImportPlanRead:
+    manifest, _, bundle_hash = load_bundle(path)
+    try:
+        result = import_project(session, path, execute=False)
+        conflicts: list[str] = []
+    except ImportConflictError as exc:
+        conflicts = [str(exc)]
+        result = None
+    return ProjectImportPlanRead(
+        importable=result is not None,
+        format_name=manifest.format_name,
+        format_version=manifest.format_version,
+        project_id=manifest.project_id,
+        project_name=manifest.project_name,
+        source_alembic_revision=manifest.source_alembic_revision,
+        entity_counts=manifest.entity_counts,
+        bundle_sha256=bundle_hash,
+        conflicts=conflicts,
+        warnings=[],
+        conflict_count=len(conflicts),
+        warning_count=0,
+    )
 
 
 @router.get(
@@ -147,3 +254,161 @@ def maintenance_audit(
             for name in names
         ],
     )
+
+
+@router.post(
+    "/project-exports/{project_id}",
+    responses={
+        404: {"description": "Project not found"},
+        403: {"description": "Forbidden"},
+    },
+)
+def project_export(
+    project_id: UUID,
+    request: Request,
+    session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    operation: Annotated[str | None, Header(alias=OPERATION_HEADER)] = None,
+) -> FileResponse:
+    """Stream one deterministic private bundle and remove its exact temporary file."""
+
+    _protect_local_operation(request, operation, EXPORT_OPERATION)
+    _validate_development_target(settings)
+    descriptor, name = tempfile.mkstemp(
+        prefix="second-brain-export-", suffix=".sbexport"
+    )
+    os.close(descriptor)
+    output = Path(name)
+    output.unlink()
+    try:
+        session.connection(execution_options={"isolation_level": "REPEATABLE READ"})
+        _make_read_only(session)
+        if session.scalar(text("SELECT current_database()")) != "second_brain":
+            raise _database_unavailable()
+        export_project(
+            session,
+            project_id,
+            output,
+            source_alembic_revision="0009_memory_expiration",
+        )
+        session.rollback()
+    except ProjectNotFoundError:
+        session.rollback()
+        _cleanup_exact(output)
+        raise HTTPException(status_code=404, detail="project not found") from None
+    except (ExportError, OSError):
+        session.rollback()
+        _cleanup_exact(output)
+        raise HTTPException(status_code=500, detail="project export failed") from None
+    except Exception:
+        session.rollback()
+        _cleanup_exact(output)
+        raise
+    filename = f"project-{project_id}.sbexport"
+    return FileResponse(
+        output,
+        media_type=BUNDLE_MEDIA_TYPE,
+        filename=filename,
+        headers={**SAFE_HEADERS, "X-Content-Type-Options": "nosniff"},
+        background=BackgroundTask(_cleanup_exact, output),
+    )
+
+
+@router.post("/project-imports/validate", response_model=ProjectImportPlanRead)
+async def project_import_validate(
+    request: Request,
+    response: Response,
+    session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    operation: Annotated[str | None, Header(alias=OPERATION_HEADER)] = None,
+) -> ProjectImportPlanRead:
+    """Validate a raw bundle and return a content-free target plan."""
+
+    _protect_local_operation(request, operation, VALIDATE_OPERATION)
+    response.headers.update(SAFE_HEADERS)
+    _validate_development_target(settings)
+    path = await _receive_bundle(request)
+    try:
+        _make_read_only(session)
+        if session.scalar(text("SELECT current_database()")) != "second_brain":
+            raise _database_unavailable()
+        return _import_plan(path, session)
+    except ImportBundleError:
+        raise HTTPException(
+            status_code=400,
+            detail="invalid project export bundle",
+            headers=SAFE_HEADERS,
+        ) from None
+    except SQLAlchemyError:
+        raise _database_unavailable() from None
+    finally:
+        session.rollback()
+        _cleanup_exact(path)
+
+
+@router.post("/project-imports/execute", response_model=ProjectImportExecuteRead)
+async def project_import_execute(
+    request: Request,
+    response: Response,
+    expected_project_id: UUID,
+    expected_bundle_sha256: Annotated[str, Query(pattern=r"^[0-9a-f]{64}$")],
+    session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    operation: Annotated[str | None, Header(alias=OPERATION_HEADER)] = None,
+) -> ProjectImportExecuteRead:
+    """Revalidate and atomically import one exactly confirmed raw bundle."""
+
+    _protect_local_operation(request, operation, EXECUTE_OPERATION)
+    response.headers.update(SAFE_HEADERS)
+    _validate_development_target(settings)
+    path = await _receive_bundle(request)
+    try:
+        manifest, _, actual_hash = load_bundle(path)
+        if actual_hash != expected_bundle_sha256:
+            raise HTTPException(
+                status_code=409,
+                detail="bundle confirmation mismatch",
+                headers=SAFE_HEADERS,
+            )
+        if manifest.project_id != expected_project_id:
+            raise HTTPException(
+                status_code=409,
+                detail="Project confirmation mismatch",
+                headers=SAFE_HEADERS,
+            )
+        if session.scalar(text("SELECT current_database()")) != "second_brain":
+            raise _database_unavailable()
+        result = import_project(
+            session, path, execute=True, expected_project_id=expected_project_id
+        )
+        session.commit()
+        return ProjectImportExecuteRead.model_validate(result, from_attributes=True)
+    except ImportBundleError:
+        session.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="invalid project export bundle",
+            headers=SAFE_HEADERS,
+        ) from None
+    except ImportConflictError:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="project import conflicts with target",
+            headers=SAFE_HEADERS,
+        ) from None
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="project import conflicts with target",
+            headers=SAFE_HEADERS,
+        ) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _database_unavailable() from None
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        _cleanup_exact(path)
