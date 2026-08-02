@@ -35,6 +35,17 @@ export type LinkedMemoryRead = {
   project_id: string | null;
   title: string | null;
 };
+export type SourceDocumentRead = {
+  id: string; source_id: string; media_type: string; original_filename: string | null;
+  byte_size: number | null; ingestion_status: string; error_code: string | null;
+  extracted_at: string | null; created_at: string; updated_at: string; chunk_count: number;
+};
+export type SourceChunkRead = {
+  id: string; document_id: string; chunk_index: number; content: string;
+  char_start: number; char_end: number; content_hash: string; locator: string | null;
+  created_at: string;
+};
+export type TextIngestion = { text: string; original_filename: string | null; chunk_size: number; chunk_overlap: number };
 
 export class SafeApiError extends Error {
   constructor() {
@@ -57,6 +68,10 @@ export class SourceNotFoundError extends Error {
   }
 }
 
+export class SourceDocumentNotFoundError extends Error {
+  constructor() { super("Source document not found."); this.name = "SourceDocumentNotFoundError"; }
+}
+
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
   return typeof configured === "string" && configured.trim()
@@ -76,8 +91,8 @@ async function request<T>(
   path: string,
   validate: (value: unknown) => value is T,
   externalSignal?: AbortSignal,
-  init?: { method: "POST"; body: ProjectCreate | SourceCreate },
-  notFoundError?: "project" | "source",
+  init?: { method: "POST" | "PUT"; body: ProjectCreate | SourceCreate | TextIngestion | FormData },
+  notFoundError?: "project" | "source" | "document",
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -89,16 +104,16 @@ async function request<T>(
       method: init?.method ?? "GET",
       headers: {
         Accept: "application/json",
-        ...(init ? { "Content-Type": "application/json" } : {}),
+        ...(init && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
       },
-      ...(init ? { body: JSON.stringify(init.body) } : {}),
+      ...(init ? { body: init.body instanceof FormData ? init.body : JSON.stringify(init.body) } : {}),
       signal: controller.signal,
       credentials: "same-origin",
     });
     if (notFoundError && response.status === 404) {
-      throw notFoundError === "project"
-        ? new ProjectNotFoundError()
-        : new SourceNotFoundError();
+      if (notFoundError === "project") throw new ProjectNotFoundError();
+      if (notFoundError === "source") throw new SourceNotFoundError();
+      throw new SourceDocumentNotFoundError();
     }
     if (!response.ok) {
       throw new SafeApiError();
@@ -109,7 +124,7 @@ async function request<T>(
     }
     return payload;
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError) {
+    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError) {
       throw error;
     }
     throw new SafeApiError();
@@ -215,6 +230,52 @@ export function getSource(sourceId: string, signal?: AbortSignal): Promise<Sourc
 
 export function listSourceMemories(sourceId: string, signal?: AbortSignal): Promise<LinkedMemoryRead[]> {
   return request(`/sources/${sourceId}/memories?limit=100&offset=0`, (value): value is LinkedMemoryRead[] => Array.isArray(value) && value.every(isLinkedMemory), signal);
+}
+
+function isDocument(value: unknown): value is SourceDocumentRead {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  const keys = ["byte_size", "chunk_count", "created_at", "error_code", "extracted_at", "id", "ingestion_status", "media_type", "original_filename", "source_id", "updated_at"];
+  return JSON.stringify(Object.keys(record).sort()) === JSON.stringify(keys.sort()) &&
+    typeof record.id === "string" && isSourceId(record.id) && typeof record.source_id === "string" && isSourceId(record.source_id) &&
+    typeof record.media_type === "string" && isNullableString(record.original_filename) &&
+    (record.byte_size === null || (Number.isInteger(record.byte_size) && (record.byte_size as number) >= 0)) &&
+    typeof record.ingestion_status === "string" && isNullableString(record.error_code) &&
+    (record.extracted_at === null || isTimestamp(record.extracted_at)) && isTimestamp(record.created_at) && isTimestamp(record.updated_at) &&
+    Number.isInteger(record.chunk_count) && (record.chunk_count as number) >= 0;
+}
+
+function isIngestionResult(value: unknown): value is SourceDocumentRead {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const { generation_status: generationStatus, ...document } = value as Record<string, unknown>;
+  return ["created", "updated", "unchanged"].includes(generationStatus as string) && isDocument(document);
+}
+
+function isChunk(value: unknown): value is SourceChunkRead {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  const keys = ["char_end", "char_start", "chunk_index", "content", "content_hash", "created_at", "document_id", "id", "locator"];
+  return JSON.stringify(Object.keys(record).sort()) === JSON.stringify(keys.sort()) &&
+    typeof record.id === "string" && isSourceId(record.id) && typeof record.document_id === "string" && isSourceId(record.document_id) &&
+    Number.isInteger(record.chunk_index) && (record.chunk_index as number) >= 0 && typeof record.content === "string" && record.content.trim().length > 0 &&
+    Number.isInteger(record.char_start) && Number.isInteger(record.char_end) && (record.char_start as number) >= 0 && (record.char_end as number) > (record.char_start as number) &&
+    typeof record.content_hash === "string" && /^[0-9a-f]{64}$/.test(record.content_hash) && isNullableString(record.locator) && isTimestamp(record.created_at);
+}
+
+export function listSourceDocuments(sourceId: string, limit: number, offset: number, signal?: AbortSignal): Promise<SourceDocumentRead[]> {
+  return request(`/sources/${sourceId}/documents?limit=${limit}&offset=${offset}`, (value): value is SourceDocumentRead[] => Array.isArray(value) && value.every(isDocument), signal, undefined, "source");
+}
+export function getSourceDocument(documentId: string, signal?: AbortSignal): Promise<SourceDocumentRead> {
+  return request(`/source-documents/${documentId}`, isDocument, signal, undefined, "document");
+}
+export function listSourceChunks(documentId: string, limit: number, offset: number, signal?: AbortSignal): Promise<SourceChunkRead[]> {
+  return request(`/source-documents/${documentId}/chunks?limit=${limit}&offset=${offset}`, (value): value is SourceChunkRead[] => Array.isArray(value) && value.every(isChunk), signal, undefined, "document");
+}
+export function ingestSourceText(sourceId: string, body: TextIngestion, signal?: AbortSignal): Promise<SourceDocumentRead> {
+  return request(`/sources/${sourceId}/document/text`, isIngestionResult, signal, { method: "PUT", body }, "source");
+}
+export function ingestSourceFile(sourceId: string, body: FormData, signal?: AbortSignal): Promise<SourceDocumentRead> {
+  return request(`/sources/${sourceId}/document/file`, isIngestionResult, signal, { method: "PUT", body }, "source");
 }
 
 export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {

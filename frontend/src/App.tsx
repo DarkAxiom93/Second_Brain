@@ -4,6 +4,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { getHealth, getReadiness } from "./api/client";
 import { ProjectDetail, Projects } from "./Projects";
 import { SourceDetail, Sources } from "./Sources";
+import { DocumentIngestion, SourceDocumentDetail } from "./Documents";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -128,6 +129,8 @@ export function App() {
           <Route path="/projects/:projectId" element={<ProjectDetail />} />
           <Route path="/sources" element={<Sources />} />
           <Route path="/sources/:sourceId" element={<SourceDetail />} />
+          <Route path="/sources/:sourceId/ingest" element={<DocumentIngestion />} />
+          <Route path="/source-documents/:documentId" element={<SourceDocumentDetail />} />
           {navigation.slice(3).map(([path, label]) => (
             <Route key={path} path={path} element={<Placeholder title={label} />} />
           ))}

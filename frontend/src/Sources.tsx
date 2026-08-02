@@ -2,8 +2,8 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
-  createSource, getSource, isSourceId, listSourceMemories, listSources,
-  SourceNotFoundError, type LinkedMemoryRead, type SourceRead,
+  createSource, getSource, isSourceId, listSourceDocuments, listSourceMemories, listSources,
+  SourceNotFoundError, type LinkedMemoryRead, type SourceDocumentRead, type SourceRead,
 } from "./api/client";
 
 const PAGE_SIZE = 20;
@@ -107,23 +107,25 @@ export function SourceDetail() {
   const { sourceId = "" } = useParams();
   const [source, setSource] = useState<SourceRead | null>(null);
   const [memories, setMemories] = useState<LinkedMemoryRead[]>([]);
+  const [documents, setDocuments] = useState<SourceDocumentRead[]>([]);
+  const [documentOffset, setDocumentOffset] = useState(0);
   const [state, setState] = useState<LoadState | "missing" | "invalid">(isSourceId(sourceId) ? "loading" : "invalid");
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!isSourceId(sourceId)) { setState("invalid"); return; }
     const controller = new AbortController();
     setState("loading");
-    Promise.all([getSource(sourceId, controller.signal), listSourceMemories(sourceId, controller.signal)])
-      .then(([value, links]) => { setSource(value); setMemories(links); setState("ready"); })
+    Promise.all([getSource(sourceId, controller.signal), listSourceMemories(sourceId, controller.signal), listSourceDocuments(sourceId, PAGE_SIZE, documentOffset, controller.signal)])
+      .then(([value, links, page]) => { setSource(value); setMemories(links); setDocuments(page); setState("ready"); })
       .catch((error: unknown) => { if (!controller.signal.aborted) setState(error instanceof SourceNotFoundError ? "missing" : "error"); });
     return () => controller.abort();
-  }, [sourceId, attempt]);
+  }, [sourceId, attempt, documentOffset]);
   return <><header className="page-header"><p className="eyebrow">Source detail</p><h1>{state === "ready" && source ? source.name : "Source"}</h1></header><section className="panel" aria-live="polite" aria-busy={state === "loading"}>
     {state === "loading" && <p>Loading source…</p>}
     {state === "invalid" && <><h2>Invalid source address</h2><p>The source identifier is malformed.</p></>}
     {state === "missing" && <><h2>Source not found</h2><p>The requested source does not exist.</p></>}
     {state === "error" && <><h2>Source unavailable</h2><p>The source could not be loaded.</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Retry</button></>}
-    {state === "ready" && source && <><dl className="detail-list"><div><dt>ID</dt><dd>{source.id}</dd></div><div><dt>Name</dt><dd>{source.name}</dd></div><div><dt>Source type</dt><dd>{source.source_type}</dd></div><div><dt>Reference</dt><dd>{source.reference ?? "No reference"}</dd></div><div><dt>Checksum</dt><dd>{source.checksum ?? "No checksum"}</dd></div><div><dt>Created</dt><dd>{formatTimestamp(source.created_at)}</dd></div><div><dt>Updated</dt><dd>{formatTimestamp(source.updated_at)}</dd></div></dl><section aria-labelledby="linked-memories-heading"><h2 id="linked-memories-heading">Linked memories</h2>{memories.length === 0 ? <p>No linked memories.</p> : <ul className="relationship-list">{memories.map((memory) => <li key={memory.link_id}>{memory.title ?? `Memory ${memory.memory_id}`} {memory.source_location && <span>— {memory.source_location}</span>}</li>)}</ul>}</section></>}
+    {state === "ready" && source && <><dl className="detail-list"><div><dt>ID</dt><dd>{source.id}</dd></div><div><dt>Name</dt><dd>{source.name}</dd></div><div><dt>Source type</dt><dd>{source.source_type}</dd></div><div><dt>Reference</dt><dd>{source.reference ?? "No reference"}</dd></div><div><dt>Checksum</dt><dd>{source.checksum ?? "No checksum"}</dd></div><div><dt>Created</dt><dd>{formatTimestamp(source.created_at)}</dd></div><div><dt>Updated</dt><dd>{formatTimestamp(source.updated_at)}</dd></div></dl><Link className="action-link" to={`/sources/${source.id}/ingest`}>Ingest document</Link><section aria-labelledby="documents-heading"><h2 id="documents-heading">Documents</h2>{documents.length === 0 ? <p>No documents ingested.</p> : <ul className="project-list">{documents.map((document) => <li key={document.id}><Link to={`/source-documents/${document.id}`}>{document.original_filename ?? `Document ${document.id}`}</Link><p>{document.media_type} · {document.ingestion_status} · {document.chunk_count} chunks</p></li>)}</ul>}<nav className="pagination" aria-label="Document pages"><button type="button" disabled={documentOffset === 0} onClick={() => setDocumentOffset(Math.max(0, documentOffset - PAGE_SIZE))}>Previous</button><span>Page {documentOffset / PAGE_SIZE + 1}</span><button type="button" disabled={documents.length < PAGE_SIZE} onClick={() => setDocumentOffset(documentOffset + PAGE_SIZE)}>Next</button></nav></section><section aria-labelledby="linked-memories-heading"><h2 id="linked-memories-heading">Linked memories</h2>{memories.length === 0 ? <p>No linked memories.</p> : <ul className="relationship-list">{memories.map((memory) => <li key={memory.link_id}>{memory.title ?? `Memory ${memory.memory_id}`} {memory.source_location && <span>— {memory.source_location}</span>}</li>)}</ul>}</section></>}
     <Link className="back-link" to="/sources">Back to sources</Link>
   </section></>;
 }

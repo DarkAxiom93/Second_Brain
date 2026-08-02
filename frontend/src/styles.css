@@ -9,8 +9,8 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, a, input, textarea { font: inherit; }
-a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+button, a, input, select, textarea { font: inherit; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 3px solid #f2a93b;
   outline-offset: 3px;
 }
@@ -107,7 +107,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 form { display: grid; gap: .65rem; }
 label { font-weight: 700; }
 label span { color: #657168; font-weight: 400; }
-input, textarea { width: 100%; border: 1px solid #9da9a1; border-radius: .45rem; padding: .7rem; }
+input, select, textarea { width: 100%; border: 1px solid #9da9a1; border-radius: .45rem; padding: .7rem; }
 textarea { min-height: 6rem; resize: vertical; }
 .field-error { margin: 0; color: #a13125; }
 .project-list { display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
@@ -120,6 +120,11 @@ textarea { min-height: 6rem; resize: vertical; }
 .detail-list dt { color: #59665f; font-size: .8rem; }
 .detail-list dd { margin: 0; overflow-wrap: anywhere; }
 .back-link { color: #275c4b; font-weight: 700; }
+.action-link { display: inline-block; justify-self: start; border-radius: .55rem; padding: .7rem 1rem; color: #fff; background: #173e32; font-weight: 700; text-decoration: none; }
+.chunk-list { display: grid; gap: 1rem; padding-left: 1.5rem; }
+.chunk-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; }
+.chunk-list pre { margin: .5rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.chunk-meta { color: #536159; font-size: .85rem; }
 
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: 1fr; }

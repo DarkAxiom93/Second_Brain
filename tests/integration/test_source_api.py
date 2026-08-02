@@ -74,6 +74,43 @@ def test_source_listing_pagination_and_detail() -> None:
     assert missing.json() == {"detail": "source not found"}
 
 
+def test_document_and_chunk_reads_are_scoped_and_deterministically_paginated() -> None:
+    client = TestClient(create_app())
+    first = client.post(
+        "/sources", json={"source_type": "note", "name": "First"}
+    ).json()
+    second = client.post(
+        "/sources", json={"source_type": "note", "name": "Second"}
+    ).json()
+    ingested = client.put(
+        f"/sources/{first['id']}/document/text",
+        json={"text": "a" * 2500, "chunk_size": 1000, "chunk_overlap": 0},
+    ).json()
+    other = client.put(
+        f"/sources/{second['id']}/document/text", json={"text": "other"}
+    ).json()
+    assert client.get(f"/sources/{first['id']}/documents?limit=1&offset=0").json() == [
+        {key: value for key, value in ingested.items() if key != "generation_status"}
+    ]
+    assert client.get(f"/sources/{first['id']}/documents?limit=1&offset=1").json() == []
+    assert other["id"] not in client.get(f"/sources/{first['id']}/documents").text
+    detail = client.get(f"/source-documents/{ingested['id']}")
+    assert detail.status_code == 200 and detail.json()["chunk_count"] == 3
+    chunks = client.get(f"/source-documents/{ingested['id']}/chunks").json()
+    assert [chunk["chunk_index"] for chunk in chunks] == [0, 1, 2]
+    assert client.get(
+        f"/source-documents/{ingested['id']}/chunks?limit=1&offset=1"
+    ).json() == [chunks[1]]
+    missing_source = client.get(f"/sources/{uuid.uuid4()}/documents")
+    assert missing_source.status_code == 404 and missing_source.json() == {
+        "detail": "source not found"
+    }
+    missing_document = client.get(f"/source-documents/{uuid.uuid4()}")
+    assert missing_document.status_code == 404 and missing_document.json() == {
+        "detail": "source document not found"
+    }
+
+
 def test_source_endpoint_and_link_cardinalities_preserve_legacy_source() -> None:
     client = TestClient(create_app())
     project = client.post("/projects", json={"name": "Project"}).json()

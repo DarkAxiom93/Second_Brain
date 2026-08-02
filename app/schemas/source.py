@@ -127,6 +127,54 @@ class SourceDocumentRead(BaseModel):
         return value
 
 
+class SourceDocumentDetailRead(BaseModel):
+    """Public persisted document metadata without extracted document text."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    source_id: uuid.UUID
+    media_type: str
+    original_filename: str | None
+    byte_size: int | None
+    ingestion_status: str
+    error_code: str | None
+    extracted_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    chunk_count: int
+
+    @field_validator("extracted_at", "created_at", "updated_at")
+    @classmethod
+    def require_optional_document_timezone(
+        cls, value: datetime | None
+    ) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("timestamp must be timezone-aware")
+        return value
+
+
+class SourceChunkRead(BaseModel):
+    """Public chunk evidence for local document inspection."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    document_id: uuid.UUID
+    chunk_index: int
+    content: str
+    char_start: int
+    char_end: int
+    content_hash: str
+    locator: str | None
+    created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def require_chunk_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("timestamp must be timezone-aware")
+        return value
+
+
 class MemorySourceLinkCreate(BaseModel):
     """Validated input for linking a source to a memory."""
 

@@ -13,8 +13,10 @@ only `/health` and `/ready`. Projects uses the existing paginated list and
 creation contracts plus read-only single-Project retrieval; its routes provide
 list, creation, and detail screens. Sources uses paginated list and creation
 contracts, read-only single-Source retrieval, and the existing Source-to-Memory
-relationship listing for safe provenance detail. Other named screens remain routing
-placeholders. The frontend has no authentication, persistent browser storage,
+relationship listing for safe provenance detail. Source detail also lists its
+persisted document, links to explicit JSON/TXT/PDF ingestion, and provides a
+read-only paginated chunk browser. Other named screens remain routing placeholders.
+The frontend has no authentication, persistent browser storage,
 service worker, or provider integration.
 
 ## Components and data

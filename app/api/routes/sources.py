@@ -32,6 +32,7 @@ from app.ingestion.files import (
 )
 from app.ingestion.text import chunk_text
 from app.models.source import Source
+from app.models.source_chunk import SourceChunk
 from app.repositories import sources as source_repository
 from app.schemas.memory_proposal import (
     MemoryProposalGenerationRead,
@@ -39,13 +40,16 @@ from app.schemas.memory_proposal import (
 )
 from app.schemas.source import (
     LinkedMemoryRead,
+    SourceChunkRead,
     SourceCreate,
+    SourceDocumentDetailRead,
     SourceDocumentRead,
     SourceRead,
     SourceTextIngest,
 )
 
 router = APIRouter(prefix="/sources", tags=["sources"])
+document_router = APIRouter(prefix="/source-documents", tags=["source-documents"])
 
 
 def database_unavailable() -> HTTPException:
@@ -261,3 +265,54 @@ def list_memories_for_source(
         )
     except SQLAlchemyError:
         raise HTTPException(status_code=503, detail="database unavailable") from None
+
+
+@router.get("/{source_id}/documents", response_model=list[SourceDocumentDetailRead])
+def list_documents_for_source(
+    source_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[source_repository.DocumentRead]:
+    """List one deterministic page of documents belonging to a Source."""
+    try:
+        if source_repository.get_source(session, source_id) is None:
+            raise HTTPException(status_code=404, detail="source not found")
+        return source_repository.list_documents_for_source(
+            session, source_id=source_id, limit=limit, offset=offset
+        )
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+
+
+@document_router.get("/{document_id}", response_model=SourceDocumentDetailRead)
+def get_source_document(
+    document_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> source_repository.DocumentRead:
+    """Retrieve one SourceDocument without changing database state."""
+    try:
+        document = source_repository.get_document(session, document_id)
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+    if document is None:
+        raise HTTPException(status_code=404, detail="source document not found")
+    return document
+
+
+@document_router.get("/{document_id}/chunks", response_model=list[SourceChunkRead])
+def list_source_document_chunks(
+    document_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[SourceChunk]:
+    """List one deterministic page of chunks for an existing document."""
+    try:
+        if source_repository.get_document(session, document_id) is None:
+            raise HTTPException(status_code=404, detail="source document not found")
+        return source_repository.list_chunks_for_document(
+            session, document_id=document_id, limit=limit, offset=offset
+        )
+    except SQLAlchemyError:
+        raise database_unavailable() from None

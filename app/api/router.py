@@ -9,6 +9,7 @@ from app.api.routes.memory_embedding_batches import router as embedding_batches_
 from app.api.routes.memory_proposals import router as memory_proposals_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.readiness import router as readiness_router
+from app.api.routes.sources import document_router
 from app.api.routes.sources import router as sources_router
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(memories_router)
 api_router.include_router(embedding_batches_router)
 api_router.include_router(memory_proposals_router)
 api_router.include_router(sources_router)
+api_router.include_router(document_router)

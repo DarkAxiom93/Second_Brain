@@ -61,19 +61,19 @@ describe("sources list and creation", () => {
 
 describe("source detail", () => {
   it("shows all fields and existing relationship summary", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(response(source)).mockResolvedValueOnce(response([memory])); vi.stubGlobal("fetch", fetchMock); renderDetail();
+    const fetchMock = vi.fn().mockResolvedValueOnce(response(source)).mockResolvedValueOnce(response([memory])).mockResolvedValueOnce(response([])); vi.stubGlobal("fetch", fetchMock); renderDetail();
     expect(screen.getByText("Loading source…")).toBeInTheDocument(); expect(await screen.findByRole("heading", { name: source.name })).toBeInTheDocument();
     for (const value of [id, source.source_type, source.reference, source.checksum, memory.title]) expect(screen.getByText(value)).toBeInTheDocument();
     expect(screen.getByText(/paragraph 1/)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2); expect(screen.getByRole("link", { name: "Back to sources" })).toHaveAttribute("href", "/sources");
+    expect(fetchMock).toHaveBeenCalledTimes(3); expect(screen.getByRole("link", { name: "Ingest document" })).toHaveAttribute("href", `/sources/${id}/ingest`); expect(screen.getByText("No documents ingested.")).toBeInTheDocument();
   });
 
   it("sends no request for a malformed UUID", () => { const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock); renderDetail("bad"); expect(screen.getByRole("heading", { name: "Invalid source address" })).toBeInTheDocument(); expect(fetchMock).not.toHaveBeenCalled(); });
 
   it("distinguishes missing and rejects malformed payloads safely", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(response({ detail: "source not found" }, 404)).mockResolvedValueOnce(response([])); vi.stubGlobal("fetch", fetchMock); renderDetail(); expect(await screen.findByRole("heading", { name: "Source not found" })).toBeInTheDocument();
-    cleanup(); fetchMock.mockReset().mockResolvedValueOnce(response({ ...source, internal: "secret" })).mockResolvedValueOnce(response([])); renderDetail(); expect(await screen.findByRole("heading", { name: "Source unavailable" })).toBeInTheDocument(); expect(document.body).not.toHaveTextContent("secret");
+    const fetchMock = vi.fn().mockResolvedValueOnce(response({ detail: "source not found" }, 404)).mockResolvedValueOnce(response([])).mockResolvedValueOnce(response([])); vi.stubGlobal("fetch", fetchMock); renderDetail(); expect(await screen.findByRole("heading", { name: "Source not found" })).toBeInTheDocument();
+    cleanup(); fetchMock.mockReset().mockResolvedValueOnce(response({ ...source, internal: "secret" })).mockResolvedValueOnce(response([])).mockResolvedValueOnce(response([])); renderDetail(); expect(await screen.findByRole("heading", { name: "Source unavailable" })).toBeInTheDocument(); expect(document.body).not.toHaveTextContent("secret");
   });
 
-  it("cancels both detail requests on unmount", () => { const signals: AbortSignal[] = []; vi.stubGlobal("fetch", vi.fn((_url, init) => { signals.push(init.signal); return new Promise(() => undefined); })); const view = renderDetail(); view.unmount(); expect(signals).toHaveLength(2); expect(signals.every((signal) => signal.aborted)).toBe(true); });
+  it("cancels all detail requests on unmount", () => { const signals: AbortSignal[] = []; vi.stubGlobal("fetch", vi.fn((_url, init) => { signals.push(init.signal); return new Promise(() => undefined); })); const view = renderDetail(); view.unmount(); expect(signals).toHaveLength(3); expect(signals.every((signal) => signal.aborted)).toBe(true); });
 });

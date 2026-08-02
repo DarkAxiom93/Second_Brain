@@ -3,9 +3,9 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
-from sqlalchemy import select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.ingestion.text import TextChunk
@@ -68,6 +68,23 @@ class DocumentIngestionResult:
     generation_status: Literal["created", "updated", "unchanged"]
 
 
+@dataclass(frozen=True)
+class DocumentRead:
+    """A document projection with its aggregate chunk count."""
+
+    id: uuid.UUID
+    source_id: uuid.UUID
+    media_type: str
+    original_filename: str | None
+    byte_size: int | None
+    ingestion_status: str
+    error_code: str | None
+    extracted_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    chunk_count: int
+
+
 def create_source(session: Session, source_data: SourceCreate) -> Source:
     """Add and flush a Source without committing."""
     source = Source(**source_data.model_dump())
@@ -87,6 +104,64 @@ def list_sources(session: Session, *, limit: int, offset: int) -> list[Source]:
     statement = (
         select(Source)
         .order_by(Source.created_at.desc(), Source.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list(session.scalars(statement).all())
+
+
+def _document_projection() -> Select[tuple[Any, ...]]:
+    chunk_count = (
+        select(func.count(SourceChunk.id))
+        .where(SourceChunk.document_id == SourceDocument.id)
+        .correlate(SourceDocument)
+        .scalar_subquery()
+    )
+    return select(
+        SourceDocument.id,
+        SourceDocument.source_id,
+        SourceDocument.media_type,
+        SourceDocument.original_filename,
+        SourceDocument.byte_size,
+        SourceDocument.ingestion_status,
+        SourceDocument.error_code,
+        SourceDocument.extracted_at,
+        SourceDocument.created_at,
+        SourceDocument.updated_at,
+        chunk_count,
+    )
+
+
+def list_documents_for_source(
+    session: Session, *, source_id: uuid.UUID, limit: int, offset: int
+) -> list[DocumentRead]:
+    """Return one deterministic SQL-paginated document page for a Source."""
+    statement = (
+        _document_projection()
+        .where(SourceDocument.source_id == source_id)
+        .order_by(SourceDocument.created_at.desc(), SourceDocument.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return [DocumentRead(*row) for row in session.execute(statement).all()]
+
+
+def get_document(session: Session, document_id: uuid.UUID) -> DocumentRead | None:
+    """Return public document metadata and chunk count by identifier."""
+    row = session.execute(
+        _document_projection().where(SourceDocument.id == document_id)
+    ).one_or_none()
+    return None if row is None else DocumentRead(*row)
+
+
+def list_chunks_for_document(
+    session: Session, *, document_id: uuid.UUID, limit: int, offset: int
+) -> list[SourceChunk]:
+    """Return a deterministic SQL-paginated chunk page."""
+    statement = (
+        select(SourceChunk)
+        .where(SourceChunk.document_id == document_id)
+        .order_by(SourceChunk.chunk_index.asc(), SourceChunk.id.asc())
         .limit(limit)
         .offset(offset)
     )

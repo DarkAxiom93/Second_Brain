@@ -15,8 +15,9 @@ from app.db.dependencies import get_db_session
 from app.main import create_app
 from app.models.memory import Memory
 from app.models.source import Source
+from app.models.source_chunk import SourceChunk
 from app.models.source_document import SourceDocument
-from app.repositories.sources import DocumentIngestionResult
+from app.repositories.sources import DocumentIngestionResult, DocumentRead
 
 
 @pytest.fixture
@@ -182,6 +183,105 @@ def test_only_approved_source_paths_exist(
     paths = client.app.openapi()["paths"]
     assert set(paths["/sources"]) == {"get", "post"}
     assert set(paths["/sources/{source_id}"]) == {"get"}
+    assert set(paths["/sources/{source_id}/documents"]) == {"get"}
+    assert set(paths["/source-documents/{document_id}"]) == {"get"}
+    assert set(paths["/source-documents/{document_id}/chunks"]) == {"get"}
+
+
+def test_document_reads_are_scoped_paginated_and_read_only(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    now = datetime.now(UTC)
+    source_id, document_id = uuid.uuid4(), uuid.uuid4()
+    document = DocumentRead(
+        document_id,
+        source_id,
+        "text/plain",
+        "note.txt",
+        7,
+        "extracted",
+        None,
+        now,
+        now,
+        now,
+        1,
+    )
+    chunk = SourceChunk(
+        id=uuid.uuid4(),
+        document_id=document_id,
+        chunk_index=0,
+        content="content",
+        char_start=0,
+        char_end=7,
+        content_hash="a" * 64,
+        locator=None,
+        created_at=now,
+    )
+    monkeypatch.setattr(
+        source_routes.source_repository, "get_source", Mock(return_value=Source())
+    )
+    list_documents = Mock(return_value=[document])
+    get_document = Mock(return_value=document)
+    list_chunks = Mock(return_value=[chunk])
+    monkeypatch.setattr(
+        source_routes.source_repository, "list_documents_for_source", list_documents
+    )
+    monkeypatch.setattr(source_routes.source_repository, "get_document", get_document)
+    monkeypatch.setattr(
+        source_routes.source_repository, "list_chunks_for_document", list_chunks
+    )
+    assert (
+        client.get(f"/sources/{source_id}/documents?limit=7&offset=2").json()[0][
+            "chunk_count"
+        ]
+        == 1
+    )
+    assert (
+        client.get(f"/source-documents/{document_id}").json()["original_filename"]
+        == "note.txt"
+    )
+    assert (
+        client.get(f"/source-documents/{document_id}/chunks?limit=8&offset=3").json()[
+            0
+        ]["content"]
+        == "content"
+    )
+    list_documents.assert_called_once_with(
+        session, source_id=source_id, limit=7, offset=2
+    )
+    list_chunks.assert_called_once_with(
+        session, document_id=document_id, limit=8, offset=3
+    )
+    session.commit.assert_not_called()
+    session.flush.assert_not_called()
+
+
+def test_document_reads_validate_missing_and_hide_database_failures(
+    monkeypatch: pytest.MonkeyPatch, route_client: tuple[TestClient, Mock]
+) -> None:
+    client, session = route_client
+    retrieval = Mock(return_value=None)
+    monkeypatch.setattr(source_routes.source_repository, "get_document", retrieval)
+    assert client.get("/source-documents/not-a-uuid").status_code == 422
+    retrieval.assert_not_called()
+    response = client.get(f"/source-documents/{uuid.uuid4()}")
+    assert response.status_code == 404 and response.json() == {
+        "detail": "source document not found"
+    }
+    response = client.get(f"/source-documents/{uuid.uuid4()}/chunks")
+    assert response.status_code == 404 and response.json() == {
+        "detail": "source document not found"
+    }
+    failure = OperationalError("secret SQL", {}, Exception("password=secret"))
+    retrieval.side_effect = failure
+    response = client.get(f"/source-documents/{uuid.uuid4()}")
+    assert response.status_code == 503 and response.json() == {
+        "detail": "database unavailable"
+    }
+    assert "secret" not in response.text
+    session.commit.assert_not_called()
+    session.flush.assert_not_called()
 
 
 def test_ingest_unknown_source_returns_exact_404(

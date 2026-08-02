@@ -33,8 +33,9 @@ observability.
 Completed: maintainable local React/TypeScript workspace, responsive application
 shell, deterministic routing, a read-only health/readiness dashboard, and a
 Project workflow for paginated listing, creation, and detail retrieval, plus
-Source listing, creation, detail, and existing relationship summaries. Next:
-source upload. Future: proposal review queue, Memory browser, search, chat with
+Source listing, creation, detail, existing relationship summaries, explicit
+JSON/TXT/PDF ingestion, and document/chunk inspection. Future: proposal review
+queue, Memory browser, search, chat with
 citations, settings, authentication, and additional write workflows.
 
 ## Future agents and integrations

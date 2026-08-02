@@ -7,8 +7,8 @@ connections use `127.0.0.1:5433`: development database `second_brain`, test
 database `second_brain_test`. Obtain credentials from local example/configuration
 workflow; never paste secrets.
 
-Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 43 are
-complete; Checkpoint 44 is implemented and pending review. Completed capabilities include:
+Current Alembic head: `0009_memory_expiration`. Checkpoints 1 through 44 are
+complete; Checkpoint 45 is implemented and pending review. Completed capabilities include:
 persistence, projects, Memories, normalized sources, structured metadata,
 lexical/semantic/hybrid search, optional embeddings, TXT/PDF ingestion, AI
 proposal generation, human review, explicit promotion, and reusable developer
@@ -130,10 +130,13 @@ data, Project edit, or Project delete.
 The `/sources` screen now lists and creates Sources with the exact existing
 contract and real limit/offset pagination. `/sources/:sourceId` validates UUIDs,
 retrieves every safe Source field, and summarizes existing Source-to-Memory
-relationships through the established read-only endpoint. Both screens use
-strict response validation, cancellation, accessible states, and manual retry;
-there is no ingestion, edit, delete, linking, polling, persistence, or optimistic
-behavior. The remaining named screens are placeholders.
+relationships through the established read-only endpoint. Source detail also
+lists its real document and links to exact-contract JSON/TXT/PDF ingestion.
+`/source-documents/:documentId` shows public metadata and paginated chunk evidence.
+All screens use strict response validation, cancellation, accessible states, and
+manual retry. There is no automatic proposal generation, edit, delete, polling,
+browser persistence, or optimistic document. The remaining named screens are
+placeholders.
 
 Frontend setup, development, and verification use
 `scripts/frontend-setup.ps1`, `scripts/frontend-dev.ps1`, and
@@ -146,7 +149,7 @@ approved recreation of only the exhausted `second_brain_test` database. The
 development database remained Projects=1 and Memories=1. Maintenance execution,
 scheduled expiration processing, and persistent observability remain deferred.
 Continue one approved checkpoint at a time and attach
-`docs/checkpoint-43-report.md` to the new conversation.
+`docs/checkpoint-45-report.md` to the new conversation.
 
 ## Copy from PowerShell
 
