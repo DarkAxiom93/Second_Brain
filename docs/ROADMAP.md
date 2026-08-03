@@ -2,76 +2,73 @@
 
 This is a capability sequence, not a schedule.
 
-## Local V1 release
+## Published releases
 
-Released: Local V1 is published as `v1.0.0` from commit `a1bf40c`, with
-reproducible backend/frontend installation, safe startup and shutdown, full
-zero-skip verification, all eight top-level UI routes functional, controlled
-Project export/conflict validation, security/privacy/accessibility audits, and
-maintainer runbook/handoff documentation. The current phase is post-V1
-maintenance and V1.1 implementation. Checkpoints 55 and 56 are committed and
-pushed at `cefdc4e` and `2c4ed44`. Checkpoint 57 is complete at `f6b9260`.
-Checkpoint 58 is complete at `ccef163`, and Checkpoint 59 is committed and
-pushed at `42fdfc8`. Checkpoint 60 has release-hardened the candidate and remains
-pending human review. Local V1.1 is not tagged or published.
+Local V1 is published as `v1.0.0` from
+`a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32` and remains the pre-V1.1 recovery
+point. Local V1.1 is published as `v1.1.0` from exact commit
+`88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 60 is complete at that
+commit. The sole current Alembic head is `0009_memory_expiration`, and Project
+export remains `second-brain-project-export` version 1.
 
-## Local V1.1 release candidate
+V1.1 adds the patched frontend dependency graph, least-privilege
+non-authoritative CI, deterministic explained Memory search, its accessible UI,
+and integrated acceptance. It preserves legacy search/Answer contracts, stored
+data, deployment topology, and export/import format. Local Full verification
+remains release-authoritative.
 
-Checkpoint 54 proposes a small Local V1.1 focused on dependency safety,
-non-authoritative continuous integration, and deterministic retrieval
-explanations. The proposal adds no authentication, cloud boundary, background
-automation, destructive maintenance, schema migration, or export-format
-change. See [V1_1_ROADMAP.md](V1_1_ROADMAP.md) for evidence, priorities,
-approval decisions, and independently reviewable checkpoints beginning with
-55. Checkpoints 55 and 56 are committed and pushed. Checkpoint 56 CI is only an
-early regression signal, while local Full verification remains
-release-authoritative. Checkpoints 57 through 59 are committed and pushed.
-Checkpoint 60 documentation and verification evidence remains unstaged and
-pending human review.
+## Local V1.2 proposal
+
+Checkpoint 61 defines the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
+[threat model](AGENT_THREAT_MODEL.md). It remains pending human review.
+Checkpoint 62 is not started, and no V1.2 Agent Runtime, persistence, API, UI,
+provider, tool executor, approval foundation, or agent currently exists.
+
+The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
+with structured planning, application-owned read-only tools, durable safe state,
+cancellation/recovery, immutable proposed actions for exact human review, an
+accessible Runs/Approvals UI, a read-only Research Agent, an advisory Memory
+Curator Agent, and deterministic security/quality evaluation. An Agent Run is
+not an Automation: Automation is a future trigger that creates a Run.
+
+The independently reviewable sequence is:
+
+1. 62 - Agent Runtime persistence foundation.
+2. 63 - Agent Run state machine and API.
+3. 64 - Tool Registry and policy enforcement.
+4. 65 - Structured planning provider.
+5. 66 - Bounded read-only executor.
+6. 67 - Idempotency, cancellation, recovery, and failure injection.
+7. 68 - Approval and proposed-action foundation.
+8. 69 - Agent Runs and Approval UI.
+9. 70 - Read-only Research Agent.
+10. 71 - Advisory Memory Curator Agent.
+11. 72 - Agent security and evaluation harness.
+12. 73 - Local V1.2 end-to-end acceptance.
+13. 74 - Local V1.2 release hardening.
+
+V1.2 excludes scheduled/recurring Automations, background workers, external
+connectors or writes, autonomous approval, execute authority in the initial
+runtime, arbitrary shell/Python/SQL/filesystem/browser/network access, and
+cloud, remote, multi-user, or mobile operation.
 
 ## Completed foundation
 
-Completed: persistence; normalized sources; lexical, semantic, and hybrid
-search; optional embeddings; TXT/PDF ingestion; AI proposals; human review; and
-explicit promotion into Memory.
+Completed capabilities include PostgreSQL persistence; normalized sources;
+lexical, semantic, hybrid, and explained search; optional embeddings; TXT/PDF
+ingestion; AI proposals with human review and explicit promotion; advisory
+quality detection; explicit supersession, expiration, and quality refinement;
+evidence-backed answers; batch embedding/re-embedding; read-only maintenance
+and diagnostics; versioned Project export and controlled import; all eight
+top-level local UI routes; non-authoritative CI; and V1/V1.1 acceptance.
 
-## Memory quality
+## Deferred Local V1.3 and later
 
-Completed: duplicate detection, contradiction detection, explicit superseding,
-explicit expiration, and explicit confidence/importance refinement. Planned:
-scheduled-expiration handling.
-
-## Retrieval and answers
-
-Completed: explicit evidence-backed question answering with validated Memory
-citations and the additive explained-search backend. The accessible explained-
-search UI is complete; Local V1.1 release hardening is pending review and retrieval-
-quality evaluation is already available.
-
-## Operations
-
-Completed: explicit bounded batch embedding for active Memories missing an
-embedding, controlled re-embedding of existing embeddings, deterministic
-read-only maintenance auditing, versioned project export, and controlled
-project import, plus read-only operational diagnostics and configuration
-validation. Planned: maintenance execution, backups, and persistent
-observability.
-
-## User interface
-
-Completed: maintainable local React/TypeScript workspace, responsive application
-shell, deterministic routing, a read-only health/readiness dashboard, and a
-Project workflow for paginated listing, creation, and detail retrieval, plus
-Source listing, creation, detail, existing relationship summaries, explicit
-JSON/TXT/PDF ingestion, document/chunk inspection, and the complete proposal
-generation, review, rejection, approval, and promotion workflow, plus a Memory
-browser with quality/lifecycle actions and read-only advisories, plus explicit
-lexical, semantic, and hybrid Memory search, plus explicit evidence-backed
-answers with returned Memory citations, plus an operations and settings
-dashboard with explicit manual refresh and controlled Project export/import.
-Future: chat with citations, authentication, and additional write workflows.
-
-## Future agents and integrations
-
-Future: executive coordinator, memory librarian, project specialists, Gmail,
-Google Drive, Calendar, GitHub, and an approval center.
+V1.3 may plan a local scheduler, one-time/recurring Automation definitions,
+leases and duplicate prevention, pause/resume/retry/missed-run policy,
+notifications, Daily Brief and Project Watch agents, local credentials,
+read-only Calendar/Gmail/GitHub connectors, draft-only external actions, and
+exact approval-gated external writes. Authentication, multi-user isolation,
+remote/cloud/mobile operation, import merge/overwrite/remap, encrypted bundles,
+and other expanded boundaries require their own later roadmaps. Checkpoint 61
+authorizes none of this implementation.

@@ -9,11 +9,16 @@ Stable project guidance is split into concise references: [architecture](docs/AR
 the [new-chat handoff](docs/CHAT_HANDOFF.md). New maintainers should start with
 the [local runbook](docs/LOCAL_V1_RUNBOOK.md), [Local V1.1 acceptance evidence](docs/LOCAL_V1_1_ACCEPTANCE.md),
 [Local V1.1 release notes](docs/LOCAL_V1_1_RELEASE_NOTES.md), and
-[known limitations](docs/KNOWN_LIMITATIONS.md). Reusable Windows commands
+[known limitations](docs/KNOWN_LIMITATIONS.md). The proposed, not-yet-implemented
+Local V1.2 boundary is in the [Agent roadmap](docs/V1_2_AGENT_ROADMAP.md) and
+[Agent threat model](docs/AGENT_THREAT_MODEL.md). Reusable Windows commands
 are documented in [scripts/README.md](scripts/README.md).
 
-Second Brain Local V1 is released as [`v1.0.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.0.0)
-from commit `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The release combines a
+Second Brain Local V1.1 is published as [`v1.1.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.1.0)
+from exact commit `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`.
+[`v1.0.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.0.0) at
+`a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32` remains the pre-V1.1 recovery
+point. The application combines a
 Python 3.12 FastAPI backend, PostgreSQL with pgvector, and a local React/Vite UI.
 The release tree was clean when published, and its Alembic head is
 `0009_memory_expiration`.
@@ -299,14 +304,15 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 
 ## Current scope
 
-Local V1.1 is a release-hardened candidate pending human review; it is not
-tagged or published. `v1.0.0` remains the stable release and recovery point.
+Local V1.1 is published as `v1.1.0`. Checkpoint 60 is complete at the exact
+release commit. Checkpoint 61 is documentation-only and pending human review;
+Checkpoint 62 is not started, and no V1.2 Agent functionality exists.
 All eight top-level UI routes (Dashboard,
 Projects, Sources, Proposals, Memories, Search, Answers, and Settings) are
 functional, and Search includes additive explained lexical, semantic, and
 hybrid results. The current Alembic revision is
 `0009_memory_expiration`. Authentication, cloud synchronization, background
-agents, automatic maintenance, encrypted bundles, import merge/overwrite/remap,
+Agent Runtime, Automations, automatic maintenance, encrypted bundles, import merge/overwrite/remap,
 and persistent Answer history remain unavailable. See
 `docs/KNOWN_LIMITATIONS.md` for the complete list.
 

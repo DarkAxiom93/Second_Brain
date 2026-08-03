@@ -64,7 +64,21 @@ history. A dash means Alembic had not yet been introduced.
 | 57 | Additive explained Memory search backend | Complete | `0009_memory_expiration` | `f6b9260` |
 | 58 | Explained search frontend and accessibility | Complete | `0009_memory_expiration` | `ccef163` |
 | 59 | Local V1.1 end-to-end acceptance | Complete | `0009_memory_expiration` | `42fdfc8` |
-| 60 | Local V1.1 documentation and release hardening | Pending review | `0009_memory_expiration` | Pending review |
+| 60 | Local V1.1 documentation and release hardening | Complete | `0009_memory_expiration` | `88dffa9` |
+| 61 | V1.2 Agent roadmap and threat model | Pending review | `0009_memory_expiration` | Pending review |
+| 62 | Agent Runtime persistence foundation | Not started | TBD | - |
+| 63 | Agent Run state machine and API | Not started | TBD | - |
+| 64 | Tool Registry and policy enforcement | Not started | TBD | - |
+| 65 | Structured planning provider | Not started | TBD | - |
+| 66 | Bounded read-only executor | Not started | TBD | - |
+| 67 | Idempotency, cancellation, recovery, and failure injection | Not started | TBD | - |
+| 68 | Approval and proposed-action foundation | Not started | TBD | - |
+| 69 | Agent Runs and Approval UI | Not started | TBD | - |
+| 70 | Read-only Research Agent | Not started | TBD | - |
+| 71 | Advisory Memory Curator Agent | Not started | TBD | - |
+| 72 | Agent security and evaluation harness | Not started | TBD | - |
+| 73 | Local V1.2 end-to-end acceptance | Not started | TBD | - |
+| 74 | Local V1.2 release hardening | Not started | TBD | - |
 
 ## Standard lifecycle
 

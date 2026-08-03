@@ -11,18 +11,30 @@ The stable recovery architecture is released as `v1.0.0` at commit
 `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The supported release topology
 remains loopback Vite and FastAPI plus the named-volume PostgreSQL service;
 there is no authentication or cloud boundary. All eight top-level UI routes are
-functional. Local V1.1 is now a release-hardened candidate pending human review;
-it is not tagged or published.
+functional. Local V1.1 is published as `v1.1.0` from exact commit
+`88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`; `v1.0.0` remains the pre-V1.1
+recovery point.
 
 The additive V1.1 architecture is documented in
 [V1_1_ROADMAP.md](V1_1_ROADMAP.md). It preserves this topology and data model,
 isolates dependency remediation and non-authoritative CI, then adds one
 read-only explained-search contract and its accessible UI. Checkpoint 57 is
 complete at `f6b9260`; Checkpoint 58 consumes `POST /memories/search/explained`
-locally. Checkpoint 59 is committed at `42fdfc8`; Checkpoint 60 remains pending
-human review. Existing
+locally. Checkpoint 59 is committed at `42fdfc8`; Checkpoint 60 is complete at
+the V1.1 release commit. Existing
 search responses and version-1 export/import remain compatible. No V1.1
 migration is proposed.
+
+Checkpoint 61 proposes the documentation-only Local V1.2 Agent architecture in
+[V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md) and
+[AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). It is pending human review;
+Checkpoint 62 is not started and no Agent Runtime exists. The proposed boundary
+separates a manually initiated durable Agent Run from a future Automation that
+would trigger a Run. Initial authority is read-only: models cannot grant
+authority, tools are code-owned/versioned/schema-bounded, proposals require
+exact immutable human review, and execute authority is unavailable. Schedulers,
+workers, connectors, external writes, arbitrary execution, and remote or
+multi-user operation remain outside V1.2.
 
 The Checkpoint 56 CI workflow is an early regression signal on pull requests to
 `main`, pushes to `main`, and manual dispatch. Its Windows runner performs the
