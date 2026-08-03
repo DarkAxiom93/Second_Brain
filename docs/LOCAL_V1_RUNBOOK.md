@@ -1,7 +1,8 @@
-# Local V1 runbook
+# Local V1 and V1.1 candidate runbook
 
-This runbook is the supported Windows maintainer path for the local Second
-Brain V1. Run commands from the repository root in PowerShell. The backend is
+This runbook is the supported Windows maintainer path for the stable Local V1
+release and Local V1.1 candidate. Run commands from the repository root in
+PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
 
@@ -66,6 +67,11 @@ Search, Answers, and Settings. Provider-backed semantic/hybrid search,
 proposal generation, and successful answered responses require configured
 provider credentials; deterministic automated tests cover those success paths
 when credentials are absent.
+
+Search uses the additive explained-search endpoint and displays deterministic
+channel ranks and signals as ordering aids, never as confidence or certainty.
+Lexical explained search requires no provider. Semantic and hybrid modes fail
+safely when no provider is configured and never retry automatically.
 
 ## Full verification
 
@@ -135,6 +141,15 @@ docker volume ls --format '{{.Name}}' | Select-String '^second-brain_postgres_da
 
 `dev-down.ps1` uses `docker compose stop db`; it preserves the container and
 volume. Never use `docker compose down -v`.
+
+## Recovery
+
+`v1.0.0` remains the stable pre-V1.1 recovery point. Roll back the candidate by
+reverting the isolated V1.1 commits; no database downgrade, recreation, reset,
+or volume deletion is required. Preserve the PostgreSQL container and
+`second-brain_postgres_data` named volume. Version 1 bundles remain supported;
+import is validation-first and atomic, with no merge, overwrite, remap, repair,
+or partial-import behavior.
 
 ## Troubleshooting
 

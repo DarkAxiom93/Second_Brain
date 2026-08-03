@@ -1,9 +1,9 @@
 # Local V1.1 acceptance
 
-Checkpoint 59 accepted the integrated behavior of the tested Local V1.1 candidate at
-`ccef163469c021c53e0bf5889babc838de58c9c7`. Checkpoint 58 is complete at that
-commit. Checkpoint 59 remains pending human review; Checkpoint 60 has not
-started, and Local V1.1 is not release-hardened or published. The recovery
+Checkpoint 59 accepted the integrated behavior of the tested Local V1.1 candidate
+and is committed at `42fdfc8ee211835f0725f8d8b8da73020dbe83e6`.
+Checkpoint 60 has release-hardened that candidate and remains pending human
+review. Local V1.1 is not tagged or published. The recovery
 baseline remains `v1.0.0` at
 `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`.
 
@@ -109,3 +109,18 @@ After acceptance, Vite and FastAPI are stopped before PostgreSQL. PostgreSQL is
 stopped with the documented `dev-down.ps1` workflow, preserving its container
 and `second-brain_postgres_data` named volume. Final port and child-process
 evidence is recorded in `checkpoint-59-report.md`.
+
+## Checkpoint 60 release hardening
+
+A clean GUID-named Python 3.12 environment installed the exact candidate with
+development extras, passed `pip check`, and imported `app` from the intended
+source. A committed-input-only frontend copy passed locked `npm ci`, zero-finding
+audit, lint, type checking, all 90 tests, and production build with exact
+`react-router` 8.3.0 and no `react-router-dom`. Both disposable directories were
+removed, and the committed lockfile remained unchanged.
+
+The release-authoritative Full run passed all 674 Python and 90 frontend tests
+with zero skips, all static and dependency checks, production build, Alembic
+current/sole head/check at `0009_memory_expiration`, and `git diff --check`.
+Repository-relative links and stable release wording audit cleanly. Checkpoint
+60 remains pending human review, and no `v1.1.0` tag or Release exists.

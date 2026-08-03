@@ -1,7 +1,8 @@
 # Second Brain Local V1.1 roadmap
 
-Status: Proposed by Checkpoint 54. Checkpoints 55 through 58 are committed and
-pushed; Checkpoint 59 acceptance is implemented locally and pending human review.
+Status: Proposed by Checkpoint 54. Checkpoints 55 through 59 are committed and
+pushed. Checkpoint 60 release hardening is implemented locally and pending human
+review; Local V1.1 is not tagged or published.
 
 ## Objective and boundaries
 

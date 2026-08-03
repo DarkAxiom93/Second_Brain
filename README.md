@@ -7,8 +7,9 @@ Stable project guidance is split into concise references: [architecture](docs/AR
 [safety](docs/SAFETY.md), [API conventions](docs/API_CONVENTIONS.md),
 [checkpoint history](docs/CHECKPOINTS.md), [ADRs](docs/decisions/README.md), and
 the [new-chat handoff](docs/CHAT_HANDOFF.md). New maintainers should start with
-the [Local V1 runbook](docs/LOCAL_V1_RUNBOOK.md), [acceptance matrix](docs/LOCAL_V1_ACCEPTANCE.md),
-and [known limitations](docs/KNOWN_LIMITATIONS.md). Reusable Windows commands
+the [local runbook](docs/LOCAL_V1_RUNBOOK.md), [Local V1.1 acceptance evidence](docs/LOCAL_V1_1_ACCEPTANCE.md),
+[Local V1.1 release notes](docs/LOCAL_V1_1_RELEASE_NOTES.md), and
+[known limitations](docs/KNOWN_LIMITATIONS.md). Reusable Windows commands
 are documented in [scripts/README.md](scripts/README.md).
 
 Second Brain Local V1 is released as [`v1.0.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.0.0)
@@ -298,10 +299,12 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 
 ## Current scope
 
-Local V1 is released as `v1.0.0`; all eight top-level UI routes (Dashboard,
+Local V1.1 is a release-hardened candidate pending human review; it is not
+tagged or published. `v1.0.0` remains the stable release and recovery point.
+All eight top-level UI routes (Dashboard,
 Projects, Sources, Proposals, Memories, Search, Answers, and Settings) are
-functional. The current phase is post-V1 maintenance and V1.1 planning. No V1.1
-implementation checkpoint has started. The current Alembic revision is
+functional, and Search includes additive explained lexical, semantic, and
+hybrid results. The current Alembic revision is
 `0009_memory_expiration`. Authentication, cloud synchronization, background
 agents, automatic maintenance, encrypted bundles, import merge/overwrite/remap,
 and persistent Answer history remain unavailable. See

@@ -1,4 +1,4 @@
-# Local V1 known limitations
+# Local V1.1 candidate known limitations
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

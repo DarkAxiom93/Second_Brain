@@ -58,12 +58,13 @@ history. A dash means Alembic had not yet been introduced.
 | 51 | Controlled Project export and import UI | Complete | `0009_memory_expiration` | `cf7e70a` |
 | 52 | Local V1 release hardening and acceptance | Complete | `0009_memory_expiration` | `a1bf40c` |
 | 53 | Post-release documentation synchronization | Complete | `0009_memory_expiration` | `bcd1e21` |
-| 54 | V1.1 roadmap and technical planning | Pending review | `0009_memory_expiration` | Pending review |
+| 54 | V1.1 roadmap and technical planning | Complete | `0009_memory_expiration` | `21b5dc1` |
 | 55 | React Router 8 security remediation and baseline alignment | Complete | `0009_memory_expiration` | `cefdc4e` |
 | 56 | Non-authoritative GitHub Actions CI | Complete | `0009_memory_expiration` | `2c4ed44` |
 | 57 | Additive explained Memory search backend | Complete | `0009_memory_expiration` | `f6b9260` |
 | 58 | Explained search frontend and accessibility | Complete | `0009_memory_expiration` | `ccef163` |
-| 59 | Local V1.1 end-to-end acceptance | Pending review | `0009_memory_expiration` | Pending review |
+| 59 | Local V1.1 end-to-end acceptance | Complete | `0009_memory_expiration` | `42fdfc8` |
+| 60 | Local V1.1 documentation and release hardening | Pending review | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

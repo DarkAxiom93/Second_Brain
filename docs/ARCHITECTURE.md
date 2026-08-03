@@ -7,19 +7,20 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
-The accepted architecture is released as `v1.0.0` at commit
+The stable recovery architecture is released as `v1.0.0` at commit
 `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The supported release topology
 remains loopback Vite and FastAPI plus the named-volume PostgreSQL service;
 there is no authentication or cloud boundary. All eight top-level UI routes are
-functional. The current phase is post-V1 maintenance and V1.1 planning; no V1.1
-implementation checkpoint has started.
+functional. Local V1.1 is now a release-hardened candidate pending human review;
+it is not tagged or published.
 
-The proposed V1.1 architecture is documented in
+The additive V1.1 architecture is documented in
 [V1_1_ROADMAP.md](V1_1_ROADMAP.md). It preserves this topology and data model,
-first isolates dependency remediation and non-authoritative CI, then adds one
+isolates dependency remediation and non-authoritative CI, then adds one
 read-only explained-search contract and its accessible UI. Checkpoint 57 is
 complete at `f6b9260`; Checkpoint 58 consumes `POST /memories/search/explained`
-locally and remains pending review. Existing
+locally. Checkpoint 59 is committed at `42fdfc8`; Checkpoint 60 remains pending
+human review. Existing
 search responses and version-1 export/import remain compatible. No V1.1
 migration is proposed.
 
