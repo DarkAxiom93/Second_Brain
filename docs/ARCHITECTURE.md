@@ -17,8 +17,9 @@ implementation checkpoint has started.
 The proposed V1.1 architecture is documented in
 [V1_1_ROADMAP.md](V1_1_ROADMAP.md). It preserves this topology and data model,
 first isolates dependency remediation and non-authoritative CI, then adds one
-read-only explained-search contract before its proposed UI. Checkpoint 57
-implements `POST /memories/search/explained` locally, pending review. Existing
+read-only explained-search contract and its accessible UI. Checkpoint 57 is
+complete at `f6b9260`; Checkpoint 58 consumes `POST /memories/search/explained`
+locally and remains pending review. Existing
 search responses and version-1 export/import remain compatible. No V1.1
 migration is proposed.
 
@@ -45,7 +46,8 @@ approval or rejection, and separate explicit promotion. Memories provides
 persisted-field filtering and pagination, safe detail provenance, explicit
 quality/supersession/expiration actions, and read-only quality advisories.
 Search provides explicit lexical, semantic, and hybrid retrieval through the
-existing Memory contracts and preserves backend ordering. Answers provides an
+additive explained-search contract, preserves backend ordering and global ranks,
+and presents validated channel signals as ordering aids. Answers provides an
 explicit stateless question workflow through the existing answer contract,
 preserves returned citation order, and links returned public Memory IDs without
 follow-up requests. Settings is a local operations dashboard over

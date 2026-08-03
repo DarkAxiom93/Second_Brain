@@ -1,7 +1,7 @@
 # Second Brain Local V1.1 roadmap
 
-Status: Proposed by Checkpoint 54. Checkpoints 55 and 56 are committed and
-pushed; Checkpoint 57 is implemented locally and pending human review.
+Status: Proposed by Checkpoint 54. Checkpoints 55 through 57 are committed and
+pushed; Checkpoint 58 is implemented locally and pending human review.
 
 ## Objective and boundaries
 
@@ -53,8 +53,9 @@ merge/overwrite/remap, encrypted bundles, and persistent conversation history.
   answer evidence already carries bounded lexical/semantic score information.
   The UI does not explain why an individual search result ranked where it did.
 - Checkpoint 57 adds the separate read-only backend route while preserving all
-  legacy response shapes and ordering. It remains pending human review; no
-  Checkpoint 58 frontend work has started.
+  legacy response shapes and ordering and is complete at `f6b9260`. Checkpoint
+  58 consumes it locally with accessible, strictly validated explanations and
+  remains pending human review.
 - Version 1 project export/import is checksummed, conflict-only, and covered by
   PostgreSQL round-trip tests. Bundles are private but unencrypted. Changing
   their format or import semantics would require separate compatibility and

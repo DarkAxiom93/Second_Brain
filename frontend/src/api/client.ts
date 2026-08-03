@@ -101,6 +101,19 @@ export type MemorySearchFilters = {
   project_id?: string; memory_type?: MemoryRead["memory_type"]; status?: MemoryStatus;
   importance_min?: number; importance_max?: number; confidence_min?: number; confidence_max?: number;
 };
+export type MemorySearchChannel = "lexical" | "semantic";
+export type ExplainedMemorySearchRequest = {
+  query: string; mode: SearchMode; filters: MemorySearchFilters;
+  pagination: { limit: number; offset: 0 };
+};
+export type MemorySearchExplanation = {
+  mode: SearchMode; matched_by: MemorySearchChannel[];
+  lexical_rank: number | null; semantic_rank: number | null;
+  lexical_signal: number | null; semantic_signal: number | null;
+  lexical_rrf_contribution: number | null; semantic_rrf_contribution: number | null;
+  fused_rrf_score: number | null;
+};
+export type ExplainedMemorySearchResult = { rank: number; memory: MemoryRead; explanation: MemorySearchExplanation };
 export type LinkedSource = {
   link_id: string; memory_id: string; source_id: string; source_location: string | null;
   linked_at: string; source_type: string; name: string; reference: string | null;
@@ -256,6 +269,31 @@ function isMemory(value: unknown): value is MemoryRead {
     ["active", "superseded", "invalid", "archived", "expired"].includes(r.status as string) && nullableTimestamp(r.event_time) && nullableTimestamp(r.expires_at) && nullableUuid(r.supersedes_id) && isTimestamp(r.created_at) && isTimestamp(r.updated_at);
 }
 
+const exactKeys = (record: Record<string, unknown>, keys: string[]) =>
+  JSON.stringify(Object.keys(record).sort()) === JSON.stringify([...keys].sort());
+const positiveIntegerOrNull = (value: unknown) => value === null || (Number.isInteger(value) && (value as number) > 0);
+const boundedOrNull = (value: unknown) => value === null || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1);
+const nonNegativeOrNull = (value: unknown) => value === null || (typeof value === "number" && Number.isFinite(value) && value >= 0);
+function isExplanation(value: unknown): value is MemorySearchExplanation {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  if (!exactKeys(r, ["mode", "matched_by", "lexical_rank", "semantic_rank", "lexical_signal", "semantic_signal", "lexical_rrf_contribution", "semantic_rrf_contribution", "fused_rrf_score"])) return false;
+  if (!["lexical", "semantic", "hybrid"].includes(r.mode as string) || !Array.isArray(r.matched_by)) return false;
+  const channels = r.matched_by;
+  if (!["lexical", "semantic"].every(channel => channels.filter(value => value === channel).length <= 1) || channels.some(value => value !== "lexical" && value !== "semantic") || (channels.includes("lexical") && channels.includes("semantic") && channels.indexOf("lexical") > channels.indexOf("semantic"))) return false;
+  if (!positiveIntegerOrNull(r.lexical_rank) || !positiveIntegerOrNull(r.semantic_rank) || !boundedOrNull(r.lexical_signal) || !boundedOrNull(r.semantic_signal) || !nonNegativeOrNull(r.lexical_rrf_contribution) || !nonNegativeOrNull(r.semantic_rrf_contribution) || !nonNegativeOrNull(r.fused_rrf_score)) return false;
+  if (r.mode === "lexical") return JSON.stringify(channels) === JSON.stringify(["lexical"]) && r.lexical_rank !== null && r.lexical_signal !== null && [r.semantic_rank, r.semantic_signal, r.lexical_rrf_contribution, r.semantic_rrf_contribution, r.fused_rrf_score].every(v => v === null);
+  if (r.mode === "semantic") return JSON.stringify(channels) === JSON.stringify(["semantic"]) && r.semantic_rank !== null && r.semantic_signal !== null && [r.lexical_rank, r.lexical_signal, r.lexical_rrf_contribution, r.semantic_rrf_contribution, r.fused_rrf_score].every(v => v === null);
+  if (![1, 2].includes(channels.length) || r.fused_rrf_score === null) return false;
+  const lexical = channels.includes("lexical"); const semantic = channels.includes("semantic");
+  return [r.lexical_rank, r.lexical_signal, r.lexical_rrf_contribution].every(v => (v !== null) === lexical) && [r.semantic_rank, r.semantic_signal, r.semantic_rrf_contribution].every(v => (v !== null) === semantic);
+}
+function isExplainedResult(value: unknown): value is ExplainedMemorySearchResult {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  return exactKeys(r, ["rank", "memory", "explanation"]) && Number.isInteger(r.rank) && (r.rank as number) > 0 && isMemory(r.memory) && isExplanation(r.explanation);
+}
+
 function isAnswer(value: unknown): value is AnswerRead {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;
@@ -293,6 +331,10 @@ export function searchMemories(mode: SearchMode, query: string, filters: MemoryS
   return request("/memories/search", (v): v is MemoryRead[] => Array.isArray(v) && v.every(isMemory), signal, {
     method: "POST", body: { query, mode, filters, pagination: { limit, offset: 0 } },
   }, undefined, true);
+}
+export function searchMemoriesExplained(mode: SearchMode, query: string, filters: MemorySearchFilters, limit: number, signal?: AbortSignal) {
+  const body: ExplainedMemorySearchRequest = { query, mode, filters, pagination: { limit, offset: 0 } };
+  return request("/memories/search/explained", (v): v is ExplainedMemorySearchResult[] => Array.isArray(v) && v.every(isExplainedResult), signal, { method: "POST", body }, undefined, true);
 }
 export function getMemory(id: string, signal?: AbortSignal) { return request(`/memories/${id}`, isMemory, signal, undefined, "memory"); }
 export function listMemorySources(id: string, signal?: AbortSignal) { return request(`/memories/${id}/sources?limit=100&offset=0`, (v): v is LinkedSource[] => Array.isArray(v) && v.every(isLinkedSource), signal, undefined, "memory"); }

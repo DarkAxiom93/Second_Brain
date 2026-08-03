@@ -61,7 +61,8 @@ history. A dash means Alembic had not yet been introduced.
 | 54 | V1.1 roadmap and technical planning | Pending review | `0009_memory_expiration` | Pending review |
 | 55 | React Router 8 security remediation and baseline alignment | Complete | `0009_memory_expiration` | `cefdc4e` |
 | 56 | Non-authoritative GitHub Actions CI | Complete | `0009_memory_expiration` | `2c4ed44` |
-| 57 | Additive explained Memory search backend | Pending review | `0009_memory_expiration` | Pending review |
+| 57 | Additive explained Memory search backend | Complete | `0009_memory_expiration` | `f6b9260` |
+| 58 | Explained search frontend and accessibility | Pending review | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 
