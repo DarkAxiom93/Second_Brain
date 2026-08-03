@@ -47,16 +47,20 @@ Checkpoint 57 is complete at
 `POST /memories/search/explained`, with strict typed lexical, semantic, and
 hybrid explanations; six-decimal bounded signals; RRF `k=60`; SQL-side ranking
 and pagination; lazy provider resolution that never runs for lexical mode; and
-no persistence. Legacy search and Answer contracts remain unchanged. No
-Checkpoint 58 is implemented locally and pending human review. `/search` now
+no persistence. Legacy search and Answer contracts remain unchanged.
+Checkpoint 58 is complete at
+`ccef163469c021c53e0bf5889babc838de58c9c7`. `/search` now
 uses only the additive explained endpoint, preserves explicit submission,
 cancellation, retry, focus, links, backend order, safe errors, and no browser
 persistence, and renders accessible channel explanations with six-decimal
 public ranking values and an ordering-aid disclaimer. No backend, migration,
 dependency, lockfile, or stored-data change was made.
 
-Read `AGENTS.md`, `docs/V1_1_ROADMAP.md`, `docs/VERIFICATION.md`,
-`docs/SAFETY.md`, and `docs/checkpoint-58-report.md` before further work. Use
+Checkpoint 59 acceptance is implemented locally and pending human review. It
+adds evidence and documentation only; no product, migration, dependency,
+provider, CI, Docker, or stored-data behavior changed. Read `AGENTS.md`,
+`docs/V1_1_ROADMAP.md`, `docs/VERIFICATION.md`, `docs/SAFETY.md`, and
+`docs/checkpoint-59-report.md` before further work. Use
 Python 3.12 from `.venv`; use only verified `second_brain_test` for integration
 tests; never recreate a database or delete the PostgreSQL volume. Do not stage,
-commit, push, open a PR, or begin Checkpoint 59 without explicit instruction.
+commit, push, open a PR, or begin Checkpoint 60 without explicit instruction.

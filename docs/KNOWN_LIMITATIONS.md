@@ -15,14 +15,13 @@
 - Live provider-dependent success smoke is unavailable without credentials.
   Automated tests use deterministic fake providers for proposal generation,
   semantic/hybrid search, embeddings, and evidence-backed answer success.
-- The `v1.0.0` release lockfile retains the high-severity React Router RSC action
-  advisory GHSA-qwww-vcr4-c8h2. The current Checkpoint 55 working tree migrates
-  the client-only SPA to `react-router` 8.3.0 and has a zero-finding npm audit,
-  but remains unstaged, uncommitted, and pending human review.
-- Search results preserve deterministic backend order but do not expose a
-  user-facing explanation of lexical, semantic, or hybrid rank contributions.
-  The proposed V1.1 roadmap recommends an additive explained-search contract;
-  existing search behavior remains unchanged until separately implemented.
+- The `v1.0.0` release lockfile retains the historical high-severity React
+  Router RSC action advisory GHSA-qwww-vcr4-c8h2. The current V1.1 candidate
+  uses `react-router` 8.3.0 and `npm audit` reports zero vulnerabilities.
+- Explained search provides deterministic ordering aids, not confidence,
+  probability, certainty, model reasoning, or a relevance guarantee. Live
+  semantic and hybrid success remains unavailable without provider credentials;
+  deterministic fake-provider tests cover those paths.
 - The Chrome extension acceptance environment cannot upload local files unless
   its optional “Allow access to file URLs” permission is enabled. The same
   bundle was exported and conflict-validated through the Vite-origin operations

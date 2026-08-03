@@ -11,8 +11,9 @@ Project export/conflict validation, security/privacy/accessibility audits, and
 maintainer runbook/handoff documentation. The current phase is post-V1
 maintenance and V1.1 implementation. Checkpoints 55 and 56 are committed and
 pushed at `cefdc4e` and `2c4ed44`. Checkpoint 57 is complete at `f6b9260`.
-Checkpoint 58 implements its accessible explained-search frontend locally and
-remains pending human review.
+Checkpoint 58 is complete at `ccef163`. Checkpoint 59 accepted the integrated
+behavior of the tested candidate locally and remains pending human review; the
+candidate is not yet release-hardened or published.
 
 ## Proposed Local V1.1
 
@@ -24,8 +25,8 @@ change. See [V1_1_ROADMAP.md](V1_1_ROADMAP.md) for evidence, priorities,
 approval decisions, and independently reviewable checkpoints beginning with
 55. Checkpoints 55 and 56 are committed and pushed. Checkpoint 56 CI is only an
 early regression signal, while local Full verification remains
-release-authoritative. Checkpoint 57 is complete; Checkpoint 58 is implemented
-locally and pending review.
+release-authoritative. Checkpoints 57 and 58 are complete; Checkpoint 59 is
+implemented locally and pending review.
 
 ## Completed foundation
 
@@ -43,8 +44,8 @@ scheduled-expiration handling.
 
 Completed: explicit evidence-backed question answering with validated Memory
 citations and the additive explained-search backend. The accessible explained-
-search UI is implemented locally and pending review; retrieval-quality
-evaluation is already available.
+search UI is complete; Local V1.1 acceptance is pending review and retrieval-
+quality evaluation is already available.
 
 ## Operations
 
