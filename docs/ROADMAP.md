@@ -4,11 +4,13 @@ This is a capability sequence, not a schedule.
 
 ## Local V1 release
 
-Completed: reproducible backend/frontend installation, safe startup and
-shutdown, full zero-skip verification, complete UI workflow acceptance,
-controlled Project export/conflict validation, security/privacy/accessibility
-audits, and maintainer runbook/handoff documentation. Future work must begin in
-a separately approved post-V1 checkpoint.
+Released: Local V1 is published as `v1.0.0` from commit `a1bf40c`, with
+reproducible backend/frontend installation, safe startup and shutdown, full
+zero-skip verification, all eight top-level UI routes functional, controlled
+Project export/conflict validation, security/privacy/accessibility audits, and
+maintainer runbook/handoff documentation. The current phase is post-V1
+maintenance and V1.1 planning. No V1.1 implementation checkpoint has started;
+future implementation must begin in a separately approved checkpoint.
 
 ## Completed foundation
 

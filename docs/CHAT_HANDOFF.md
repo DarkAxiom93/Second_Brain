@@ -1,12 +1,14 @@
 # Second Brain chat handoff
 
-Checkpoint 52 is implemented locally and awaits human review. Do not claim it
-is committed or pushed. Checkpoint 51 is committed and pushed at `cf7e70a`;
-after a fresh fetch, `main` matched `origin/main` and the working tree was clean
-before Checkpoint 52 began. Alembic remains `0009_memory_expiration`.
+Second Brain Local V1 is released as `v1.0.0`. The annotated tag points to the
+full release commit `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`, and the
+published GitHub Release is
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.0.0>. Checkpoint 52
+is complete at `a1bf40c`; `main` matched `origin/main` and the working tree was
+clean at release. Alembic remains `0009_memory_expiration`.
 
-Checkpoint 52 is a Local V1 hardening and acceptance checkpoint, not a feature
-checkpoint. It adds the maintainer runbook, capability/evidence matrix, known
+Checkpoint 52 was a Local V1 hardening and acceptance checkpoint, not a feature
+checkpoint. It added the maintainer runbook, capability/evidence matrix, known
 limitations, final checkpoint report, and focused narrow-screen hardening. A
 real Chrome audit confirmed that Settings overflowed horizontally at 390px
 because the one-column grid track retained its min-content width. The mobile
@@ -39,4 +41,7 @@ Read `AGENTS.md`, `LOCAL_V1_RUNBOOK.md`, `LOCAL_V1_ACCEPTANCE.md`,
 Python 3.12 from `.venv`, use only verified `second_brain_test` for integration
 tests, never recreate a database or delete the PostgreSQL volume without
 separate explicit approval, and do not stage, commit, push, open a PR, or begin
-another checkpoint without explicit instruction.
+another checkpoint without explicit instruction. The current phase is post-V1
+maintenance and V1.1 planning; no V1.1 implementation checkpoint has started.
+Future feature work must begin with a separate, explicitly approved V1.1
+planning checkpoint. Treat `v1.0.0` as the latest stable recovery point.

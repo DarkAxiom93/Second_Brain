@@ -7,8 +7,12 @@ SQLAlchemy 2 sessions and Alembic migrations; the current head is
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
-The supported release topology remains loopback Vite and FastAPI plus the
-named-volume PostgreSQL service; there is no authentication or cloud boundary.
+The accepted architecture is released as `v1.0.0` at commit
+`a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The supported release topology
+remains loopback Vite and FastAPI plus the named-volume PostgreSQL service;
+there is no authentication or cloud boundary. All eight top-level UI routes are
+functional. The current phase is post-V1 maintenance and V1.1 planning; no V1.1
+implementation checkpoint has started.
 
 A client-only React and TypeScript application lives in `frontend/`. Vite serves
 the local development UI and proxies `/api/*` to the existing loopback FastAPI

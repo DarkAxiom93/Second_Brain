@@ -18,8 +18,8 @@
 - npm currently reports the high-severity React Router RSC action advisory
   GHSA-qwww-vcr4-c8h2 for the locked dependency graph. Local V1 is a client-only
   Vite SPA and does not enable React Server Components or server actions, so the
-  affected action-execution path is absent. Checkpoint 52 intentionally does not
-  change dependency versions; reassess the lockfile in an approved dependency
+  affected action-execution path is absent. The `v1.0.0` release intentionally
+  retains the audited lockfile; reassess it only in an approved dependency
   checkpoint.
 - The Chrome extension acceptance environment cannot upload local files unless
   its optional “Allow access to file URLs” permission is enabled. The same

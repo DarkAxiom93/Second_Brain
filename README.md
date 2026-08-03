@@ -11,8 +11,11 @@ the [Local V1 runbook](docs/LOCAL_V1_RUNBOOK.md), [acceptance matrix](docs/LOCAL
 and [known limitations](docs/KNOWN_LIMITATIONS.md). Reusable Windows commands
 are documented in [scripts/README.md](scripts/README.md).
 
-Second Brain is a Python 3.12 project with Foundation configuration, local
-PostgreSQL infrastructure, and a minimal FastAPI liveness API.
+Second Brain Local V1 is released as [`v1.0.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.0.0)
+from commit `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The release combines a
+Python 3.12 FastAPI backend, PostgreSQL with pgvector, and a local React/Vite UI.
+The release tree was clean when published, and its Alembic head is
+`0009_memory_expiration`.
 
 ## Prerequisites
 
@@ -295,7 +298,10 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 
 ## Current scope
 
-Local V1 is implemented and release-hardened. The current Alembic revision is
+Local V1 is released as `v1.0.0`; all eight top-level UI routes (Dashboard,
+Projects, Sources, Proposals, Memories, Search, Answers, and Settings) are
+functional. The current phase is post-V1 maintenance and V1.1 planning. No V1.1
+implementation checkpoint has started. The current Alembic revision is
 `0009_memory_expiration`. Authentication, cloud synchronization, background
 agents, automatic maintenance, encrypted bundles, import merge/overwrite/remap,
 and persistent Answer history remain unavailable. See

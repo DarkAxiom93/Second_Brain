@@ -1,9 +1,11 @@
 # Local V1 acceptance
 
-Checkpoint 52 accepts the Local V1 capability set against commit `cf7e70a` plus
-the focused hardening changes in the working tree. Alembic remains
-`0009_memory_expiration`. The authoritative final command is
-`.\scripts\verify.ps1 -Mode Full`; see `checkpoint-52-report.md` for the recorded
+Checkpoint 52 accepted the Local V1 capability set in release tree
+`a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The released acceptance baseline
+is `v1.0.0`, and the working tree was clean when it was published. Alembic
+remains `0009_memory_expiration`. All eight top-level UI routes are functional.
+The authoritative final command is `.\scripts\verify.ps1 -Mode Full`; see
+`checkpoint-52-report.md` for the recorded
 result and environmental limitations.
 
 ## Capability evidence
