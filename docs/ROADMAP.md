@@ -12,6 +12,16 @@ maintainer runbook/handoff documentation. The current phase is post-V1
 maintenance and V1.1 planning. No V1.1 implementation checkpoint has started;
 future implementation must begin in a separately approved checkpoint.
 
+## Proposed Local V1.1
+
+Checkpoint 54 proposes a small Local V1.1 focused on dependency safety,
+non-authoritative continuous integration, and deterministic retrieval
+explanations. The proposal adds no authentication, cloud boundary, background
+automation, destructive maintenance, schema migration, or export-format
+change. See [V1_1_ROADMAP.md](V1_1_ROADMAP.md) for evidence, priorities,
+approval decisions, and independently reviewable checkpoints beginning with
+55. The plan is pending human review; no V1.1 implementation has started.
+
 ## Completed foundation
 
 Completed: persistence; normalized sources; lexical, semantic, and hybrid

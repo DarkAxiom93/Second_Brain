@@ -19,8 +19,13 @@
   GHSA-qwww-vcr4-c8h2 for the locked dependency graph. Local V1 is a client-only
   Vite SPA and does not enable React Server Components or server actions, so the
   affected action-execution path is absent. The `v1.0.0` release intentionally
-  retains the audited lockfile; reassess it only in an approved dependency
-  checkpoint.
+  retains the audited lockfile. Checkpoint 54 recommends isolated remediation
+  as the first V1.1 implementation checkpoint; that update is not yet
+  implemented or approved.
+- Search results preserve deterministic backend order but do not expose a
+  user-facing explanation of lexical, semantic, or hybrid rank contributions.
+  The proposed V1.1 roadmap recommends an additive explained-search contract;
+  existing search behavior remains unchanged until separately implemented.
 - The Chrome extension acceptance environment cannot upload local files unless
   its optional “Allow access to file URLs” permission is enabled. The same
   bundle was exported and conflict-validated through the Vite-origin operations

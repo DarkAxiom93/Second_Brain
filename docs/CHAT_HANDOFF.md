@@ -7,14 +7,14 @@ published GitHub Release is
 is complete at `a1bf40c`; `main` matched `origin/main` and the working tree was
 clean at release. Alembic remains `0009_memory_expiration`.
 
-Checkpoint 52 was a Local V1 hardening and acceptance checkpoint, not a feature
-checkpoint. It added the maintainer runbook, capability/evidence matrix, known
-limitations, final checkpoint report, and focused narrow-screen hardening. A
-real Chrome audit confirmed that Settings overflowed horizontally at 390px
-because the one-column grid track retained its min-content width. The mobile
-track now uses `minmax(0, 1fr)`, shrinkable content/cards/controls are explicit,
-a static regression test protects those rules, and a real browser recheck found
-no document overflow.
+Checkpoint 53 is complete at `bcd1e2163027b609c9cb97d8e3467d0a0c6557b8` and
+synchronized the stable post-release state. Checkpoint 54 is a documentation-
+only V1.1 planning checkpoint pending review. Its proposed objective is a small
+Local V1.1 consisting of isolated React Router advisory remediation, a bounded
+non-authoritative CI signal, and deterministic explained Memory search, followed
+by integrated acceptance and release hardening. No V1.1 implementation has
+started, and no migration is proposed. Read
+[V1_1_ROADMAP.md](V1_1_ROADMAP.md) before approving Checkpoint 55.
 
 Clean dependency rehearsals passed without manifest or lockfile changes. The
 backend was installed into and imported from one GUID-named disposable Python
@@ -37,11 +37,12 @@ was validated through the Vite-origin service and deterministic UI tests cover
 the complete import interaction.
 
 Read `AGENTS.md`, `LOCAL_V1_RUNBOOK.md`, `LOCAL_V1_ACCEPTANCE.md`,
-`KNOWN_LIMITATIONS.md`, and `checkpoint-52-report.md` before further work. Use
+`KNOWN_LIMITATIONS.md`, `V1_1_ROADMAP.md`, and `checkpoint-54-report.md` before
+further work. Use
 Python 3.12 from `.venv`, use only verified `second_brain_test` for integration
 tests, never recreate a database or delete the PostgreSQL volume without
 separate explicit approval, and do not stage, commit, push, open a PR, or begin
 another checkpoint without explicit instruction. The current phase is post-V1
 maintenance and V1.1 planning; no V1.1 implementation checkpoint has started.
-Future feature work must begin with a separate, explicitly approved V1.1
-planning checkpoint. Treat `v1.0.0` as the latest stable recovery point.
+Checkpoint 55 must not begin until the Checkpoint 54 plan is reviewed and
+explicitly approved. Treat `v1.0.0` as the latest stable recovery point.

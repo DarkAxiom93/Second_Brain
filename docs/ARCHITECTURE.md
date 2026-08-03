@@ -14,6 +14,13 @@ there is no authentication or cloud boundary. All eight top-level UI routes are
 functional. The current phase is post-V1 maintenance and V1.1 planning; no V1.1
 implementation checkpoint has started.
 
+The proposed V1.1 architecture is documented in
+[V1_1_ROADMAP.md](V1_1_ROADMAP.md). It preserves this topology and data model,
+first isolates dependency remediation and CI, then proposes one additive
+read-only explained-search contract and its UI. Existing search responses and
+version-1 export/import remain compatible. No V1.1 migration is proposed. This
+is a planning recommendation pending human approval, not implemented behavior.
+
 A client-only React and TypeScript application lives in `frontend/`. Vite serves
 the local development UI and proxies `/api/*` to the existing loopback FastAPI
 routes after removing `/api`. The browser uses same-origin relative requests by
