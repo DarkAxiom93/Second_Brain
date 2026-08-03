@@ -71,3 +71,14 @@ def test_full_verification_invokes_frontend_verification() -> None:
     assert 'if ($Mode -eq "Full")' in verification
     assert '"verify-frontend.ps1"' in verification
     assert "Invoke-IsolatedProcess" in verification
+
+
+def test_frontend_layout_allows_long_controls_to_shrink_on_narrow_screens() -> None:
+    styles = (REPOSITORY_ROOT / "frontend" / "src" / "styles.css").read_text(
+        encoding="utf-8"
+    )
+    assert ".main-content { min-width: 0;" in styles
+    assert ".status-card {\n  display: grid;\n  min-width: 0;" in styles
+    assert ".panel {\n  display: grid;\n  min-width: 0;" in styles
+    assert "input, select, textarea { min-width: 0; width: 100%;" in styles
+    assert ".app-shell { grid-template-columns: minmax(0, 1fr); }" in styles

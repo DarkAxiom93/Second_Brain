@@ -1,37 +1,42 @@
 # Second Brain chat handoff
 
-Checkpoint 50 is implemented locally and awaits review. Checkpoint 49 is
-committed and pushed at `3fb5b7b`; `main` matched `origin/main` and the working
-tree was clean before Checkpoint 50 work began. Alembic remains
-`0009_memory_expiration`.
+Checkpoint 52 is implemented locally and awaits human review. Do not claim it
+is committed or pushed. Checkpoint 51 is committed and pushed at `cf7e70a`;
+after a fresh fetch, `main` matched `origin/main` and the working tree was clean
+before Checkpoint 52 began. Alembic remains `0009_memory_expiration`.
 
-Checkpoint 50 replaces the `/settings` placeholder with a read-only local
-operations dashboard. Initial load and explicit manual Refresh request the
-existing `/health` and `/ready` routes plus new aggregate-only
-`GET /operations/diagnostics` and `GET /operations/maintenance-audit` routes.
-There is no polling, automatic retry, browser persistence, provider resolution,
-repair, migration, embedding generation, or other mutation control.
+Checkpoint 52 is a Local V1 hardening and acceptance checkpoint, not a feature
+checkpoint. It adds the maintainer runbook, capability/evidence matrix, known
+limitations, final checkpoint report, and focused narrow-screen hardening. A
+real Chrome audit confirmed that Settings overflowed horizontally at 390px
+because the one-column grid track retained its min-content width. The mobile
+track now uses `minmax(0, 1fr)`, shrinkable content/cards/controls are explicit,
+a static regression test protects those rules, and a real browser recheck found
+no document overflow.
 
-The diagnostics route reuses the established diagnostics checks inside the
-existing request Session and a database-enforced read-only transaction. The
-public response includes only status, capture time, warning/failure counts,
-deterministically ordered checks with `check_id`, `category`, `status`, and safe
-message, plus safe aggregate entity counts. It excludes the target database and
-all diagnostic metadata.
+Clean dependency rehearsals passed without manifest or lockfile changes. The
+backend was installed into and imported from one GUID-named disposable Python
+3.12 environment outside the repository and that exact environment was
+removed. Locked `npm ci`, frontend lint/typecheck, 78 tests, and production
+build passed. npm reports GHSA-qwww-vcr4-c8h2 in the React Router dependency;
+this client-only Vite SPA does not use the affected RSC/server-action path, and
+dependency changes were forbidden in this checkpoint.
 
-The maintenance route reuses the established audit with `detail_limit=0` and
-returns total/assigned/unassigned Memories, status counts, and deterministic
-aggregate findings. It excludes Memory UUID samples and truncation details.
-The audit service has no correct Project-scoping contract, so the API does not
-offer a Project filter.
+Real Vite-origin acceptance confirmed all eight top-level routes, healthy proxy
+responses, existing Project/Memory detail and provenance links, read-only
+advisories/operations, lexical search, keyboard focus visibility, no browser
+persistence, and the safe 404. Provider-backed success was not called because
+credentials are absent; deterministic test coverage remains the evidence. An
+existing Project produced a 2,198-byte `.sbexport` that validated as valid but
+conflicting with the development target; import execution was not called and
+safe aggregate counts remained unchanged. Chrome lacked its optional local-file
+upload permission, so UI file selection was not repeated live; the exact bundle
+was validated through the Vite-origin service and deterministic UI tests cover
+the complete import interaction.
 
-Maintenance findings are advisory and the dashboard performs no automatic
-repair. Existing maintainer workflows remain available through
-`scripts/export-project.ps1` and `scripts/import-project.ps1`; Export and Import
-UI are deferred to Checkpoint 51.
-
-Read `AGENTS.md` and the stable docs before further work. Use Python 3.12 from
-`.venv`, use only the verified `second_brain_test` database for integration
-tests, never downgrade development or delete its volume, never expose secrets,
-and do not commit or push without explicit approval. Review
-`docs/checkpoint-50-report.md` for final verification and smoke evidence.
+Read `AGENTS.md`, `LOCAL_V1_RUNBOOK.md`, `LOCAL_V1_ACCEPTANCE.md`,
+`KNOWN_LIMITATIONS.md`, and `checkpoint-52-report.md` before further work. Use
+Python 3.12 from `.venv`, use only verified `second_brain_test` for integration
+tests, never recreate a database or delete the PostgreSQL volume without
+separate explicit approval, and do not stage, commit, push, open a PR, or begin
+another checkpoint without explicit instruction.

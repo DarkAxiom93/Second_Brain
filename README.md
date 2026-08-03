@@ -6,8 +6,10 @@ Stable project guidance is split into concise references: [architecture](docs/AR
 [roadmap](docs/ROADMAP.md), [verification](docs/VERIFICATION.md),
 [safety](docs/SAFETY.md), [API conventions](docs/API_CONVENTIONS.md),
 [checkpoint history](docs/CHECKPOINTS.md), [ADRs](docs/decisions/README.md), and
-the [new-chat handoff](docs/CHAT_HANDOFF.md). Reusable Windows commands are
-documented in [scripts/README.md](scripts/README.md).
+the [new-chat handoff](docs/CHAT_HANDOFF.md). New maintainers should start with
+the [Local V1 runbook](docs/LOCAL_V1_RUNBOOK.md), [acceptance matrix](docs/LOCAL_V1_ACCEPTANCE.md),
+and [known limitations](docs/KNOWN_LIMITATIONS.md). Reusable Windows commands
+are documented in [scripts/README.md](scripts/README.md).
 
 Second Brain is a Python 3.12 project with Foundation configuration, local
 PostgreSQL infrastructure, and a minimal FastAPI liveness API.
@@ -59,9 +61,12 @@ The UI is available at `http://127.0.0.1:5173`. Vite rewrites `/api/health` and
 `/api/ready` to the backend `/health` and `/ready` routes, so no CORS change is
 needed. `VITE_API_BASE` may override the public API prefix; every `VITE_*`
 variable is browser-visible public configuration and must never contain a
-secret. The dashboard is read-only. Projects, Sources, Proposals, Memories,
-Search, Answers, and Settings are placeholders; authentication and write
-workflows are not implemented yet.
+secret. The Local V1 UI implements Dashboard health/readiness; Project and
+Source creation/browsing; JSON/TXT/PDF ingestion and document/chunk inspection;
+proposal generation/review/promotion; Memory browsing, refinement, lifecycle,
+and advisories; lexical/semantic/hybrid search; stateless evidence-backed
+answers; read-only operations; and controlled Project export/import. See the
+runbook for provider-dependent limitations and safe operating procedures.
 
 ## Quality checks
 
@@ -290,13 +295,11 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 
 ## Current scope
 
-Liveness, database readiness, Project creation/listing, and Memory creation and
-retrieval are implemented. Checkpoint 9 adds normalized `sources` persistence
-and association-object `memory_sources` links while retaining the legacy
-`memories.source` string. Sources have no API endpoints yet. Apply the schema
-with `python -m alembic upgrade head`; the current revision is `0003_sources`.
-Project updates and deletion, Memory update/deletion, ingestion, search,
-authentication, agent workflows, and frontend code are not implemented.
+Local V1 is implemented and release-hardened. The current Alembic revision is
+`0009_memory_expiration`. Authentication, cloud synchronization, background
+agents, automatic maintenance, encrypted bundles, import merge/overwrite/remap,
+and persistent Answer history remain unavailable. See
+`docs/KNOWN_LIMITATIONS.md` for the complete list.
 
 ## Checkpoint 10: Source creation and linking API
 

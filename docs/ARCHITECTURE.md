@@ -5,6 +5,11 @@ pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
 `0009_memory_expiration`.
 
+Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
+in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
+The supported release topology remains loopback Vite and FastAPI plus the
+named-volume PostgreSQL service; there is no authentication or cloud boundary.
+
 A client-only React and TypeScript application lives in `frontend/`. Vite serves
 the local development UI and proxies `/api/*` to the existing loopback FastAPI
 routes after removing `/api`. The browser uses same-origin relative requests by

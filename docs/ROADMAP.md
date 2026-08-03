@@ -2,6 +2,14 @@
 
 This is a capability sequence, not a schedule.
 
+## Local V1 release
+
+Completed: reproducible backend/frontend installation, safe startup and
+shutdown, full zero-skip verification, complete UI workflow acceptance,
+controlled Project export/conflict validation, security/privacy/accessibility
+audits, and maintainer runbook/handoff documentation. Future work must begin in
+a separately approved post-V1 checkpoint.
+
 ## Completed foundation
 
 Completed: persistence; normalized sources; lexical, semantic, and hybrid
