@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router";
 import { ApiConflictError, expireMemory, getContradictions, getMemory, getSimilarities, isProjectId, listMemories, listMemorySources, MemoryNotFoundError, refineMemory, supersedeMemory, type ContradictionRead, type LinkedSource, type MemoryRead, type MemoryStatus, type SimilarityRead } from "./api/client";
 
 const PAGE = 20;

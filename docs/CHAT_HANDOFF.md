@@ -12,17 +12,17 @@ synchronized the stable post-release state. Checkpoint 54 is a documentation-
 only V1.1 planning checkpoint pending review. Its proposed objective is a small
 Local V1.1 consisting of isolated React Router advisory remediation, a bounded
 non-authoritative CI signal, and deterministic explained Memory search, followed
-by integrated acceptance and release hardening. No V1.1 implementation has
-started, and no migration is proposed. Read
-[V1_1_ROADMAP.md](V1_1_ROADMAP.md) before approving Checkpoint 55.
+by integrated acceptance and release hardening. Checkpoint 55 is now implemented
+locally and pending review; no migration is proposed.
 
 Clean dependency rehearsals passed without manifest or lockfile changes. The
 backend was installed into and imported from one GUID-named disposable Python
 3.12 environment outside the repository and that exact environment was
 removed. Locked `npm ci`, frontend lint/typecheck, 78 tests, and production
-build passed. npm reports GHSA-qwww-vcr4-c8h2 in the React Router dependency;
-this client-only Vite SPA does not use the affected RSC/server-action path, and
-dependency changes were forbidden in this checkpoint.
+build passed. Checkpoint 55 replaces `react-router-dom` 7.18.2 and its transitive
+`react-router` 7.18.2 with direct `react-router` 8.3.0, raises the Node engine
+minimum to 22.22.0, and migrates normal SPA imports to `react-router`. npm audit
+reports zero vulnerabilities and all route behavior remains unchanged.
 
 Real Vite-origin acceptance confirmed all eight top-level routes, healthy proxy
 responses, existing Project/Memory detail and provenance links, read-only
@@ -37,12 +37,11 @@ was validated through the Vite-origin service and deterministic UI tests cover
 the complete import interaction.
 
 Read `AGENTS.md`, `LOCAL_V1_RUNBOOK.md`, `LOCAL_V1_ACCEPTANCE.md`,
-`KNOWN_LIMITATIONS.md`, `V1_1_ROADMAP.md`, and `checkpoint-54-report.md` before
+`KNOWN_LIMITATIONS.md`, `V1_1_ROADMAP.md`, and `checkpoint-55-report.md` before
 further work. Use
 Python 3.12 from `.venv`, use only verified `second_brain_test` for integration
 tests, never recreate a database or delete the PostgreSQL volume without
 separate explicit approval, and do not stage, commit, push, open a PR, or begin
-another checkpoint without explicit instruction. The current phase is post-V1
-maintenance and V1.1 planning; no V1.1 implementation checkpoint has started.
-Checkpoint 55 must not begin until the Checkpoint 54 plan is reviewed and
-explicitly approved. Treat `v1.0.0` as the latest stable recovery point.
+another checkpoint without explicit instruction. Checkpoint 55 remains
+unstaged, uncommitted, and pending human review; do not begin Checkpoint 56.
+Treat `v1.0.0` as the latest stable recovery point.

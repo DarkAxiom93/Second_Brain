@@ -1,5 +1,5 @@
 import { FormEvent, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { isProjectId, MemoryRead, MemorySearchFilters, MemoryStatus, SearchMode, SearchProviderError, searchMemories } from "./api/client";
 
 const memoryTypes: MemoryRead["memory_type"][] = ["working", "episodic", "semantic", "decision", "procedural", "preference", "temporary"];

@@ -9,8 +9,8 @@ reproducible backend/frontend installation, safe startup and shutdown, full
 zero-skip verification, all eight top-level UI routes functional, controlled
 Project export/conflict validation, security/privacy/accessibility audits, and
 maintainer runbook/handoff documentation. The current phase is post-V1
-maintenance and V1.1 planning. No V1.1 implementation checkpoint has started;
-future implementation must begin in a separately approved checkpoint.
+maintenance and V1.1 implementation. Checkpoint 55 contains an unstaged,
+uncommitted React Router security remediation pending human review.
 
 ## Proposed Local V1.1
 
@@ -20,7 +20,7 @@ explanations. The proposal adds no authentication, cloud boundary, background
 automation, destructive maintenance, schema migration, or export-format
 change. See [V1_1_ROADMAP.md](V1_1_ROADMAP.md) for evidence, priorities,
 approval decisions, and independently reviewable checkpoints beginning with
-55. The plan is pending human review; no V1.1 implementation has started.
+55. Checkpoint 55 is implemented locally and remains pending human review.
 
 ## Completed foundation
 

@@ -59,6 +59,7 @@ history. A dash means Alembic had not yet been introduced.
 | 52 | Local V1 release hardening and acceptance | Complete | `0009_memory_expiration` | `a1bf40c` |
 | 53 | Post-release documentation synchronization | Complete | `0009_memory_expiration` | `bcd1e21` |
 | 54 | V1.1 roadmap and technical planning | Pending review | `0009_memory_expiration` | Pending review |
+| 55 | React Router 8 security remediation and baseline alignment | Pending review | `0009_memory_expiration` | Pending review |
 
 ## Standard lifecycle
 

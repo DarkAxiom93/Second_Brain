@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 import { AnswerProviderError, createAnswer, isProjectId, type AnswerRead, type AnswerRequest, type SearchMode } from "./api/client";
 

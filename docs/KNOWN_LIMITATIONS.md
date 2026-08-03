@@ -15,13 +15,10 @@
 - Live provider-dependent success smoke is unavailable without credentials.
   Automated tests use deterministic fake providers for proposal generation,
   semantic/hybrid search, embeddings, and evidence-backed answer success.
-- npm currently reports the high-severity React Router RSC action advisory
-  GHSA-qwww-vcr4-c8h2 for the locked dependency graph. Local V1 is a client-only
-  Vite SPA and does not enable React Server Components or server actions, so the
-  affected action-execution path is absent. The `v1.0.0` release intentionally
-  retains the audited lockfile. Checkpoint 54 recommends isolated remediation
-  as the first V1.1 implementation checkpoint; that update is not yet
-  implemented or approved.
+- The `v1.0.0` release lockfile retains the high-severity React Router RSC action
+  advisory GHSA-qwww-vcr4-c8h2. The current Checkpoint 55 working tree migrates
+  the client-only SPA to `react-router` 8.3.0 and has a zero-finding npm audit,
+  but remains unstaged, uncommitted, and pending human review.
 - Search results preserve deterministic backend order but do not expose a
   user-facing explanation of lexical, semantic, or hybrid rank contributions.
   The proposed V1.1 roadmap recommends an additive explained-search contract;

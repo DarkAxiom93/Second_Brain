@@ -1,7 +1,7 @@
 # Second Brain Local V1.1 roadmap
 
-Status: Proposed by Checkpoint 54; pending human review. No V1.1 implementation
-checkpoint has started.
+Status: Proposed by Checkpoint 54. Checkpoint 55 is implemented locally and
+pending human review.
 
 ## Objective and boundaries
 
@@ -37,12 +37,13 @@ merge/overwrite/remap, encrypted bundles, and persistent conversation history.
 - Local V1 acceptance covers all eight top-level UI routes. Full verification
   is the authoritative approval workflow and exercises backend, PostgreSQL,
   Alembic, frontend, and build checks with zero skips.
-- The locked frontend graph contains `react-router` and `react-router-dom`
-  `7.18.2`. GitHub's reviewed `GHSA-qwww-vcr4-c8h2` advisory classifies
+- The Local V1 locked frontend graph contains `react-router` and
+  `react-router-dom` `7.18.2`. GitHub's reviewed `GHSA-qwww-vcr4-c8h2` advisory classifies
   `react-router` versions from `7.12.0` through versions before `8.3.0` as
   affected and `8.3.0` as patched. The vulnerable RSC action path is absent in
-  this client-only SPA, but the high-severity locked advisory remains a supply
-  chain and maintenance risk.
+  this client-only SPA. Checkpoint 55 migrates the pending-review working tree
+  to the official v8 package structure with direct `react-router` 8.3.0 and a
+  zero-finding npm audit.
 - There is no `.github/workflows` directory. Local verification is mature, but
   pushed changes have no automatic remote signal.
 - Existing search contracts return bare `Memory` results. PostgreSQL already
@@ -79,11 +80,8 @@ merge/overwrite/remap, encrypted bundles, and persistent conversation history.
 
 ### Decisions requiring human approval
 
-- Approve this objective and checkpoint order before Checkpoint 55 starts.
-- At Checkpoint 55, approve the exact patched React Router version and any
-  minimal compatibility edits after reviewing the fresh lockfile and upstream
-  migration notes. `8.3.0` is the current minimum patched version, not a
-  pre-approved version range.
+- Review and approve Checkpoint 55's exact React Router 8.3.0 package/import
+  migration before it is committed or later checkpoints begin.
 - At Checkpoint 56, approve the CI platform and trigger policy. The recommended
   minimum is pull-request and push checks for install, dependency consistency,
   backend static/unit checks, and the locked frontend suite/build, with an
@@ -132,8 +130,8 @@ not be hidden inside an API or UI checkpoint.
 - **Justification:** The known high-severity dependency finding should be
   resolved before adding product behavior even though the current client-only
   topology does not expose the affected RSC action path.
-- **Allowed scope:** `react-router-dom`/transitive `react-router` version and
-  lockfile updates; minimal router compatibility edits; focused dependency,
+- **Allowed scope:** removal of the v7 `react-router-dom` compatibility package,
+  direct `react-router` 8.3.0, lockfile and normal-import migration; focused dependency,
   navigation, route, accessibility, build, and audit evidence; documentation of
   upstream findings.
 - **Forbidden scope:** UI redesign, new routes or features, backend changes,

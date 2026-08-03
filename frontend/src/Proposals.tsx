@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router";
 import { ApiConflictError, getMemoryProposal, isSourceId, listMemoryProposals, promoteMemoryProposal, ProposalNotFoundError, reviewMemoryProposal, type MemoryProposal, type MemoryProposalDetail, type ReviewStatus } from "./api/client";
 
 const PAGE = 20;

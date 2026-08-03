@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes } from "react-router";
 
 import { getHealth, getReadiness } from "./api/client";
 import { ProjectDetail, Projects } from "./Projects";
