@@ -7,7 +7,7 @@ $frontendRoot = Join-Path $repoRoot "frontend"
 . (Join-Path $PSScriptRoot "Invoke-IsolatedProcess.ps1")
 
 if (-not (Get-Command "node.exe" -ErrorAction SilentlyContinue)) {
-    Write-Error "Node.js was not found. Checkpoint 42 requires Node.js 22.12.0 or newer."
+    Write-Error "Node.js was not found. The frontend requires Node.js 22.22.0 or newer."
     exit 1
 }
 $npm = Get-Command "npm.cmd" -ErrorAction SilentlyContinue

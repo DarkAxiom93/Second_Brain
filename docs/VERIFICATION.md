@@ -21,7 +21,12 @@ explicitly with `scripts/frontend-setup.ps1`; verification never installs them.
 
 Quick verification is a focused development loop. Because the repository has no
 reliable unit/integration marker, Quick runs tests outside `tests/integration`
-and excludes the migration lifecycle file; Full remains authoritative.
+and excludes the migration lifecycle file. It continues to collect root-level
+tests, but deselects exactly
+`tests/test_diagnostics_script.py::test_healthy_test_database_execution_and_optional_json`
+because that one test explicitly requires the live verified PostgreSQL test
+database. The containing file's other tests remain in Quick. Full performs no
+such deselection and remains authoritative.
 `-SkipDatabase` is documentation-only preflight and is insufficient for final
 approval.
 

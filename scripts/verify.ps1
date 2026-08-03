@@ -10,6 +10,7 @@ $python = Join-Path $repoRoot ".venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python)) { throw "Project Python was not found." }
 . (Join-Path $PSScriptRoot "Invoke-IsolatedProcess.ps1")
 
+$quickDatabaseTestNode = "tests/test_diagnostics_script.py::test_healthy_test_database_execution_and_optional_json"
 $pytestTempPrefix = "second-brain-pytest-"
 $tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd("\", "/")
 $pytestRunId = [System.Guid]::NewGuid().ToString("N")
@@ -94,7 +95,8 @@ try {
         Write-Host "==> Quick tests (tests root only; integration and migration lifecycle excluded)"
         $quickTests = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot "tests") -File -Filter "test_*.py" | ForEach-Object { $_.FullName })
         if ($quickTests.Count -eq 0) { throw "No reliable Quick test selection was found." }
-        $quickResult = Invoke-IsolatedProcess -FilePath $python -ArgumentList (@("-m", "pytest", "--basetemp=$pytestBaseTemp") + $quickTests) -WorkingDirectory $repoRoot
+        $quickArguments = @("-m", "pytest", "--basetemp=$pytestBaseTemp", "--deselect=$quickDatabaseTestNode") + $quickTests
+        $quickResult = Invoke-IsolatedProcess -FilePath $python -ArgumentList $quickArguments -WorkingDirectory $repoRoot
         Write-ProcessResult $quickResult
         if ($quickResult.ExitCode -ne 0) { throw "Quick tests failed with exit code $($quickResult.ExitCode)." }
     }

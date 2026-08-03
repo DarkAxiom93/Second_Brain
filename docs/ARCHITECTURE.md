@@ -16,10 +16,17 @@ implementation checkpoint has started.
 
 The proposed V1.1 architecture is documented in
 [V1_1_ROADMAP.md](V1_1_ROADMAP.md). It preserves this topology and data model,
-first isolates dependency remediation and CI, then proposes one additive
+first isolates dependency remediation and non-authoritative CI, then proposes one additive
 read-only explained-search contract and its UI. Existing search responses and
 version-1 export/import remain compatible. No V1.1 migration is proposed. This
 is a planning recommendation pending human approval, not implemented behavior.
+
+The Checkpoint 56 CI workflow is an early regression signal on pull requests to
+`main`, pushes to `main`, and manual dispatch. Its Windows runner performs the
+established non-database Quick path and locked frontend checks without secrets,
+write permission, PostgreSQL, Docker, artifacts, publishing, or deployment.
+It does not replace the release-authoritative local
+`.\scripts\verify.ps1 -Mode Full` workflow or its database and acceptance gates.
 
 A client-only React and TypeScript application lives in `frontend/`. Vite serves
 the local development UI and proxies `/api/*` to the existing loopback FastAPI

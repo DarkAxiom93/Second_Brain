@@ -21,8 +21,12 @@ provider, or remove the PostgreSQL volume.
 .\scripts\copy-chat-handoff.ps1
 ```
 
-`verify.ps1 -Mode Quick` is the local loop. `-SkipDatabase` is allowed only with
-Quick for documentation preflight and is never final approval. `start-api.ps1`
+`verify.ps1 -Mode Quick` is the local loop. With no reliable repository-wide
+unit/integration marker, it collects root-level tests while deselecting exactly
+the one diagnostics-script test that requires live `second_brain_test`; the
+containing file's other tests remain included. `-SkipDatabase` is allowed only
+with Quick for documentation preflight and is never final approval. Full keeps
+the complete suite and remains authoritative. `start-api.ps1`
 does not start Docker or migrate the database. Its optional `-DatabaseUrl`
 override exists for identity/refusal testing and is never printed.
 

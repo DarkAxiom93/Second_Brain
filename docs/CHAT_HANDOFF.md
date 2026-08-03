@@ -1,47 +1,45 @@
 # Second Brain chat handoff
 
-Second Brain Local V1 is released as `v1.0.0`. The annotated tag points to the
-full release commit `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`, and the
-published GitHub Release is
-<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.0.0>. Checkpoint 52
-is complete at `a1bf40c`; `main` matched `origin/main` and the working tree was
-clean at release. Alembic remains `0009_memory_expiration`.
+Second Brain Local V1 is released as `v1.0.0`. The annotated tag still points to
+`a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. Alembic remains at the sole code
+head `0009_memory_expiration`.
 
-Checkpoint 53 is complete at `bcd1e2163027b609c9cb97d8e3467d0a0c6557b8` and
-synchronized the stable post-release state. Checkpoint 54 is a documentation-
-only V1.1 planning checkpoint pending review. Its proposed objective is a small
-Local V1.1 consisting of isolated React Router advisory remediation, a bounded
-non-authoritative CI signal, and deterministic explained Memory search, followed
-by integrated acceptance and release hardening. Checkpoint 55 is now implemented
-locally and pending review; no migration is proposed.
+Checkpoint 55 is complete at
+`cefdc4e2e27d2ff53eb612081b1a10973f93a997`, is pushed, and `main` matched
+`origin/main` before Checkpoint 56 began. It installs exact `react-router`
+8.3.0, contains no `react-router-dom`, and has a zero-finding npm audit.
 
-Clean dependency rehearsals passed without manifest or lockfile changes. The
-backend was installed into and imported from one GUID-named disposable Python
-3.12 environment outside the repository and that exact environment was
-removed. Locked `npm ci`, frontend lint/typecheck, 78 tests, and production
-build passed. Checkpoint 55 replaces `react-router-dom` 7.18.2 and its transitive
-`react-router` 7.18.2 with direct `react-router` 8.3.0, raises the Node engine
-minimum to 22.22.0, and migrates normal SPA imports to `react-router`. npm audit
-reports zero vulnerabilities and all route behavior remains unchanged.
+Checkpoint 56 is implemented locally and pending human review. It adds one
+least-privilege workflow at `.github/workflows/ci.yml`, triggered only by pull
+requests targeting `main`, pushes to `main`, and manual dispatch. Its one
+`windows-2022` job uses Python 3.12.10 and Node.js 22.22.0. It creates the local
+`.venv`, installs `.[dev]`, runs Quick with `-SkipDatabase`, installs the exact
+frontend lockfile, runs the established frontend verification, and runs npm
+audit at high severity. The only actions are immutable pins of checkout v4.2.2,
+setup-python v5.6.0, and setup-node v4.4.0. Permissions are `contents: read`.
 
-Real Vite-origin acceptance confirmed all eight top-level routes, healthy proxy
-responses, existing Project/Memory detail and provenance links, read-only
-advisories/operations, lexical search, keyboard focus visibility, no browser
-persistence, and the safe 404. Provider-backed success was not called because
-credentials are absent; deterministic test coverage remains the evidence. An
-existing Project produced a 2,198-byte `.sbexport` that validated as valid but
-conflicting with the development target; import execution was not called and
-safe aggregate counts remained unchanged. Chrome lacked its optional local-file
-upload permission, so UI file selection was not repeated live; the exact bundle
-was validated through the Vite-origin service and deterministic UI tests cover
-the complete import interaction.
+CI has no secrets, explicit token, write access, OIDC, PostgreSQL, Docker,
+artifact, deployment, publication, provider, export/import, or release path.
+It does not perform PostgreSQL identity verification, integration or migration
+lifecycle tests, live Alembic checks, Vite-origin browser smoke, provider-backed
+workflows, export/import round trips, development-database safety verification,
+or Local V1.1 acceptance. `.\scripts\verify.ps1 -Mode Full` remains the sole
+release-authoritative command. The first real Actions run remains pending until
+the approved Checkpoint 56 commit is pushed.
 
-Read `AGENTS.md`, `LOCAL_V1_RUNBOOK.md`, `LOCAL_V1_ACCEPTANCE.md`,
-`KNOWN_LIMITATIONS.md`, `V1_1_ROADMAP.md`, and `checkpoint-55-report.md` before
-further work. Use
-Python 3.12 from `.venv`, use only verified `second_brain_test` for integration
-tests, never recreate a database or delete the PostgreSQL volume without
-separate explicit approval, and do not stage, commit, push, open a PR, or begin
-another checkpoint without explicit instruction. Checkpoint 55 remains
-unstaged, uncommitted, and pending human review; do not begin Checkpoint 56.
-Treat `v1.0.0` as the latest stable recovery point.
+A real database-free Quick rehearsal initially failed because the root-level
+live diagnostics test was collected. A separately approved correction now
+deselects exactly
+`tests/test_diagnostics_script.py::test_healthy_test_database_execution_and_optional_json`
+only in Quick; the file's other three tests remain included, and Full retains
+the complete suite. Corrected Quick passed 452 selected tests with exactly one
+deselection. Final Full passed all 647 Python tests and all 78 frontend tests
+with zero skips; the live diagnostics test executed successfully. Alembic
+remained `0009_memory_expiration`. PostgreSQL was stopped afterward and its
+named volume was preserved.
+
+Read `AGENTS.md`, `docs/V1_1_ROADMAP.md`, `docs/VERIFICATION.md`,
+`docs/SAFETY.md`, and `docs/checkpoint-56-report.md` before further work. Use
+Python 3.12 from `.venv`; use only verified `second_brain_test` for integration
+tests; never recreate a database or delete the PostgreSQL volume. Do not stage,
+commit, push, open a PR, or begin Checkpoint 57 without explicit instruction.

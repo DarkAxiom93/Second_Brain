@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 from tests.powershell import run_powershell
@@ -9,6 +10,11 @@ from tests.powershell import run_powershell
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 VERIFY_SCRIPT = REPOSITORY_ROOT / "scripts" / "verify.ps1"
 PROCESS_HELPER = REPOSITORY_ROOT / "scripts" / "Invoke-IsolatedProcess.ps1"
+DIAGNOSTICS_TESTS = REPOSITORY_ROOT / "tests" / "test_diagnostics_script.py"
+LIVE_DATABASE_TEST = (
+    "tests/test_diagnostics_script.py::"
+    "test_healthy_test_database_execution_and_optional_json"
+)
 
 
 def _script() -> str:
@@ -38,11 +44,61 @@ def test_every_pytest_mode_uses_one_isolated_guid_base_temp() -> None:
     assert "[System.Guid]::NewGuid()" in script
     assert script.count('"--basetemp=$pytestBaseTemp"') == 2
     assert '@("-m", "pytest", "--basetemp=$pytestBaseTemp")' in script
-    assert (
-        "@(" + '"-m", "pytest", "--basetemp=$pytestBaseTemp") + $quickTests' in script
-    )
+    assert '"--basetemp=$pytestBaseTemp", "--deselect=$quickDatabaseTestNode"' in script
+    assert "+ $quickTests" in script
     assert "if ($SkipDatabase)" in script
     assert "pytest-of-" not in script
+
+
+def test_quick_deselects_only_the_exact_live_database_test() -> None:
+    script = _script()
+
+    assert f'$quickDatabaseTestNode = "{LIVE_DATABASE_TEST}"' in script
+    assert script.count('"--deselect=$quickDatabaseTestNode"') == 1
+    assert '$quickArguments = @("-m", "pytest"' in script
+    assert "-ArgumentList $quickArguments" in script
+    assert "--ignore=tests/test_diagnostics_script.py" not in script
+    assert '"--ignore", "tests/test_diagnostics_script.py"' not in script
+
+
+def test_full_keeps_the_complete_suite_without_deselection() -> None:
+    script = _script()
+    verification_start = script.index('Invoke-Stage "mypy"')
+    full_start = script.index('if ($Mode -eq "Full") {', verification_start)
+    quick_start = script.index("    } else {", full_start)
+    full_block = script[full_start:quick_start]
+
+    assert '@("-m", "pytest", "--basetemp=$pytestBaseTemp")' in full_block
+    assert "deselect" not in full_block.lower()
+    assert "$quickDatabaseTestNode" not in full_block
+
+
+def test_deselected_test_is_live_database_only_and_siblings_remain_collected() -> None:
+    source = DIAGNOSTICS_TESTS.read_text(encoding="utf-8")
+    module = ast.parse(source)
+    tests = {
+        node.name: node
+        for node in module.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("test_")
+    }
+    target_name = LIVE_DATABASE_TEST.rsplit("::", maxsplit=1)[1]
+
+    assert set(tests) == {
+        "test_script_parses_in_windows_powershell_51_and_has_no_mutation_switches",
+        "test_invalid_identity_and_unsafe_api_fail_without_secret_exposure",
+        "test_output_overwrite_refusal",
+        target_name,
+    }
+    target = tests[target_name]
+    assert target.decorator_list == []
+    target_source = ast.get_source_segment(source, target)
+    assert target_source is not None
+    assert 'env["TEST_DATABASE_URL"]' in target_source
+    assert "second_brain_test" in target_source
+    assert '"-UseTestDatabase"' in target_source
+    assert "_powershell(" in target_source
+    assert "pytest.skip" not in target_source
 
 
 def test_cleanup_is_exact_guarded_and_has_no_privilege_or_wildcard_operations() -> None:
