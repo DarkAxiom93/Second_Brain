@@ -20,3 +20,30 @@
   review, and promotion are separate operations.
 - Maintain backward compatibility unless the checkpoint explicitly changes the
   contract. API-only work does not require a migration.
+
+## Explained Memory search
+
+`POST /memories/search/explained` is the only additive explained-search route.
+Its required request fields are `query`, `mode`, `filters`, and `pagination`;
+`mode` has no default. The response is one bare array. Each item contains only global
+one-based `rank`, an unchanged `MemoryRead` under `memory`, and a typed
+`explanation` with `mode`, ordered `matched_by`, lexical/semantic ranks and
+signals, lexical/semantic RRF contributions, and fused RRF score.
+
+Public float serialization rounds to six decimal places. Lexical signal is the
+clamped value `raw_ts_rank_cd / (1 + raw_ts_rank_cd)`. Semantic signal is the
+clamped value `1 - cosine_distance / 2`. Hybrid uses `k=60`; each available
+channel contributes `1 / (60 + channel_rank)`, and the fused value is the sum
+of unrounded available contributions before public rounding. These values are
+deterministic ranking aids, never confidence, probability, truth, certainty,
+model reasoning, or a relevance guarantee.
+
+Lexical mode resolves no provider and has null semantic and RRF fields.
+Semantic mode preserves the established provider validation and safe failures
+and has null lexical and RRF fields. Hybrid preserves the established bounded
+candidate formula and exposes channel values only when that candidate set
+contained the Memory. The route is read-only and persists nothing. Raw lexical
+scores, cosine distances, vectors, dimensions, SQL, prompts, provider responses,
+secrets, and exception text remain private. Existing search and Answer request,
+response, ranking, filtering, pagination, provider, and error contracts remain
+unchanged.

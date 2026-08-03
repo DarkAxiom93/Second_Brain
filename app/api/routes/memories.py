@@ -1,6 +1,7 @@
 """Memory creation and retrieval endpoints."""
 
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -34,6 +35,9 @@ from app.repositories import memories as memory_repository
 from app.repositories import memory_embeddings as embedding_repository
 from app.repositories import sources as source_repository
 from app.schemas.memory import (
+    ExplainedMemorySearchMode,
+    ExplainedMemorySearchRequest,
+    ExplainedMemorySearchResultRead,
     MemoryContradictionCandidateRead,
     MemoryContradictionRead,
     MemoryCreate,
@@ -42,6 +46,8 @@ from app.schemas.memory import (
     MemoryQualityRefinementRead,
     MemoryQualityRefinementRequest,
     MemoryRead,
+    MemorySearchChannel,
+    MemorySearchExplanationRead,
     MemorySearchRequest,
     MemorySimilarityCandidateRead,
     MemorySimilarityRead,
@@ -56,6 +62,7 @@ from app.schemas.source import (
 )
 
 router = APIRouter(prefix="/memories", tags=["memories"])
+PUBLIC_RANKING_PRECISION = 6
 
 
 def provider_dependency() -> EmbeddingProvider:
@@ -70,12 +77,60 @@ def provider_dependency() -> EmbeddingProvider:
         ) from None
 
 
+def provider_resolver_dependency() -> Callable[[], EmbeddingProvider]:
+    """Inject a lazy resolver so lexical explained search never resolves a provider."""
+
+    return provider_dependency
+
+
 def database_unavailable() -> HTTPException:
     """Build the public database-failure response."""
 
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="database unavailable",
+    )
+
+
+def _public_round(value: float | None) -> float | None:
+    return None if value is None else round(value, PUBLIC_RANKING_PRECISION)
+
+
+def _explained_result_read(
+    item: memory_repository.ExplainedMemorySearchResult,
+    mode: ExplainedMemorySearchMode,
+) -> ExplainedMemorySearchResultRead:
+    lexical_signal = (
+        None
+        if item.lexical_score is None
+        else _public_round(
+            max(0.0, min(1.0, item.lexical_score / (1.0 + item.lexical_score)))
+        )
+    )
+    semantic_signal = (
+        None
+        if item.semantic_distance is None
+        else _public_round(max(0.0, min(1.0, 1.0 - (item.semantic_distance / 2.0))))
+    )
+    matched_by: list[MemorySearchChannel] = []
+    if item.lexical_rank is not None:
+        matched_by.append("lexical")
+    if item.semantic_rank is not None:
+        matched_by.append("semantic")
+    return ExplainedMemorySearchResultRead(
+        rank=item.rank,
+        memory=MemoryRead.model_validate(item.memory),
+        explanation=MemorySearchExplanationRead(
+            mode=mode,
+            matched_by=matched_by,
+            lexical_rank=item.lexical_rank,
+            semantic_rank=item.semantic_rank,
+            lexical_signal=lexical_signal,
+            semantic_signal=semantic_signal,
+            lexical_rrf_contribution=_public_round(item.lexical_rrf_contribution),
+            semantic_rrf_contribution=_public_round(item.semantic_rrf_contribution),
+            fused_rrf_score=_public_round(item.fused_rrf_score),
+        ),
     )
 
 
@@ -309,6 +364,47 @@ def get_memory_similarities(
             for item in candidates
         ],
     )
+
+
+@router.post("/search/explained", response_model=list[ExplainedMemorySearchResultRead])
+def search_memories_explained(
+    request: ExplainedMemorySearchRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+    resolve_provider: Annotated[
+        Callable[[], EmbeddingProvider], Depends(provider_resolver_dependency)
+    ],
+) -> list[ExplainedMemorySearchResultRead]:
+    """Return bounded deterministic ranking explanations without persistence."""
+
+    query_vector = None
+    if request.mode in ("semantic", "hybrid"):
+        try:
+            provider = resolve_provider()
+            query_vector = validate_embedding(provider.embed(request.query), 1536)
+        except ProviderUnavailableError:
+            raise HTTPException(
+                status_code=503, detail="embedding provider unavailable"
+            ) from None
+        except InvalidEmbeddingResponseError:
+            raise HTTPException(
+                status_code=502, detail="invalid embedding response"
+            ) from None
+        except ProviderRequestError:
+            raise HTTPException(
+                status_code=502, detail="embedding provider failed"
+            ) from None
+    try:
+        results = memory_repository.search_memories_explained(
+            session,
+            query=request.query,
+            mode=request.mode,
+            query_vector=query_vector,
+            **request.filters.model_dump(),
+            **request.pagination.model_dump(),
+        )
+    except SQLAlchemyError:
+        raise database_unavailable() from None
+    return [_explained_result_read(item, request.mode) for item in results]
 
 
 @router.post("/search", response_model=list[MemoryRead])

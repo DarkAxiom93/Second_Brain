@@ -487,6 +487,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/projects/{project_id}",
         "/memories",
         "/memories/search",
+        "/memories/search/explained",
         "/memories/{memory_id}",
         "/memories/{memory_id}/embedding",
         "/memories/{memory_id}/expire",
@@ -520,6 +521,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     assert set(paths["/projects"]) == {"get", "post"}
     assert set(paths["/memories"]) == {"get", "post"}
     assert set(paths["/memories/search"]) == {"post"}
+    assert set(paths["/memories/search/explained"]) == {"post"}
     assert set(paths["/memories/{memory_id}"]) == {"get"}
     supersede = paths["/memories/{memory_id}/supersede"]["post"]
     assert set(supersede["responses"]) == {"200", "404", "409", "422", "503"}

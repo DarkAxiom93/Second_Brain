@@ -24,6 +24,8 @@ MemoryType = Literal[
 ]
 MemoryStatus = Literal["active", "superseded", "invalid", "archived", "expired"]
 MemorySearchMode = Literal["semantic", "hybrid"]
+ExplainedMemorySearchMode = Literal["lexical", "semantic", "hybrid"]
+MemorySearchChannel = Literal["lexical", "semantic"]
 MemorySimilarityClassification = Literal["exact_duplicate", "similar"]
 MemoryContradictionEvidenceType = Literal["explicit_negation", "opposing_boolean_state"]
 MemorySupersessionStatus = Literal["updated", "unchanged"]
@@ -119,6 +121,20 @@ class MemorySearchRequest(BaseModel):
     pagination: MemorySearchPagination = Field(default_factory=MemorySearchPagination)
 
 
+class ExplainedMemorySearchRequest(BaseModel):
+    """Validated request for deterministic explained Memory search."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
+    ]
+    mode: ExplainedMemorySearchMode
+    filters: MemoryStructuredFilters
+    pagination: MemorySearchPagination
+
+
 class MemoryCreate(BaseModel):
     """Validated input for creating a memory."""
 
@@ -187,6 +203,81 @@ class MemoryRead(BaseModel):
         if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("timestamp must be timezone-aware")
         return value
+
+
+BoundedSignal = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
+NonNegativeScore = Annotated[float, Field(ge=0.0, allow_inf_nan=False)]
+
+
+class MemorySearchExplanationRead(BaseModel):
+    """Bounded deterministic ranking aids for one search result."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: ExplainedMemorySearchMode
+    matched_by: list[MemorySearchChannel]
+    lexical_rank: Annotated[int, Field(gt=0)] | None
+    semantic_rank: Annotated[int, Field(gt=0)] | None
+    lexical_signal: BoundedSignal | None
+    semantic_signal: BoundedSignal | None
+    lexical_rrf_contribution: NonNegativeScore | None
+    semantic_rrf_contribution: NonNegativeScore | None
+    fused_rrf_score: NonNegativeScore | None
+
+    @model_validator(mode="after")
+    def require_mode_invariants(self) -> "MemorySearchExplanationRead":
+        """Reject inconsistent channel ordering, nullability, and score fields."""
+
+        if self.matched_by not in (["lexical"], ["semantic"], ["lexical", "semantic"]):
+            raise ValueError("matched_by must contain ordered ranking channels")
+        if self.mode == "lexical":
+            valid = (
+                self.matched_by == ["lexical"]
+                and self.lexical_rank is not None
+                and self.lexical_signal is not None
+                and self.semantic_rank is None
+                and self.semantic_signal is None
+                and self.lexical_rrf_contribution is None
+                and self.semantic_rrf_contribution is None
+                and self.fused_rrf_score is None
+            )
+        elif self.mode == "semantic":
+            valid = (
+                self.matched_by == ["semantic"]
+                and self.semantic_rank is not None
+                and self.semantic_signal is not None
+                and self.lexical_rank is None
+                and self.lexical_signal is None
+                and self.lexical_rrf_contribution is None
+                and self.semantic_rrf_contribution is None
+                and self.fused_rrf_score is None
+            )
+        else:
+            valid = (
+                self.fused_rrf_score is not None
+                and (self.lexical_rank is not None) == ("lexical" in self.matched_by)
+                and (self.semantic_rank is not None) == ("semantic" in self.matched_by)
+                and (self.lexical_signal is not None) == (self.lexical_rank is not None)
+                and (self.semantic_signal is not None)
+                == (self.semantic_rank is not None)
+                and (self.lexical_rrf_contribution is not None)
+                == (self.lexical_rank is not None)
+                and (self.semantic_rrf_contribution is not None)
+                == (self.semantic_rank is not None)
+            )
+        if not valid:
+            raise ValueError("ranking explanation is inconsistent with mode")
+        return self
+
+
+class ExplainedMemorySearchResultRead(BaseModel):
+    """One globally ranked Memory and its bounded ranking explanation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rank: Annotated[int, Field(gt=0)]
+    memory: MemoryRead
+    explanation: MemorySearchExplanationRead
 
 
 class MemorySupersedeRequest(BaseModel):

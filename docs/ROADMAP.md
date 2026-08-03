@@ -9,9 +9,9 @@ reproducible backend/frontend installation, safe startup and shutdown, full
 zero-skip verification, all eight top-level UI routes functional, controlled
 Project export/conflict validation, security/privacy/accessibility audits, and
 maintainer runbook/handoff documentation. The current phase is post-V1
-maintenance and V1.1 implementation. Checkpoint 55 is committed and pushed at
-`cefdc4e`; Checkpoint 56 contains an unstaged, uncommitted non-authoritative CI
-workflow pending human review.
+maintenance and V1.1 implementation. Checkpoints 55 and 56 are committed and
+pushed at `cefdc4e` and `2c4ed44`. Checkpoint 57 implements the additive
+explained-search backend locally and remains pending human review.
 
 ## Proposed Local V1.1
 
@@ -21,9 +21,9 @@ explanations. The proposal adds no authentication, cloud boundary, background
 automation, destructive maintenance, schema migration, or export-format
 change. See [V1_1_ROADMAP.md](V1_1_ROADMAP.md) for evidence, priorities,
 approval decisions, and independently reviewable checkpoints beginning with
-55. Checkpoint 55 is committed and pushed. Checkpoint 56 is implemented locally
-and remains pending human review; its CI is only an early regression signal,
-while local Full verification remains release-authoritative.
+55. Checkpoints 55 and 56 are committed and pushed. Checkpoint 56 CI is only an
+early regression signal, while local Full verification remains
+release-authoritative. Checkpoint 57 is implemented locally and pending review.
 
 ## Completed foundation
 
@@ -40,7 +40,8 @@ scheduled-expiration handling.
 ## Retrieval and answers
 
 Completed: explicit evidence-backed question answering with validated Memory
-citations. Planned: result explanations and retrieval-quality evaluation.
+citations and an additive explained-search backend pending review. Planned:
+explained-search UI; retrieval-quality evaluation is already available.
 
 ## Operations
 

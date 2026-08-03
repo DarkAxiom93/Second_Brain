@@ -3,6 +3,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import Select, func, literal, select, union
 from sqlalchemy.orm import Session
@@ -13,12 +14,52 @@ from app.models.memory_embedding import MemoryEmbedding
 from app.models.project import Project
 from app.schemas.memory import MemoryCreate, MemoryStatus, MemoryType
 
+RRF_K = 60
+
 
 @dataclass(frozen=True)
 class ScoredMemory:
     memory: Memory
     lexical_score: float | None
     semantic_score: float | None
+
+
+@dataclass(frozen=True)
+class ExplainedMemorySearchResult:
+    """Immutable repository projection for one explained ranked result."""
+
+    rank: int
+    memory: Memory
+    lexical_rank: int | None
+    semantic_rank: int | None
+    lexical_score: float | None
+    semantic_distance: float | None
+    lexical_rrf_contribution: float | None
+    semantic_rrf_contribution: float | None
+    fused_rrf_score: float | None
+
+
+def _lexical_ranking(query: str) -> tuple[Any, Any, tuple[Any, ...]]:
+    """Return the canonical lexical query, score, and deterministic ordering."""
+
+    search_query = func.websearch_to_tsquery("simple", query)
+    score = func.ts_rank_cd(Memory.search_vector, search_query)
+    order = (score.desc(), Memory.created_at.desc(), Memory.id.asc())
+    return search_query, score, order
+
+
+def _semantic_ranking(query_vector: list[float]) -> tuple[Any, tuple[Any, ...]]:
+    """Return the canonical cosine distance and deterministic ordering."""
+
+    distance = MemoryEmbedding.embedding.cosine_distance(query_vector)
+    order = (distance.asc(), Memory.created_at.desc(), Memory.id.asc())
+    return distance, order
+
+
+def _hybrid_candidate_limit(*, limit: int, offset: int) -> int:
+    """Return the established bounded candidate window for both channels."""
+
+    return min(1000, max(100, (limit + offset) * 5))
 
 
 def _apply_structured_filters(
@@ -103,9 +144,8 @@ def list_memories(
     statement = select(Memory)
     rank = None
     if query is not None:
-        search_query = func.websearch_to_tsquery("simple", query)
+        search_query, rank, lexical_order = _lexical_ranking(query)
         statement = statement.where(Memory.search_vector.bool_op("@@")(search_query))
-        rank = func.ts_rank_cd(Memory.search_vector, search_query)
     statement = _apply_structured_filters(
         statement,
         project_id=project_id,
@@ -121,9 +161,7 @@ def list_memories(
         created_at_to=created_at_to,
     )
     if rank is not None:
-        statement = statement.order_by(
-            rank.desc(), Memory.created_at.desc(), Memory.id.asc()
-        )
+        statement = statement.order_by(*lexical_order)
     else:
         statement = statement.order_by(Memory.created_at.desc(), Memory.id.asc())
     statement = statement.limit(limit).offset(offset)
@@ -150,7 +188,7 @@ def search_memories(
 ) -> list[Memory]:
     """Return one SQL-ranked page of Memories with stored embeddings."""
 
-    distance = MemoryEmbedding.embedding.cosine_distance(query_vector)
+    _distance, semantic_order = _semantic_ranking(query_vector)
     statement = select(Memory).join(MemoryEmbedding)
     statement = _apply_structured_filters(
         statement,
@@ -166,9 +204,7 @@ def search_memories(
         created_at_from=created_at_from,
         created_at_to=created_at_to,
     )
-    statement = statement.order_by(
-        distance.asc(), Memory.created_at.desc(), Memory.id.asc()
-    )
+    statement = statement.order_by(*semantic_order)
     return list(session.scalars(statement.offset(offset).limit(limit)).all())
 
 
@@ -209,11 +245,9 @@ def search_memories_hybrid(
             created_at_to=created_at_to,
         )
 
-    candidate_limit = min(1000, max(100, (limit + offset) * 5))
+    candidate_limit = _hybrid_candidate_limit(limit=limit, offset=offset)
 
-    search_query = func.websearch_to_tsquery("simple", query)
-    lexical_score = func.ts_rank_cd(Memory.search_vector, search_query)
-    lexical_order = (lexical_score.desc(), Memory.created_at.desc(), Memory.id.asc())
+    search_query, _lexical_score, lexical_order = _lexical_ranking(query)
     lexical = select(
         Memory.id.label("memory_id"),
         func.row_number().over(order_by=lexical_order).label("lexical_rank"),
@@ -225,8 +259,7 @@ def search_memories_hybrid(
         .cte("lexical_candidates")
     )
 
-    distance = MemoryEmbedding.embedding.cosine_distance(query_vector)
-    semantic_order = (distance.asc(), Memory.created_at.desc(), Memory.id.asc())
+    _distance, semantic_order = _semantic_ranking(query_vector)
     semantic = select(
         Memory.id.label("memory_id"),
         func.row_number().over(order_by=semantic_order).label("semantic_rank"),
@@ -244,11 +277,11 @@ def search_memories_hybrid(
     ).cte("candidate_ids")
     rrf_score = (
         func.coalesce(
-            literal(1.0) / (literal(60) + lexical_candidates.c.lexical_rank),
+            literal(1.0) / (literal(RRF_K) + lexical_candidates.c.lexical_rank),
             0.0,
         )
         + func.coalesce(
-            literal(1.0) / (literal(60) + semantic_candidates.c.semantic_rank),
+            literal(1.0) / (literal(RRF_K) + semantic_candidates.c.semantic_rank),
             0.0,
         )
     ).label("rrf_score")
@@ -272,6 +305,205 @@ def search_memories_hybrid(
         .limit(limit)
     )
     return list(session.scalars(statement).all())
+
+
+def search_memories_explained(
+    session: Session,
+    *,
+    query: str,
+    mode: str,
+    query_vector: list[float] | None = None,
+    project_id: uuid.UUID | None = None,
+    memory_type: MemoryType | None = None,
+    status: MemoryStatus | None = None,
+    importance_min: float | None = None,
+    importance_max: float | None = None,
+    confidence_min: float | None = None,
+    confidence_max: float | None = None,
+    event_time_from: datetime | None = None,
+    event_time_to: datetime | None = None,
+    created_at_from: datetime | None = None,
+    created_at_to: datetime | None = None,
+    limit: int,
+    offset: int,
+) -> list[ExplainedMemorySearchResult]:
+    """Return one SQL-filtered, ranked, fused, and paginated explained page."""
+
+    def apply_filters(statement: Select[tuple[Memory]]) -> Select[tuple[Memory]]:
+        return _apply_structured_filters(
+            statement,
+            project_id=project_id,
+            memory_type=memory_type,
+            status=status,
+            importance_min=importance_min,
+            importance_max=importance_max,
+            confidence_min=confidence_min,
+            confidence_max=confidence_max,
+            event_time_from=event_time_from,
+            event_time_to=event_time_to,
+            created_at_from=created_at_from,
+            created_at_to=created_at_to,
+        )
+
+    search_query, lexical_score, lexical_order = _lexical_ranking(query)
+    lexical = apply_filters(
+        select(
+            Memory.id.label("memory_id"),
+            lexical_score.label("lexical_score"),
+            func.row_number().over(order_by=lexical_order).label("lexical_rank"),
+        ).where(Memory.search_vector.bool_op("@@")(search_query))
+    )
+
+    if mode == "lexical":
+        ranked = lexical.cte("lexical_ranked")
+        statement = (
+            select(Memory, ranked.c.lexical_rank, ranked.c.lexical_score)
+            .join(ranked, ranked.c.memory_id == Memory.id)
+            .order_by(ranked.c.lexical_rank)
+            .offset(offset)
+            .limit(limit)
+        )
+        return [
+            ExplainedMemorySearchResult(
+                rank=int(row.lexical_rank),
+                memory=row.Memory,
+                lexical_rank=int(row.lexical_rank),
+                semantic_rank=None,
+                lexical_score=float(row.lexical_score),
+                semantic_distance=None,
+                lexical_rrf_contribution=None,
+                semantic_rrf_contribution=None,
+                fused_rrf_score=None,
+            )
+            for row in session.execute(statement)
+        ]
+
+    if query_vector is None:
+        raise ValueError("query_vector is required for semantic search")
+    distance, semantic_order = _semantic_ranking(query_vector)
+    semantic = apply_filters(
+        select(
+            Memory.id.label("memory_id"),
+            distance.label("semantic_distance"),
+            func.row_number().over(order_by=semantic_order).label("semantic_rank"),
+        ).join(MemoryEmbedding)
+    )
+    if mode == "semantic":
+        ranked = semantic.cte("semantic_ranked")
+        statement = (
+            select(Memory, ranked.c.semantic_rank, ranked.c.semantic_distance)
+            .join(ranked, ranked.c.memory_id == Memory.id)
+            .order_by(ranked.c.semantic_rank)
+            .offset(offset)
+            .limit(limit)
+        )
+        return [
+            ExplainedMemorySearchResult(
+                rank=int(row.semantic_rank),
+                memory=row.Memory,
+                lexical_rank=None,
+                semantic_rank=int(row.semantic_rank),
+                lexical_score=None,
+                semantic_distance=float(row.semantic_distance),
+                lexical_rrf_contribution=None,
+                semantic_rrf_contribution=None,
+                fused_rrf_score=None,
+            )
+            for row in session.execute(statement)
+        ]
+
+    candidate_limit = _hybrid_candidate_limit(limit=limit, offset=offset)
+    lexical_candidates = (
+        lexical.order_by(*lexical_order)
+        .limit(candidate_limit)
+        .cte("lexical_candidates")
+    )
+    semantic_candidates = (
+        semantic.order_by(*semantic_order)
+        .limit(candidate_limit)
+        .cte("semantic_candidates")
+    )
+    candidate_ids = union(
+        select(lexical_candidates.c.memory_id),
+        select(semantic_candidates.c.memory_id),
+    ).cte("candidate_ids")
+    lexical_contribution = (
+        literal(1.0) / (literal(RRF_K) + lexical_candidates.c.lexical_rank)
+    ).label("lexical_rrf_contribution")
+    semantic_contribution = (
+        literal(1.0) / (literal(RRF_K) + semantic_candidates.c.semantic_rank)
+    ).label("semantic_rrf_contribution")
+    fused_score = (
+        func.coalesce(lexical_contribution, 0.0)
+        + func.coalesce(semantic_contribution, 0.0)
+    ).label("fused_rrf_score")
+    fused = (
+        select(
+            candidate_ids.c.memory_id,
+            lexical_candidates.c.lexical_rank,
+            semantic_candidates.c.semantic_rank,
+            lexical_candidates.c.lexical_score,
+            semantic_candidates.c.semantic_distance,
+            lexical_contribution,
+            semantic_contribution,
+            fused_score,
+        )
+        .outerjoin(
+            lexical_candidates,
+            lexical_candidates.c.memory_id == candidate_ids.c.memory_id,
+        )
+        .outerjoin(
+            semantic_candidates,
+            semantic_candidates.c.memory_id == candidate_ids.c.memory_id,
+        )
+        .cte("fused_candidates")
+    )
+    final_order = (
+        fused.c.fused_rrf_score.desc(),
+        Memory.created_at.desc(),
+        Memory.id.asc(),
+    )
+    final_ranked = (
+        select(
+            fused,
+            func.row_number().over(order_by=final_order).label("result_rank"),
+        )
+        .join(Memory, Memory.id == fused.c.memory_id)
+        .cte("final_ranked")
+    )
+    statement = (
+        select(Memory, final_ranked)
+        .join(final_ranked, final_ranked.c.memory_id == Memory.id)
+        .order_by(final_ranked.c.result_rank)
+        .offset(offset)
+        .limit(limit)
+    )
+    return [
+        ExplainedMemorySearchResult(
+            rank=int(row.result_rank),
+            memory=row.Memory,
+            lexical_rank=int(row.lexical_rank)
+            if row.lexical_rank is not None
+            else None,
+            semantic_rank=int(row.semantic_rank)
+            if row.semantic_rank is not None
+            else None,
+            lexical_score=float(row.lexical_score)
+            if row.lexical_score is not None
+            else None,
+            semantic_distance=float(row.semantic_distance)
+            if row.semantic_distance is not None
+            else None,
+            lexical_rrf_contribution=float(row.lexical_rrf_contribution)
+            if row.lexical_rrf_contribution is not None
+            else None,
+            semantic_rrf_contribution=float(row.semantic_rrf_contribution)
+            if row.semantic_rrf_contribution is not None
+            else None,
+            fused_rrf_score=float(row.fused_rrf_score),
+        )
+        for row in session.execute(statement)
+    ]
 
 
 def search_answer_evidence(

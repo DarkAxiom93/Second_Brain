@@ -16,10 +16,11 @@ implementation checkpoint has started.
 
 The proposed V1.1 architecture is documented in
 [V1_1_ROADMAP.md](V1_1_ROADMAP.md). It preserves this topology and data model,
-first isolates dependency remediation and non-authoritative CI, then proposes one additive
-read-only explained-search contract and its UI. Existing search responses and
-version-1 export/import remain compatible. No V1.1 migration is proposed. This
-is a planning recommendation pending human approval, not implemented behavior.
+first isolates dependency remediation and non-authoritative CI, then adds one
+read-only explained-search contract before its proposed UI. Checkpoint 57
+implements `POST /memories/search/explained` locally, pending review. Existing
+search responses and version-1 export/import remain compatible. No V1.1
+migration is proposed.
 
 The Checkpoint 56 CI workflow is an early regression signal on pull requests to
 `main`, pushes to `main`, and manual dispatch. Its Windows runner performs the
@@ -69,6 +70,12 @@ service worker, or provider integration.
   `MemoryProposal` stores immutable evidence snapshots and review state.
 - Memory retrieval supports lexical PostgreSQL text search, semantic pgvector
   search, and hybrid Reciprocal Rank Fusion (RRF).
+- The additive explained-search projection exposes only one-based global result
+  and channel ranks, six-decimal bounded lexical/semantic signals, and hybrid
+  RRF contributions with `k=60`. Ranking, filtering, fusion, ordering, and
+  pagination remain in one bounded SQL statement. Lexical mode never resolves
+  an embedding provider; semantic and hybrid modes preserve existing safe
+  provider behavior. Queries, embeddings, results, and history are not stored.
 - Evidence-backed answers are stateless, read-only operations over one bounded
   active-Memory retrieval. A strict answer provider may cite only deterministic
   evidence labels; questions, answers, prompts, and retrieval history are not

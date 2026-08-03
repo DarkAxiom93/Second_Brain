@@ -10,6 +10,7 @@ from app.repositories.memories import (
     create_memory,
     get_memory,
     list_memories,
+    search_memories_explained,
     search_memories_hybrid,
 )
 from app.schemas.memory import MemoryCreate
@@ -175,4 +176,39 @@ def test_hybrid_search_is_one_filtered_fused_paginated_sql_statement() -> None:
     values = compiled_statement.params.values()
     assert 7 in values and 23 in values
     assert 150 in values  # max(100, (7 + 23) * 5)
+    session.commit.assert_not_called()
+
+
+def test_explained_hybrid_is_one_bounded_ranked_paginated_sql_statement() -> None:
+    session = Mock()
+    session.execute.return_value = []
+
+    assert (
+        search_memories_explained(
+            session,
+            query="alpha",
+            mode="hybrid",
+            query_vector=[0.0] * 1536,
+            project_id=None,
+            limit=7,
+            offset=23,
+        )
+        == []
+    )
+
+    session.execute.assert_called_once()
+    statement = session.execute.call_args.args[0]
+    compiled_statement = statement.compile(dialect=postgresql.dialect())
+    compiled = str(compiled_statement)
+    assert "lexical_candidates AS" in compiled
+    assert "semantic_candidates AS" in compiled
+    assert "fused_candidates AS" in compiled
+    assert "final_ranked AS" in compiled
+    assert "ts_rank_cd" in compiled and "<=>" in compiled
+    assert "row_number() OVER" in compiled
+    assert "ORDER BY final_ranked.result_rank" in compiled
+    assert 150 in compiled_statement.params.values()
+    assert 7 in compiled_statement.params.values()
+    assert 23 in compiled_statement.params.values()
+    session.flush.assert_not_called()
     session.commit.assert_not_called()

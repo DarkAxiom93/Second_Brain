@@ -671,6 +671,46 @@ embedding and no fallback to lexical-only results after provider errors.
 vectors and make no OpenAI calls. No schema migration is added; the Alembic
 head remains `0006_memory_embeddings`.
 
+## Checkpoint 57: additive explained Memory search
+
+`POST /memories/search/explained` accepts a required trimmed `query` (1–500
+characters), required `mode` (`lexical`, `semantic`, or `hybrid`), the canonical
+structured `filters`, and standard `pagination` (`limit` 1–100, non-negative
+`offset`). It returns a bare array of `{ rank, memory, explanation }` objects.
+`rank` is one-based across the complete filtered order, including offset pages.
+
+```powershell
+$body = @{
+  query = "database migration decisions"
+  mode = "hybrid"
+  filters = @{ status = "active" }
+  pagination = @{ limit = 20; offset = 0 }
+} | ConvertTo-Json -Depth 3
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8000/memories/search/explained `
+  -ContentType "application/json" -Body $body
+```
+
+Each explanation contains exactly `mode`, ordered `matched_by`, channel ranks,
+`lexical_signal`, `semantic_signal`, channel RRF contributions, and
+`fused_rrf_score`. Public floats use six decimal places of deterministic
+rounding. The lexical signal is clamped
+`ts_rank_cd / (1 + ts_rank_cd)`; the semantic signal is clamped
+`1 - cosine_distance / 2`. Hybrid contributions use `1 / (60 + channel_rank)`
+and their unrounded sum. These are ranking aids, not probability, confidence,
+truth, certainty, relevance guarantees, or model reasoning.
+
+Lexical mode has only lexical rank/signal and never resolves an embedding
+provider. Semantic mode has only semantic rank/signal. Hybrid mode exposes
+values only for candidate channels that contained the Memory and uses null for
+absent channels. RRF fields are null outside hybrid mode. The operation is
+read-only and stores no query, embedding, result, history, or explanation.
+Vectors, raw scores/distances, SQL, prompts, and provider output remain private.
+Semantic and hybrid modes preserve the existing safe 502/503 provider errors.
+The legacy `GET /memories`, `POST /memories/search`, and `POST /answers`
+contracts, ordering, and behavior are unchanged. No migration is added; the
+sole Alembic head remains `0009_memory_expiration`.
+
 ## Checkpoint 20: Source document and text-chunk persistence
 
 A Source may now have one optional `SourceDocument` record, and a document may

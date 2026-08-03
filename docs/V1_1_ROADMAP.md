@@ -1,7 +1,7 @@
 # Second Brain Local V1.1 roadmap
 
-Status: Proposed by Checkpoint 54. Checkpoint 55 is committed and pushed;
-Checkpoint 56 is implemented locally and pending human review.
+Status: Proposed by Checkpoint 54. Checkpoints 55 and 56 are committed and
+pushed; Checkpoint 57 is implemented locally and pending human review.
 
 ## Objective and boundaries
 
@@ -44,14 +44,17 @@ merge/overwrite/remap, encrypted bundles, and persistent conversation history.
   this client-only SPA. Checkpoint 55 migrates the pending-review working tree
   to the official v8 package structure with direct `react-router` 8.3.0 and a
   zero-finding npm audit.
-- Checkpoint 56 adds one pending-review `.github/workflows/ci.yml` early signal.
+- Checkpoint 56 adds one committed `.github/workflows/ci.yml` early signal.
   It intentionally excludes database and release-acceptance coverage, so local
-  Full verification remains authoritative. Its first remote run is pending the
-  approved Checkpoint 56 commit and push.
+  Full verification remains authoritative. Its first push run, ID `30806886319`,
+  completed successfully at exact commit `2c4ed449` without rerun or artifact.
 - Existing search contracts return bare `Memory` results. PostgreSQL already
   calculates lexical rank, semantic distance, and deterministic RRF ordering;
   answer evidence already carries bounded lexical/semantic score information.
   The UI does not explain why an individual search result ranked where it did.
+- Checkpoint 57 adds the separate read-only backend route while preserving all
+  legacy response shapes and ordering. It remains pending human review; no
+  Checkpoint 58 frontend work has started.
 - Version 1 project export/import is checksummed, conflict-only, and covered by
   PostgreSQL round-trip tests. Bundles are private but unencrypted. Changing
   their format or import semantics would require separate compatibility and
