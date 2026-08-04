@@ -3,7 +3,8 @@
 Status: Checkpoint 61 complete at `850cfd0a749b5de072b910203ba9906ab5270b40`.
 Checkpoint 62 persistence foundation is complete at
 `3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`; Checkpoint 63 Agent Run state
-machine and API is pending human review; Checkpoint 64 is not started.
+machine and API is complete at `01832a94ae6f80bdacd0cd9301af3f294302e3e8`.
+Checkpoint 64 is pending human review; Checkpoint 65 is not started.
 
 Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. `v1.0.0` remains the pre-V1.1
@@ -125,6 +126,16 @@ Arbitrary shell, Python, SQL, filesystem, HTTP, browser control, Git, dependency
 installation, dynamic imports, provider-selected names, invented tools, and
 unregistered versions are forbidden. The registry fails closed at startup on
 duplicate identities or invalid policy/schema combinations.
+
+Checkpoint 64 implements registry version `agent-tools-v1` with exactly the
+seven version-1 identities `project.get`, `memory.get`,
+`memory.search_explained`, `source.get`, `source_chunk.get`,
+`operations.diagnostics`, and `maintenance.audit`. All definitions are
+`read`/`pure_read`, schema-bounded, safe-allowlist redacted, and limited by the
+captured Run scope and call budget. Provider access is conditional only for
+semantic/hybrid explained search and is restricted to the configured-provider
+boundary; lexical search is network/provider free. Operator aggregates require
+an application-owned capability that defaults denied. No Tool can be invoked.
 
 ## Structured planning contract and budgets
 

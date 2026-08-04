@@ -8,11 +8,11 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.agent_tools.registry import REGISTRY_VERSION
 from app.models.agent_runtime import AgentRun
 from app.repositories import agent_runtime as repository
 from app.schemas.agent_run import AgentRunCreate, AgentRunState
 
-REGISTRY_VERSION = "unavailable"
 POLICY_VERSION = "agent-run-api-v1"
 STEP_BUDGET = 12
 TOOL_CALL_BUDGET = 20

@@ -20,11 +20,14 @@ Checkpoint 61 is complete at `850cfd0a749b5de072b910203ba9906ab5270b40`. Its
 proposed architecture is in [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md), and
 its actionable security requirements are in
 [AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). Checkpoint 62 is complete at
-`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`. Checkpoint 63 adds the exact four
-manual Agent Run create/read/list/cancel operations plus a strict internal state
-machine and is pending human review. Checkpoint 64 is not started. No planning,
-Tool Registry, execution, UI, provider, approval execution, Automation,
-connector, or external behavior exists. Do not mistake an Agent Run
+`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`. Checkpoint 63 is complete at
+`01832a94ae6f80bdacd0cd9301af3f294302e3e8`. Checkpoint 64 adds the private,
+immutable `agent-tools-v1` registry with exactly seven version-1 `read`/
+`pure_read` definitions and a pure fail-closed policy resolver; it is pending
+human review. New Runs capture this version and replayed older Runs retain their
+original value. Checkpoint 65 is not started. No planning, Tool invocation,
+execution, UI, approval execution, Automation, connector, or external behavior
+exists. Do not mistake an Agent Run
 for an Automation: V1.2 Runs are manually
 initiated; Automation is a deferred future trigger that creates a Run.
 
@@ -44,6 +47,6 @@ relevant ADRs. Use Python 3.12 from `.venv` and only the verified
 `second_brain_test` database for integration tests. Never downgrade or recreate
 `second_brain`, and never delete the PostgreSQL volume.
 
-Do not stage, commit, push, open a PR, begin Checkpoint 64, or create another
-tag/Release without explicit instruction. Checkpoint 63 changes must remain
+Do not stage, commit, push, open a PR, begin Checkpoint 65, or create another
+tag/Release without explicit instruction. Checkpoint 64 changes must remain
 unstaged and uncommitted pending human review.

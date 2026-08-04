@@ -22,10 +22,12 @@ remains release-authoritative.
 Checkpoint 61 completed the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
 [threat model](AGENT_THREAT_MODEL.md) at
 `850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 is complete at
-`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`. Checkpoint 63 adds only the manual
-Agent Run create/read/list/cancel API and internal state machine and is pending
-human review. Checkpoint 64 is not started. No planning, Tool Registry, tool
-execution, Agent UI, approval execution, Automation, or connector behavior exists.
+`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`. Checkpoint 63 is complete at
+`01832a94ae6f80bdacd0cd9301af3f294302e3e8`. Checkpoint 64 adds the private,
+immutable `agent-tools-v1` seven-definition read-only registry and pure policy
+resolver and is pending human review. Checkpoint 65 is not started. No planning,
+Tool invocation, Agent UI, approval execution, Automation, or connector behavior
+exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

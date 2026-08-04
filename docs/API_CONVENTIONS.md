@@ -38,6 +38,18 @@ and timestamps. Correlation identity, idempotency/fingerprint hashes, events,
 child entities, metadata, prompts, provider/tool payloads, secrets, SQL, and raw
 exceptions are private. There is no public generic transition route.
 
+New Runs capture the private Tool Registry version `agent-tools-v1`; idempotent
+replay returns the original Run and its original captured version. The registry
+has no public route and contains metadata/schemas only. Policy lookup is exact
+name plus positive integer version and permits only `read` authority. Null Run
+scope is explicit unassigned scope, never unrestricted. Entity reads must apply
+the exact captured scope; `project.get` is denied for null scope. Operator
+aggregate definitions default denied and require an application-owned internal
+capability. Semantic/hybrid explained search may use only the configured
+provider boundary; lexical mode is provider/network free. Captured total budget,
+per-Tool calls, 15-second timeout, and 65,536-byte validated output ceilings can
+only be tightened. No Tool invocation or planning path exists.
+
 ## Explained Memory search
 
 `POST /memories/search/explained` is the only additive explained-search route.

@@ -80,7 +80,7 @@ def test_create_retrieve_replay_and_raw_key_is_not_persisted(
         "started_at",
         "finished_at",
     }
-    assert body["registry_version"] == "unavailable"
+    assert body["registry_version"] == "agent-tools-v1"
     assert body["policy_version"] == "agent-run-api-v1"
     assert (body["step_budget"], body["tool_call_budget"], body["retry_budget"]) == (
         12,
@@ -106,6 +106,28 @@ def test_create_retrieve_replay_and_raw_key_is_not_persisted(
             "new_state": "created",
             "resulting_revision": 0,
         }
+
+
+def test_idempotent_replay_preserves_an_older_captured_registry_version(
+    client: TestClient,
+) -> None:
+    key = "older-registry-replay"
+    created = client.post(
+        "/agent-runs", json=_payload(), headers={"Idempotency-Key": key}
+    )
+    assert created.status_code == 201
+    run_id = uuid.UUID(created.json()["id"])
+    with Session(get_engine()) as session:
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        run.registry_version = "legacy-agent-tools"
+        session.commit()
+
+    replay = client.post(
+        "/agent-runs", json=_payload(), headers={"Idempotency-Key": key}
+    )
+    assert replay.status_code == 200
+    assert replay.json()["registry_version"] == "legacy-agent-tools"
 
 
 def test_changed_payload_reuse_missing_project_and_header_validation(
