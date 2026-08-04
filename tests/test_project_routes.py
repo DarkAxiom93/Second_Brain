@@ -225,6 +225,7 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/agent-runs",
         "/agent-runs/{run_id}",
         "/agent-runs/{run_id}/cancel",
+        "/agent-runs/{run_id}/plan",
         "/answers",
         "/health",
         "/ready",

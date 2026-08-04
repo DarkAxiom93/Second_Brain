@@ -34,14 +34,17 @@ transition service at `01832a94ae6f80bdacd0cd9301af3f294302e3e8`.
 Repositories accept caller-owned
 synchronous sessions and never commit. AgentRun row locks serialize revision and
 event-sequence allocation, and child ownership derives scope from the Run.
-Version-1 Project export/import excludes these tables. Checkpoint 64 adds the immutable
-code-owned `agent-tools-v1` registry and pure fail-closed policy resolver and is
-pending human review. The architecture is in
+Version-1 Project export/import excludes these tables. Checkpoint 64 completed
+the immutable code-owned `agent-tools-v1` registry and pure fail-closed policy
+resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 adds strict
+structured planning and is pending human review. The architecture is in
 [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md) and
-[AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). Exactly four Agent Run operations
-exist: `POST /agent-runs`, `GET /agent-runs`, `GET /agent-runs/{run_id}`, and
-`POST /agent-runs/{run_id}/cancel`. There is no generic transition or child-entity
-API and no planning, Tool invocation/execution, UI, approval execution,
+[AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). The existing four Agent Run
+operations remain unchanged, with two additive plan operations at
+`POST /agent-runs/{run_id}/plan` and `GET /agent-runs/{run_id}/plan`. Planning
+commits its claim before provider latency and validates the whole result before
+atomically freezing pending Steps with `ready`. There is no generic transition
+or child-entity API and no Tool invocation/execution, UI, approval execution,
 Automation, connector, or external behavior. The registry contains exactly
 seven version-1 read-only metadata definitions: `project.get`, `memory.get`,
 `memory.search_explained`, `source.get`, `source_chunk.get`,

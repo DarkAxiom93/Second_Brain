@@ -179,7 +179,7 @@ class AgentStep(Base):
     normalized_input: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, default=dict
     )
-    expected_evidence: Mapped[list[dict[str, Any]]] = mapped_column(
+    expected_evidence: Mapped[list[str]] = mapped_column(
         JSONB, nullable=False, default=list
     )
     success_condition: Mapped[str] = mapped_column(String(1000), nullable=False)

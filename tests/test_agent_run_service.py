@@ -90,13 +90,14 @@ def test_create_schema_rejects_invalid_or_unknown_fields(
         _request(**changes)
 
 
-def test_openapi_adds_exactly_four_safe_agent_run_operations() -> None:
+def test_openapi_exposes_exactly_six_safe_agent_run_operations() -> None:
     schema = TestClient(create_app()).app.openapi()
     paths = schema["paths"]
     assert set(path for path in paths if path.startswith("/agent-runs")) == {
         "/agent-runs",
         "/agent-runs/{run_id}",
         "/agent-runs/{run_id}/cancel",
+        "/agent-runs/{run_id}/plan",
     }
     assert set(paths["/agent-runs"]) == {"get", "post"}
     assert set(paths["/agent-runs/{run_id}"]) == {"get"}

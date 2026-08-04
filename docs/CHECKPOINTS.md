@@ -68,9 +68,9 @@ history. A dash means Alembic had not yet been introduced.
 | 61 | V1.2 Agent roadmap and threat model | Complete | `0009_memory_expiration` | `850cfd0` |
 | 62 | Agent Runtime persistence foundation | Complete | `0010_agent_runtime_persistence` | `3da0cdd` |
 | 63 | Agent Run state machine and API | Complete | `0010_agent_runtime_persistence` | `01832a9` |
-| 64 | Tool Registry and policy enforcement | Pending review | `0010_agent_runtime_persistence` | Pending review |
-| 65 | Structured planning provider | Not started | TBD | - |
-| 66 | Bounded read-only executor | Not started | TBD | - |
+| 64 | Tool Registry and policy enforcement | Complete | `0010_agent_runtime_persistence` | `35950c6` |
+| 65 | Structured planning provider | Pending review | `0010_agent_runtime_persistence` | Pending review |
+| 66 | Bounded read-only executor | Not started | `0010_agent_runtime_persistence` | - |
 | 67 | Idempotency, cancellation, recovery, and failure injection | Not started | TBD | - |
 | 68 | Approval and proposed-action foundation | Not started | TBD | - |
 | 69 | Agent Runs and Approval UI | Not started | TBD | - |

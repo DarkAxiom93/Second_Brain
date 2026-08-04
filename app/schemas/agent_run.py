@@ -60,6 +60,27 @@ class AgentRunCancel(BaseModel):
     expected_revision: Annotated[int, Field(ge=0)]
 
 
+class AgentRunPlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: Annotated[int, Field(ge=0)]
+
+
+class AgentStepRead(BaseModel):
+    """Allowlisted public projection of one frozen planning Step."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    ordinal: int
+    purpose: str
+    tool_name: str
+    tool_version: int
+    normalized_input: dict[str, object]
+    expected_evidence: list[str]
+    success_condition: str
+    stop_condition: str
+
+
 class AgentRunRead(BaseModel):
     """Allowlisted public Run projection."""
 
@@ -98,3 +119,9 @@ class AgentRunRead(BaseModel):
         if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("timestamp must be timezone-aware")
         return value
+
+
+class AgentRunPlanRead(BaseModel):
+    run: AgentRunRead
+    goal_summary: str
+    steps: list[AgentStepRead]

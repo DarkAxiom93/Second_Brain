@@ -23,8 +23,8 @@
 
 ## Agent Runs
 
-The manual lifecycle exposes exactly `POST /agent-runs`, `GET /agent-runs`,
-`GET /agent-runs/{run_id}`, and `POST /agent-runs/{run_id}/cancel`. Creation
+The manual lifecycle exposes those four existing operations plus exactly
+`POST /agent-runs/{run_id}/plan` and `GET /agent-runs/{run_id}/plan`. Creation
 requires a validated `Idempotency-Key`, stores only its SHA-256 hash, binds it to
 a canonical request fingerprint, and atomically appends the sequence-zero event.
 Listing uses SQL filters and `created_at DESC, id DESC`; Project scope and
@@ -48,7 +48,14 @@ aggregate definitions default denied and require an application-owned internal
 capability. Semantic/hybrid explained search may use only the configured
 provider boundary; lexical mode is provider/network free. Captured total budget,
 per-Tool calls, 15-second timeout, and 65,536-byte validated output ceilings can
-only be tightened. No Tool invocation or planning path exists.
+only be tightened.
+
+Planning claims `created` as `planning` in one short committed transaction,
+calls the application-selected configured text provider outside every database
+transaction, validates the complete bounded JSON plan through registry policy,
+then atomically inserts ordered pending Steps and transitions to `ready`.
+Failures store only a stable safe code and no partial Steps. The public plan is
+an allowlisted projection, and planning invokes no Tool.
 
 ## Explained Memory search
 

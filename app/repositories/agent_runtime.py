@@ -139,6 +139,16 @@ def list_agent_steps(
     )
 
 
+def count_agent_steps(session: Session, run_id: uuid.UUID) -> int:
+    """Return the durable plan size without loading private Step rows."""
+
+    count = session.scalar(
+        select(func.count()).select_from(AgentStep).where(AgentStep.run_id == run_id)
+    )
+    assert count is not None
+    return count
+
+
 def reserve_tool_invocation(
     session: Session, invocation: ToolInvocation
 ) -> ToolInvocation:
