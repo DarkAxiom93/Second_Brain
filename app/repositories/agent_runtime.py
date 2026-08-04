@@ -35,6 +35,48 @@ def get_agent_run(session: Session, run_id: uuid.UUID) -> AgentRun | None:
     return session.scalar(select(AgentRun).where(AgentRun.id == run_id))
 
 
+def get_agent_run_by_idempotency_hash(
+    session: Session, idempotency_key_hash: str
+) -> AgentRun | None:
+    return session.scalar(
+        select(AgentRun).where(AgentRun.idempotency_key_hash == idempotency_key_hash)
+    )
+
+
+def get_agent_run_by_idempotency_hash_for_update(
+    session: Session, idempotency_key_hash: str
+) -> AgentRun | None:
+    return session.scalar(
+        select(AgentRun)
+        .where(AgentRun.idempotency_key_hash == idempotency_key_hash)
+        .with_for_update(of=AgentRun)
+    )
+
+
+def list_agent_runs(
+    session: Session,
+    *,
+    project_id: uuid.UUID | None,
+    unassigned: bool,
+    state: str | None,
+    limit: int,
+    offset: int,
+) -> list[AgentRun]:
+    statement = select(AgentRun)
+    if project_id is not None:
+        statement = statement.where(AgentRun.project_id == project_id)
+    elif unassigned:
+        statement = statement.where(AgentRun.project_id.is_(None))
+    if state is not None:
+        statement = statement.where(AgentRun.state == state)
+    statement = (
+        statement.order_by(AgentRun.created_at.desc(), AgentRun.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list(session.scalars(statement).all())
+
+
 def get_agent_run_in_project_scope(
     session: Session, run_id: uuid.UUID, project_id: uuid.UUID | None
 ) -> AgentRun | None:

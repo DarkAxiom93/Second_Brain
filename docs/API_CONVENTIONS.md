@@ -21,6 +21,23 @@
 - Maintain backward compatibility unless the checkpoint explicitly changes the
   contract. API-only work does not require a migration.
 
+## Agent Runs
+
+The manual lifecycle exposes exactly `POST /agent-runs`, `GET /agent-runs`,
+`GET /agent-runs/{run_id}`, and `POST /agent-runs/{run_id}/cancel`. Creation
+requires a validated `Idempotency-Key`, stores only its SHA-256 hash, binds it to
+a canonical request fingerprint, and atomically appends the sequence-zero event.
+Listing uses SQL filters and `created_at DESC, id DESC`; Project scope and
+explicit unassigned scope never widen each other. Cancellation locks the Run,
+checks its monotonic revision, and atomically appends one event; replay of an
+already cancelled Run is unchanged.
+
+The public projection is limited to Run identity/scope, agent and policy
+versions, bounded goal and budgets, state/deadlines/revision, safe error code,
+and timestamps. Correlation identity, idempotency/fingerprint hashes, events,
+child entities, metadata, prompts, provider/tool payloads, secrets, SQL, and raw
+exceptions are private. There is no public generic transition route.
+
 ## Explained Memory search
 
 `POST /memories/search/explained` is the only additive explained-search route.

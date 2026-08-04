@@ -26,17 +26,20 @@ search responses and version-1 export/import remain compatible. No V1.1
 migration is proposed.
 
 Checkpoint 61 completed the documentation-only Local V1.2 Agent architecture at
-`850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 adds only the durable
-five-table persistence foundation (`agent_runs`, `agent_steps`,
-`tool_invocations`, `approval_requests`, and append-oriented `agent_events`) in
-`0010_agent_runtime_persistence`; it is pending human review. Repositories accept
-caller-owned synchronous sessions and never commit. AgentRun row locks serialize
-revision and event-sequence allocation, and child ownership derives scope from
-the Run. Version-1 Project export/import excludes these tables. The architecture is in
+`850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 completed the durable
+five-table persistence foundation at
+`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`. Checkpoint 63 adds the manually
+initiated Agent Run create/retrieve/list/cancel API and strict internal state
+transition service and is pending human review. Repositories accept caller-owned
+synchronous sessions and never commit. AgentRun row locks serialize revision and
+event-sequence allocation, and child ownership derives scope from the Run.
+Version-1 Project export/import excludes these tables. The architecture is in
 [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md) and
-[AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). Checkpoint 63 is not started and
-no Agent Runtime, API, UI, provider, tool, approval execution, Automation, or
-external behavior exists. The proposed boundary
+[AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). Exactly four Agent Run operations
+exist: `POST /agent-runs`, `GET /agent-runs`, `GET /agent-runs/{run_id}`, and
+`POST /agent-runs/{run_id}/cancel`. There is no generic transition or child-entity
+API and no planning, Tool Registry, execution, UI, approval execution,
+Automation, provider, connector, or external behavior. The boundary
 separates a manually initiated durable Agent Run from a future Automation that
 would trigger a Run. Initial authority is read-only: models cannot grant
 authority, tools are code-owned/versioned/schema-bounded, proposals require

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.api.routes.agent_runs import router as agent_runs_router
 from app.api.routes.answers import router as answers_router
 from app.api.routes.health import router as health_router
 from app.api.routes.memories import router as memories_router
@@ -14,6 +15,7 @@ from app.api.routes.sources import document_router
 from app.api.routes.sources import router as sources_router
 
 api_router = APIRouter()
+api_router.include_router(agent_runs_router)
 api_router.include_router(answers_router)
 api_router.include_router(health_router)
 api_router.include_router(readiness_router)

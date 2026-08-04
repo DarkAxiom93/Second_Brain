@@ -222,6 +222,9 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
     client, _ = route_client
     paths = client.app.openapi()["paths"]
     assert set(paths) == {
+        "/agent-runs",
+        "/agent-runs/{run_id}",
+        "/agent-runs/{run_id}/cancel",
         "/answers",
         "/health",
         "/ready",

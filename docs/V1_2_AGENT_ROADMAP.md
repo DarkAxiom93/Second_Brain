@@ -1,8 +1,9 @@
 # Local V1.2 agent roadmap
 
 Status: Checkpoint 61 complete at `850cfd0a749b5de072b910203ba9906ab5270b40`.
-Checkpoint 62 persistence foundation is pending human review; Checkpoint 63 is
-not started.
+Checkpoint 62 persistence foundation is complete at
+`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`; Checkpoint 63 Agent Run state
+machine and API is pending human review; Checkpoint 64 is not started.
 
 Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. `v1.0.0` remains the pre-V1.1

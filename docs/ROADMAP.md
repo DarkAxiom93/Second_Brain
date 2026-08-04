@@ -21,10 +21,11 @@ remains release-authoritative.
 
 Checkpoint 61 completed the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
 [threat model](AGENT_THREAT_MODEL.md) at
-`850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 adds only the five
-durable persistence entities and is pending human review. Checkpoint 63 is not
-started; no V1.2 Agent Runtime orchestration, API, UI, provider, Tool Registry,
-tool call, approval execution, Automation, or external behavior exists.
+`850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 is complete at
+`3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`. Checkpoint 63 adds only the manual
+Agent Run create/read/list/cancel API and internal state machine and is pending
+human review. Checkpoint 64 is not started. No planning, Tool Registry, tool
+execution, Agent UI, approval execution, Automation, or connector behavior exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,
