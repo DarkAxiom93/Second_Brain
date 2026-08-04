@@ -8,7 +8,7 @@ Local V1 is published as `v1.0.0` from
 `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32` and remains the pre-V1.1 recovery
 point. Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 60 is complete at that
-commit. The sole current Alembic head is `0009_memory_expiration`, and Project
+commit. The sole current Alembic head is `0010_agent_runtime_persistence`, and Project
 export remains `second-brain-project-export` version 1.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
@@ -19,10 +19,12 @@ remains release-authoritative.
 
 ## Local V1.2 proposal
 
-Checkpoint 61 defines the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
-[threat model](AGENT_THREAT_MODEL.md). It remains pending human review.
-Checkpoint 62 is not started, and no V1.2 Agent Runtime, persistence, API, UI,
-provider, tool executor, approval foundation, or agent currently exists.
+Checkpoint 61 completed the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
+[threat model](AGENT_THREAT_MODEL.md) at
+`850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 adds only the five
+durable persistence entities and is pending human review. Checkpoint 63 is not
+started; no V1.2 Agent Runtime orchestration, API, UI, provider, Tool Registry,
+tool call, approval execution, Automation, or external behavior exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

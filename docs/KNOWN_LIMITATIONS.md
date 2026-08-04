@@ -1,15 +1,16 @@
 # Published Local V1.1 and proposed V1.2 known limitations
 
 Local V1.1 is published as `v1.1.0` from
-`88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 only proposes the
-V1.2 Agent roadmap and remains pending human review. Checkpoint 62 is not
-started; none of the proposed Agent functionality exists yet.
+`88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
+`850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 adds only the five
+Agent persistence tables and repository primitives and is pending human review;
+Checkpoint 63 is not started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
 - Cloud deployment, synchronization, remote access, and multi-device state are
   unavailable.
-- There is no Agent Runtime, Agent Run persistence/API/UI, Tool Registry,
+- There is no Agent Runtime orchestration, Agent Run API/UI, Tool Registry,
   structured planner/executor, Approval foundation, Research Agent, or Memory
   Curator Agent in the current application.
 - There are no scheduled jobs, background workers, autonomous agents, or

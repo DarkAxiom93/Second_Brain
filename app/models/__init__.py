@@ -1,5 +1,12 @@
 """Application persistence models."""
 
+from app.models.agent_runtime import (
+    AgentEvent,
+    AgentRun,
+    AgentStep,
+    ApprovalRequest,
+    ToolInvocation,
+)
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.models.memory_extraction_run import MemoryExtractionRun
@@ -11,6 +18,10 @@ from app.models.source_chunk import SourceChunk
 from app.models.source_document import SourceDocument
 
 __all__ = [
+    "AgentEvent",
+    "AgentRun",
+    "AgentStep",
+    "ApprovalRequest",
     "Memory",
     "MemoryEmbedding",
     "MemoryExtractionRun",
@@ -20,4 +31,5 @@ __all__ = [
     "Source",
     "SourceChunk",
     "SourceDocument",
+    "ToolInvocation",
 ]

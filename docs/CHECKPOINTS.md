@@ -65,8 +65,8 @@ history. A dash means Alembic had not yet been introduced.
 | 58 | Explained search frontend and accessibility | Complete | `0009_memory_expiration` | `ccef163` |
 | 59 | Local V1.1 end-to-end acceptance | Complete | `0009_memory_expiration` | `42fdfc8` |
 | 60 | Local V1.1 documentation and release hardening | Complete | `0009_memory_expiration` | `88dffa9` |
-| 61 | V1.2 Agent roadmap and threat model | Pending review | `0009_memory_expiration` | Pending review |
-| 62 | Agent Runtime persistence foundation | Not started | TBD | - |
+| 61 | V1.2 Agent roadmap and threat model | Complete | `0009_memory_expiration` | `850cfd0` |
+| 62 | Agent Runtime persistence foundation | Pending review | `0010_agent_runtime_persistence` | Pending review |
 | 63 | Agent Run state machine and API | Not started | TBD | - |
 | 64 | Tool Registry and policy enforcement | Not started | TBD | - |
 | 65 | Structured planning provider | Not started | TBD | - |

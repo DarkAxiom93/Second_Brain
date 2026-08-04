@@ -34,6 +34,11 @@ def test_metadata_contains_only_approved_tables() -> None:
         "source_chunks",
         "memory_extraction_runs",
         "memory_proposals",
+        "agent_runs",
+        "agent_steps",
+        "tool_invocations",
+        "approval_requests",
+        "agent_events",
     }
 
 

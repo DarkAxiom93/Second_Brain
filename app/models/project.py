@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.agent_runtime import AgentRun
     from app.models.memory import Memory
     from app.models.memory_extraction_run import MemoryExtractionRun
     from app.models.memory_proposal import MemoryProposal
@@ -51,3 +52,4 @@ class Project(Base):
     memory_proposals: Mapped[list["MemoryProposal"]] = relationship(
         back_populates="project", passive_deletes=True
     )
+    agent_runs: Mapped[list["AgentRun"]] = relationship(passive_deletes=True)

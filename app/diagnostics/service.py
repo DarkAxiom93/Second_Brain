@@ -12,7 +12,7 @@ from sqlalchemy.engine import URL, make_url
 from app.core.config import Settings
 from app.diagnostics.models import DiagnosticCheck
 
-EXPECTED_HEAD = "0009_memory_expiration"
+EXPECTED_HEAD = "0010_agent_runtime_persistence"
 EXPECTED_HOST = "127.0.0.1"
 EXPECTED_PORT = 5433
 MIN_POSTGRESQL_VERSION = 16
@@ -27,6 +27,11 @@ REQUIRED_TABLES = (
     "source_chunks",
     "memory_extraction_runs",
     "memory_proposals",
+    "agent_runs",
+    "agent_steps",
+    "tool_invocations",
+    "approval_requests",
+    "agent_events",
 )
 COUNT_TABLES = {
     "Projects": "projects",

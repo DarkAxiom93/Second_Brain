@@ -1,12 +1,13 @@
 # Local V1.2 agent roadmap
 
-Status: proposed by Checkpoint 61 and pending human review. Checkpoint 62 is not
-started. This document authorizes no implementation.
+Status: Checkpoint 61 complete at `850cfd0a749b5de072b910203ba9906ab5270b40`.
+Checkpoint 62 persistence foundation is pending human review; Checkpoint 63 is
+not started.
 
 Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. `v1.0.0` remains the pre-V1.1
 recovery point. The sole current Alembic head remains
-`0009_memory_expiration`, and Project export remains
+`0010_agent_runtime_persistence`, and Project export remains
 `second-brain-project-export` version 1.
 
 ## Product boundary

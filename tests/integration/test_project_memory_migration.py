@@ -39,7 +39,7 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0009_memory_expiration"
+    assert revision == "0010_agent_runtime_persistence"
     assert tables == {
         "alembic_version",
         "projects",
@@ -51,6 +51,11 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
         "source_chunks",
         "memory_extraction_runs",
         "memory_proposals",
+        "agent_runs",
+        "agent_steps",
+        "tool_invocations",
+        "approval_requests",
+        "agent_events",
     }
 
 
