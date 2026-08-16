@@ -314,6 +314,7 @@ def search_memories_explained(
     mode: str,
     query_vector: list[float] | None = None,
     project_id: uuid.UUID | None = None,
+    unassigned_only: bool = False,
     memory_type: MemoryType | None = None,
     status: MemoryStatus | None = None,
     importance_min: float | None = None,
@@ -330,7 +331,7 @@ def search_memories_explained(
     """Return one SQL-filtered, ranked, fused, and paginated explained page."""
 
     def apply_filters(statement: Select[tuple[Memory]]) -> Select[tuple[Memory]]:
-        return _apply_structured_filters(
+        filtered = _apply_structured_filters(
             statement,
             project_id=project_id,
             memory_type=memory_type,
@@ -344,6 +345,9 @@ def search_memories_explained(
             created_at_from=created_at_from,
             created_at_to=created_at_to,
         )
+        if unassigned_only:
+            filtered = filtered.where(Memory.project_id.is_(None))
+        return filtered
 
     search_query, lexical_score, lexical_order = _lexical_ranking(query)
     lexical = apply_filters(

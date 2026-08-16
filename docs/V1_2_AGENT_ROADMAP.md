@@ -5,7 +5,11 @@ Checkpoint 62 persistence foundation is complete at
 `3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`; Checkpoint 63 Agent Run state
 machine and API is complete at `01832a94ae6f80bdacd0cd9301af3f294302e3e8`.
 Checkpoint 64 is complete at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`.
-Checkpoint 65 is pending human review; Checkpoint 66 is not started.
+Checkpoint 65 is complete at `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`.
+Checkpoint 66 adds the bounded read-only executor and is pending human review;
+Checkpoint 67 is not started. The security remediation base is
+`ad3c143a568be7c09a73b170f2b5be6347a27a40` with successful CI run
+`31950242783`.
 
 Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. `v1.0.0` remains the pre-V1.1

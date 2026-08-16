@@ -20,17 +20,21 @@ from app.agent_planning.provider import (
     PlanningProviderTimeoutError,
     PlanningProviderUnavailableError,
 )
-from app.agent_runs import service
+from app.agent_runs import executor, service
 from app.db.dependencies import get_db_session
-from app.models.agent_runtime import AgentRun, AgentStep
+from app.embeddings import EmbeddingProvider, get_embedding_provider
+from app.models.agent_runtime import AgentRun, AgentStep, ToolInvocation
 from app.repositories import agent_runtime as repository
 from app.schemas.agent_run import (
     AgentRunCancel,
     AgentRunCreate,
+    AgentRunExecuteRequest,
+    AgentRunExecutionRead,
     AgentRunPlanRead,
     AgentRunPlanRequest,
     AgentRunRead,
     AgentRunState,
+    AgentStepExecutionRead,
     AgentStepRead,
 )
 
@@ -43,6 +47,10 @@ def planning_provider_resolver() -> Callable[[], PlanningProvider]:
 
 def configured_provider_availability() -> Callable[[], bool]:
     return configured_embedding_provider_available
+
+
+def embedding_provider_resolver() -> Callable[[], EmbeddingProvider]:
+    return get_embedding_provider
 
 
 def _error(status_code: int, detail: str) -> HTTPException:
@@ -190,6 +198,167 @@ def _plan_projection(run: AgentRun, steps: list[AgentStep]) -> AgentRunPlanRead:
             for step in steps
         ],
     )
+
+
+def _execution_projection(
+    run: AgentRun, steps: list[AgentStep], invocations: list[ToolInvocation]
+) -> AgentRunExecutionRead:
+    by_step = {item.step_id: item for item in invocations}
+    return AgentRunExecutionRead(
+        run=AgentRunRead.model_validate(run),
+        steps=[
+            AgentStepExecutionRead(
+                ordinal=step.ordinal,
+                purpose=step.purpose,
+                tool_name=step.tool_name or "",
+                tool_version=int(step.tool_version or "0"),
+                status=step.status,
+                invocation_status=(
+                    None if step.id not in by_step else by_step[step.id].status
+                ),
+                safe_result_summary=(
+                    None
+                    if step.id not in by_step
+                    else by_step[step.id].safe_result_summary
+                ),
+                evidence_references=(
+                    []
+                    if step.id not in by_step
+                    else by_step[step.id].evidence_references
+                ),
+                safe_error_code=(
+                    None if step.id not in by_step else by_step[step.id].safe_error_code
+                ),
+            )
+            for step in steps
+        ],
+    )
+
+
+def _load_execution(session: Session, run_id: uuid.UUID) -> AgentRunExecutionRead:
+    run = repository.get_agent_run(session, run_id)
+    if run is None:
+        raise service.AgentRunNotFoundError
+    steps = repository.list_agent_steps(session, run_id, limit=13)
+    invocations = repository.list_step_invocations(session, run_id)
+    return _execution_projection(run, steps, list(invocations))
+
+
+@router.get("/{run_id}/execution", response_model=AgentRunExecutionRead)
+def get_agent_run_execution(
+    run_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> AgentRunExecutionRead:
+    try:
+        return _load_execution(session, run_id)
+    except service.AgentRunNotFoundError:
+        raise _error(status.HTTP_404_NOT_FOUND, "agent run not found") from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
+
+
+@router.post("/{run_id}/execute", response_model=AgentRunExecutionRead)
+def execute_agent_run(
+    run_id: uuid.UUID,
+    request: AgentRunExecuteRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+    resolve_provider: Annotated[
+        Callable[[], EmbeddingProvider], Depends(embedding_provider_resolver)
+    ],
+    provider_available: Annotated[
+        Callable[[], bool], Depends(configured_provider_availability)
+    ],
+) -> AgentRunExecutionRead:
+    """Claim and synchronously execute one complete frozen read-only plan."""
+
+    try:
+        claim = executor.claim_execution(
+            session, run_id, expected_revision=request.expected_revision
+        )
+        session.commit()
+    except service.AgentRunNotFoundError:
+        session.rollback()
+        raise _error(status.HTTP_404_NOT_FOUND, "agent run not found") from None
+    except service.AgentRunRevisionConflictError:
+        session.rollback()
+        raise _error(status.HTTP_409_CONFLICT, "agent run revision conflict") from None
+    except executor.ExecutionRegistryVersionError:
+        session.rollback()
+        raise _error(
+            status.HTTP_409_CONFLICT, "agent run registry version unsupported"
+        ) from None
+    except executor.ExecutionPlanInvalidError:
+        session.rollback()
+        raise _error(status.HTTP_409_CONFLICT, "agent run plan invalid") from None
+    except service.AgentRunTransitionConflictError:
+        session.rollback()
+        raise _error(
+            status.HTTP_409_CONFLICT, "agent run transition conflict"
+        ) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
+
+    while True:
+        try:
+            reserved = executor.reserve_next(
+                session, claim, provider_available=provider_available()
+            )
+            session.commit()
+        except (executor.ExecutionPlanInvalidError, SQLAlchemyError):
+            session.rollback()
+            raise _error(
+                status.HTTP_503_SERVICE_UNAVAILABLE, "execution unavailable"
+            ) from None
+        if reserved is None:
+            break
+        step, invocation, timeout_seconds = reserved
+        step_id = step.id
+        invocation_id = invocation.id
+        output, safe_error = executor.call_reserved_tool(
+            session,
+            claim,
+            step,
+            invocation,
+            timeout_seconds,
+            resolve_provider,
+        )
+        # End the read Tool's transaction before entering finalization.
+        session.rollback()
+        try:
+            succeeded = executor.finalize_invocation(
+                session,
+                claim,
+                step_id=step_id,
+                invocation_id=invocation_id,
+                output=output,
+                safe_error_code=safe_error,
+            )
+            session.commit()
+        except SQLAlchemyError:
+            session.rollback()
+            raise _error(
+                status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+            ) from None
+        if not succeeded:
+            break
+
+    try:
+        completed = executor.complete_run(session, claim)
+        session.commit()
+        if completed is not None:
+            session.refresh(completed)
+        return _load_execution(session, run_id)
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
 
 
 @router.get("/{run_id}/plan", response_model=AgentRunPlanRead)

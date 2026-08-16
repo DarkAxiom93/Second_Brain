@@ -36,20 +36,28 @@ synchronous sessions and never commit. AgentRun row locks serialize revision and
 event-sequence allocation, and child ownership derives scope from the Run.
 Version-1 Project export/import excludes these tables. Checkpoint 64 completed
 the immutable code-owned `agent-tools-v1` registry and pure fail-closed policy
-resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 adds strict
-structured planning and is pending human review. The architecture is in
+resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 completed
+strict structured planning at `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`.
+Checkpoint 66 adds synchronous ordered execution through exactly five scoped
+application-owned reads and is pending human review. The architecture is in
 [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md) and
 [AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). The existing four Agent Run
 operations remain unchanged, with two additive plan operations at
 `POST /agent-runs/{run_id}/plan` and `GET /agent-runs/{run_id}/plan`. Planning
 commits its claim before provider latency and validates the whole result before
 atomically freezing pending Steps with `ready`. There is no generic transition
-or child-entity API and no Tool invocation/execution, UI, approval execution,
+or child-entity API. Execution is exposed only at
+`POST /agent-runs/{run_id}/execute` with its bounded projection at
+`GET /agent-runs/{run_id}/execution`; there is no UI, approval execution,
 Automation, connector, or external behavior. The registry contains exactly
 seven version-1 read-only metadata definitions: `project.get`, `memory.get`,
 `memory.search_explained`, `source.get`, `source_chunk.get`,
 `operations.diagnostics`, and `maintenance.audit`. New Runs capture
-`agent-tools-v1`; existing Runs retain their captured value. The boundary
+`agent-tools-v1`; existing Runs retain their captured value. Only the first five
+entity/search reads are executable by Runs; both operator aggregates remain
+denied. Execution revalidates policy before each reservation, releases all Run
+locks across Tool latency, and persists only safe summaries and evidence
+references. The boundary
 separates a manually initiated durable Agent Run from a future Automation that
 would trigger a Run. Initial authority is read-only: models cannot grant
 authority, tools are code-owned/versioned/schema-bounded, proposals require

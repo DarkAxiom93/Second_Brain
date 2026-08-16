@@ -24,7 +24,9 @@
 ## Agent Runs
 
 The manual lifecycle exposes those four existing operations plus exactly
-`POST /agent-runs/{run_id}/plan` and `GET /agent-runs/{run_id}/plan`. Creation
+`POST /agent-runs/{run_id}/plan`, `GET /agent-runs/{run_id}/plan`,
+`POST /agent-runs/{run_id}/execute`, and
+`GET /agent-runs/{run_id}/execution`. Creation
 requires a validated `Idempotency-Key`, stores only its SHA-256 hash, binds it to
 a canonical request fingerprint, and atomically appends the sequence-zero event.
 Listing uses SQL filters and `created_at DESC, id DESC`; Project scope and
@@ -56,6 +58,16 @@ transaction, validates the complete bounded JSON plan through registry policy,
 then atomically inserts ordered pending Steps and transitions to `ready`.
 Failures store only a stable safe code and no partial Steps. The public plan is
 an allowlisted projection, and planning invokes no Tool.
+
+Execution claims a complete frozen `ready` plan in one short transaction, then
+reserves, invokes, and finalizes one ordered Step at a time without holding the
+Run lock across Tool latency. Policy is revalidated from persisted state before
+every call. Only the exact version-1 `project.get`, `memory.get`,
+`memory.search_explained`, `source.get`, and `source_chunk.get` read Tools are
+executable; operator aggregates remain denied. Successful output is strictly
+validated and size-bounded, then reduced to a safe summary and typed evidence
+references. No propose/write authority, retry, recovery worker, or scheduler is
+available.
 
 ## Explained Memory search
 

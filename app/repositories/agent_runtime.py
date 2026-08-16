@@ -139,6 +139,27 @@ def list_agent_steps(
     )
 
 
+def list_agent_steps_for_update(session: Session, run_id: uuid.UUID) -> list[AgentStep]:
+    return list(
+        session.scalars(
+            select(AgentStep)
+            .where(AgentStep.run_id == run_id)
+            .order_by(AgentStep.ordinal.asc(), AgentStep.id.asc())
+            .with_for_update(of=AgentStep)
+        ).all()
+    )
+
+
+def get_agent_step_for_update(
+    session: Session, run_id: uuid.UUID, step_id: uuid.UUID
+) -> AgentStep | None:
+    return session.scalar(
+        select(AgentStep)
+        .where(AgentStep.id == step_id, AgentStep.run_id == run_id)
+        .with_for_update(of=AgentStep)
+    )
+
+
 def count_agent_steps(session: Session, run_id: uuid.UUID) -> int:
     """Return the durable plan size without loading private Step rows."""
 
@@ -173,6 +194,42 @@ def get_tool_invocation(
         select(ToolInvocation).where(
             ToolInvocation.id == invocation_id, ToolInvocation.run_id == run_id
         )
+    )
+
+
+def get_tool_invocation_for_update(
+    session: Session, run_id: uuid.UUID, invocation_id: uuid.UUID
+) -> ToolInvocation | None:
+    return session.scalar(
+        select(ToolInvocation)
+        .where(ToolInvocation.id == invocation_id, ToolInvocation.run_id == run_id)
+        .with_for_update(of=ToolInvocation)
+    )
+
+
+def count_tool_invocations(
+    session: Session, run_id: uuid.UUID, *, tool_name: str | None = None
+) -> int:
+    statement = (
+        select(func.count())
+        .select_from(ToolInvocation)
+        .where(ToolInvocation.run_id == run_id)
+    )
+    if tool_name is not None:
+        statement = statement.where(ToolInvocation.tool_name == tool_name)
+    count = session.scalar(statement)
+    assert count is not None
+    return count
+
+
+def list_step_invocations(session: Session, run_id: uuid.UUID) -> list[ToolInvocation]:
+    return list(
+        session.scalars(
+            select(ToolInvocation)
+            .join(AgentStep, AgentStep.id == ToolInvocation.step_id)
+            .where(ToolInvocation.run_id == run_id)
+            .order_by(AgentStep.ordinal.asc(), ToolInvocation.attempt.asc())
+        ).all()
     )
 
 

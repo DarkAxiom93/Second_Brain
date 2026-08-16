@@ -26,9 +26,11 @@ Checkpoint 61 completed the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) an
 `01832a94ae6f80bdacd0cd9301af3f294302e3e8`. Checkpoint 64 completed the private,
 immutable `agent-tools-v1` seven-definition read-only registry and pure policy
 resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 adds bounded
-structured planning and is pending human review. Checkpoint 66 is not started.
-No Tool invocation, Agent UI, approval execution, Automation, or connector
-behavior exists.
+structured planning and is complete at
+`1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`. Checkpoint 66 adds synchronous,
+ordered execution through exactly five scoped application reads and is pending
+human review. Checkpoint 67 is not started. No Agent UI, approval execution,
+Automation, connector, propose, or write behavior exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

@@ -299,7 +299,7 @@ def test_cancellation_during_provider_latency_wins_and_discards_result() -> None
         assert session.scalar(select(func.count()).select_from(AgentStep)) == 0
 
 
-def test_openapi_has_exactly_the_two_new_plan_operations() -> None:
+def test_openapi_has_exactly_the_agent_run_operations_through_checkpoint_66() -> None:
     schema = create_app().openapi()
     agent_operations = {
         (path, method)
@@ -314,4 +314,6 @@ def test_openapi_has_exactly_the_two_new_plan_operations() -> None:
         ("/agent-runs/{run_id}/cancel", "post"),
         ("/agent-runs/{run_id}/plan", "get"),
         ("/agent-runs/{run_id}/plan", "post"),
+        ("/agent-runs/{run_id}/execute", "post"),
+        ("/agent-runs/{run_id}/execution", "get"),
     }

@@ -66,6 +66,12 @@ class AgentRunPlanRequest(BaseModel):
     expected_revision: Annotated[int, Field(ge=0)]
 
 
+class AgentRunExecuteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: Annotated[int, Field(ge=0)]
+
+
 class AgentStepRead(BaseModel):
     """Allowlisted public projection of one frozen planning Step."""
 
@@ -125,3 +131,20 @@ class AgentRunPlanRead(BaseModel):
     run: AgentRunRead
     goal_summary: str
     steps: list[AgentStepRead]
+
+
+class AgentStepExecutionRead(BaseModel):
+    ordinal: int
+    purpose: str
+    tool_name: str
+    tool_version: int
+    status: str
+    invocation_status: str | None
+    safe_result_summary: str | None
+    evidence_references: list[dict[str, object]]
+    safe_error_code: str | None
+
+
+class AgentRunExecutionRead(BaseModel):
+    run: AgentRunRead
+    steps: list[AgentStepExecutionRead]

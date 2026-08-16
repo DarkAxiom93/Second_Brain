@@ -484,6 +484,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/agent-runs/{run_id}",
         "/agent-runs/{run_id}/cancel",
         "/agent-runs/{run_id}/plan",
+        "/agent-runs/{run_id}/execute",
+        "/agent-runs/{run_id}/execution",
         "/answers",
         "/health",
         "/ready",
