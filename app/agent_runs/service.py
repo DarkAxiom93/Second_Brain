@@ -272,11 +272,38 @@ def cancel_run(
         raise AgentRunTransitionConflictError
     if run.revision != expected_revision:
         raise AgentRunRevisionConflictError
+    operation_time = now or utc_now()
+    steps = repository.list_agent_steps_for_update(session, run.id)
+    invocations = repository.list_step_invocations_for_update(session, run.id)
+    for invocation in invocations:
+        if invocation.status in {"reserved", "running"}:
+            invocation.status = "discarded"
+            invocation.safe_error_code = "cancellation_discard"
+            invocation.finished_at = operation_time
+            if invocation.started_at is None:
+                invocation.started_at = operation_time
+            repository.append_agent_event(
+                session,
+                run_id=run.id,
+                invocation_id=invocation.id,
+                event_type="tool_invocation.discarded",
+                safe_code="cancellation_discard",
+                safe_message="tool invocation discarded",
+                metadata={"status": "discarded"},
+                correlation_id=run.correlation_id,
+                occurred_at=operation_time,
+            )
+    for step in steps:
+        if step.status in {"pending", "running"}:
+            step.status = "cancelled"
+            if step.started_at is None:
+                step.started_at = operation_time
+            step.finished_at = operation_time
     return transition_run(
         session,
         run_id,
         expected_state=current_state,
         expected_revision=expected_revision,
         new_state=AgentRunState.CANCELLED,
-        now=now,
+        now=operation_time,
     )

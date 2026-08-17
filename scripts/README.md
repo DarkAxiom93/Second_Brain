@@ -98,6 +98,15 @@ probes. It returns zero only when all required checks pass. Warnings do not
 cause failure. Database work is transaction-enforced read-only; provider
 configuration is inspected without provider resolution or network calls.
 
+## Agent Run recovery
+
+`recover-agent-run.ps1` with no arguments performs a bounded read-only stale
+scan and prints only safe Run IDs, states, classifications, ordinals/attempts,
+and timestamps. Supply exactly one `-RunId <uuid>` to synchronously reconcile
+that Run. There is no bulk mutation, automatic startup invocation, worker,
+scheduler, lease, or background recovery. The command accepts only the live
+verified `second_brain` database on `127.0.0.1`.
+
 ## Retrieval evaluation
 
 `evaluate-retrieval.ps1` runs the deterministic, transaction-rolled-back

@@ -70,8 +70,8 @@ history. A dash means Alembic had not yet been introduced.
 | 63 | Agent Run state machine and API | Complete | `0010_agent_runtime_persistence` | `01832a9` |
 | 64 | Tool Registry and policy enforcement | Complete | `0010_agent_runtime_persistence` | `35950c6` |
 | 65 | Structured planning provider | Complete | `0010_agent_runtime_persistence` | `1b32d91` |
-| 66 | Bounded read-only executor | Pending review | `0010_agent_runtime_persistence` | Pending review |
-| 67 | Idempotency, cancellation, recovery, and failure injection | Not started | TBD | - |
+| 66 | Bounded read-only executor | Complete | `0010_agent_runtime_persistence` | `d4a3533` |
+| 67 | Idempotency, cancellation, recovery, and failure injection | Pending review | `0010_agent_runtime_persistence` | Pending review |
 | 68 | Approval and proposed-action foundation | Not started | TBD | - |
 | 69 | Agent Runs and Approval UI | Not started | TBD | - |
 | 70 | Read-only Research Agent | Not started | TBD | - |

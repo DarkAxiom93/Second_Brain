@@ -29,7 +29,10 @@ resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 adds bound
 structured planning and is complete at
 `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`. Checkpoint 66 adds synchronous,
 ordered execution through exactly five scoped application reads and is pending
-human review. Checkpoint 67 is not started. No Agent UI, approval execution,
+human review at `d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 adds
+one safe-read retry, deterministic cancellation/deadline reconciliation, and
+explicit synchronous operator recovery and is pending human review. Checkpoint
+68 is not started. No Agent UI, approval execution,
 Automation, connector, propose, or write behavior exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs

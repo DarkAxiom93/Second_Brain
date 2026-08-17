@@ -233,6 +233,31 @@ def list_step_invocations(session: Session, run_id: uuid.UUID) -> list[ToolInvoc
     )
 
 
+def list_step_invocations_for_update(
+    session: Session, run_id: uuid.UUID
+) -> list[ToolInvocation]:
+    return list(
+        session.scalars(
+            select(ToolInvocation)
+            .join(AgentStep, AgentStep.id == ToolInvocation.step_id)
+            .where(ToolInvocation.run_id == run_id)
+            .order_by(AgentStep.ordinal.asc(), ToolInvocation.attempt.asc())
+            .with_for_update(of=ToolInvocation)
+        ).all()
+    )
+
+
+def list_nonterminal_agent_runs(session: Session, *, limit: int) -> list[AgentRun]:
+    return list(
+        session.scalars(
+            select(AgentRun)
+            .where(AgentRun.state.in_(("created", "planning", "ready", "running")))
+            .order_by(AgentRun.created_at.asc(), AgentRun.id.asc())
+            .limit(limit)
+        ).all()
+    )
+
+
 def insert_approval_request(
     session: Session, approval: ApprovalRequest
 ) -> ApprovalRequest:

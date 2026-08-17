@@ -5,8 +5,10 @@ Local V1.1 is published as `v1.1.0` from
 `850cfd0a749b5de072b910203ba9906ab5270b40`. Checkpoint 62 is complete at
 `3da0cdd875dc8af7a60fd8af5b6f9878be5a769a`; Checkpoint 63 is complete at
 `01832a94ae6f80bdacd0cd9301af3f294302e3e8`. Checkpoint 64 is complete at
-`35950c60fd842a4ad022f130a3074ce8d21d9bbc`, Checkpoint 65 is pending human
-review, and Checkpoint 66 is not started.
+`35950c60fd842a4ad022f130a3074ce8d21d9bbc`, Checkpoint 65 is complete at
+`1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`, and Checkpoint 66 is complete at
+`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 is pending human
+review; Checkpoint 68 is not started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -14,8 +16,9 @@ review, and Checkpoint 66 is not started.
   unavailable.
 - The Agent Run API supports manual create/read/list/cancel and strict frozen
   planning. A private seven-definition `agent-tools-v1` registry and pure policy
-  resolver exist, but there is no Tool invocation, executor, Agent UI, Approval
-  execution, Research Agent, or Memory Curator Agent.
+  resolver and bounded five-Tool read executor exist. Execution has at most one
+  global classified safe-read retry and explicit synchronous recovery. There is
+  no Agent UI, Approval execution, Research Agent, or Memory Curator Agent.
 - There are no scheduled jobs, background workers, autonomous agents, or
   Automations. An Automation is deferred and would be a trigger that creates an
   Agent Run, not the Run itself.

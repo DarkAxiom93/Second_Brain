@@ -38,8 +38,14 @@ Version-1 Project export/import excludes these tables. Checkpoint 64 completed
 the immutable code-owned `agent-tools-v1` registry and pure fail-closed policy
 resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 completed
 strict structured planning at `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`.
-Checkpoint 66 adds synchronous ordered execution through exactly five scoped
-application-owned reads and is pending human review. The architecture is in
+Checkpoint 66 completed synchronous ordered execution through exactly five
+scoped application-owned reads at
+`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 adds a closed retry
+classifier, at most one global safe-read retry, terminal execution replay,
+deadline/cancellation reconciliation, stale detection, and one explicit
+synchronous operator recovery command and is pending human review. Recovery is
+never automatic; there is no worker, scheduler, lease, heartbeat, or startup
+recovery. The architecture is in
 [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md) and
 [AGENT_THREAT_MODEL.md](AGENT_THREAT_MODEL.md). The existing four Agent Run
 operations remain unchanged, with two additive plan operations at

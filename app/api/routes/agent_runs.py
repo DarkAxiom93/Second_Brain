@@ -20,7 +20,7 @@ from app.agent_planning.provider import (
     PlanningProviderTimeoutError,
     PlanningProviderUnavailableError,
 )
-from app.agent_runs import executor, service
+from app.agent_runs import executor, faults, service
 from app.db.dependencies import get_db_session
 from app.embeddings import EmbeddingProvider, get_embedding_provider
 from app.models.agent_runtime import AgentRun, AgentStep, ToolInvocation
@@ -279,6 +279,9 @@ def execute_agent_run(
             session, run_id, expected_revision=request.expected_revision
         )
         session.commit()
+        if claim is None:
+            return _load_execution(session, run_id)
+        faults.fire(faults.FaultPoint.AFTER_RUN_CLAIM)
     except service.AgentRunNotFoundError:
         session.rollback()
         raise _error(status.HTTP_404_NOT_FOUND, "agent run not found") from None
@@ -331,6 +334,7 @@ def execute_agent_run(
         # End the read Tool's transaction before entering finalization.
         session.rollback()
         try:
+            faults.fire(faults.FaultPoint.BEFORE_INVOCATION_FINALIZATION)
             succeeded = executor.finalize_invocation(
                 session,
                 claim,
@@ -340,6 +344,7 @@ def execute_agent_run(
                 safe_error_code=safe_error,
             )
             session.commit()
+            faults.fire(faults.FaultPoint.AFTER_INVOCATION_FINALIZATION)
         except SQLAlchemyError:
             session.rollback()
             raise _error(

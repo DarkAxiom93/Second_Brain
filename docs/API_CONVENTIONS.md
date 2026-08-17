@@ -66,8 +66,14 @@ every call. Only the exact version-1 `project.get`, `memory.get`,
 `memory.search_explained`, `source.get`, and `source_chunk.get` read Tools are
 executable; operator aggregates remain denied. Successful output is strictly
 validated and size-bounded, then reduced to a safe summary and typed evidence
-references. No propose/write authority, retry, recovery worker, or scheduler is
-available.
+references. Retry classification is closed to `never`, `safe_transient_read`,
+and `ambiguous_manual_recovery`; only exact registered `read`/`pure_read` Tools
+with `tool_timeout`, `tool_provider_unavailable`, or `tool_provider_failed` may
+consume the single global retry. Exact terminal execute replay returns the
+durable projection without writes or Tool calls. Cancellation and expiry lock
+and reconcile unfinished children, and late results are discarded. Recovery is
+an explicit synchronous local operator command for one Run only; no recovery
+worker, scheduler, lease, heartbeat, polling, or startup recovery is available.
 
 ## Explained Memory search
 

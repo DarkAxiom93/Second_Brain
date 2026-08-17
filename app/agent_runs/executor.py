@@ -6,13 +6,14 @@ import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from time import monotonic
 
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.agent_runs import service
+from app.agent_runs import faults, service
 from app.agent_tools.dispatch import (
     ToolCallContext,
     ToolControlledFailure,
@@ -22,7 +23,12 @@ from app.agent_tools.dispatch import (
     dispatch_exact,
 )
 from app.agent_tools.policy import PolicyRejection, resolve_tool_policy
-from app.agent_tools.registry import AGENT_TOOL_REGISTRY, REGISTRY_VERSION
+from app.agent_tools.registry import (
+    AGENT_TOOL_REGISTRY,
+    REGISTRY_VERSION,
+    Authority,
+    IdempotencyClass,
+)
 from app.embeddings import (
     EmbeddingProvider,
     InvalidEmbeddingResponseError,
@@ -42,12 +48,51 @@ class ExecutionRegistryVersionError(Exception):
     pass
 
 
+class RetryClass(StrEnum):
+    NEVER = "never"
+    SAFE_TRANSIENT_READ = "safe_transient_read"
+    AMBIGUOUS_MANUAL_RECOVERY = "ambiguous_manual_recovery"
+
+
+_TRANSIENT_READ_CODES = frozenset(
+    {"tool_timeout", "tool_provider_unavailable", "tool_provider_failed"}
+)
+
+
+def classify_retry(
+    safe_error_code: str | None, *, authority: str, idempotency: str
+) -> RetryClass:
+    """Closed retry classification; unknown values always fail closed."""
+
+    if safe_error_code in _TRANSIENT_READ_CODES:
+        if (
+            authority == Authority.READ.value
+            and idempotency == IdempotencyClass.PURE_READ.value
+        ):
+            return RetryClass.SAFE_TRANSIENT_READ
+        return RetryClass.AMBIGUOUS_MANUAL_RECOVERY
+    return RetryClass.NEVER
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionClaim:
     run_id: uuid.UUID
     project_scope: uuid.UUID | None
     registry_version: str
     tool_call_budget: int
+
+
+def _original_claim_revision(session: Session, run_id: uuid.UUID) -> int | None:
+    for event in repository.list_agent_events(session, run_id, limit=1000):
+        metadata = event.safe_metadata
+        if (
+            event.event_type == "agent_run.state_changed"
+            and metadata.get("previous_state") == AgentRunState.READY.value
+            and metadata.get("new_state") == AgentRunState.RUNNING.value
+        ):
+            resulting = metadata.get("resulting_revision")
+            return resulting - 1 if isinstance(resulting, int) else None
+    return None
 
 
 def _canonical(value: object) -> bytes:
@@ -70,16 +115,36 @@ def _plain(value: object) -> object:
 
 def claim_execution(
     session: Session, run_id: uuid.UUID, *, expected_revision: int
-) -> ExecutionClaim:
+) -> ExecutionClaim | None:
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise service.AgentRunNotFoundError
+    if run.state in {state.value for state in service.TERMINAL_STATES}:
+        if _original_claim_revision(session, run.id) == expected_revision:
+            return None
+        raise service.AgentRunRevisionConflictError
+    if run.state == AgentRunState.RUNNING.value:
+        if _original_claim_revision(session, run.id) == expected_revision:
+            raise service.AgentRunTransitionConflictError
+        raise service.AgentRunRevisionConflictError
     if run.revision != expected_revision:
         raise service.AgentRunRevisionConflictError
     if run.state != AgentRunState.READY.value:
         raise service.AgentRunTransitionConflictError
     if run.registry_version != REGISTRY_VERSION:
         raise ExecutionRegistryVersionError
+    now = service.utc_now()
+    if now >= run.run_deadline:
+        service.transition_run(
+            session,
+            run.id,
+            expected_state=AgentRunState.READY,
+            expected_revision=run.revision,
+            new_state=AgentRunState.EXPIRED,
+            now=now,
+            safe_error_code="deadline_expired",
+        )
+        return None
     steps = repository.list_agent_steps_for_update(session, run.id)
     valid_tools = True
     for step in steps:
@@ -155,13 +220,46 @@ def reserve_next(
     if run is None or run.state != AgentRunState.RUNNING.value:
         return None
     steps = repository.list_agent_steps_for_update(session, run.id)
-    pending = [step for step in steps if step.status == "pending"]
-    if not pending:
+    now = service.utc_now()
+    if now >= run.run_deadline:
+        _expire_execution(session, run, steps, now)
         return None
-    step = pending[0]
+    candidates = [step for step in steps if step.status in {"pending", "running"}]
+    if not candidates:
+        return None
+    step = candidates[0]
     if any(previous.status != "succeeded" for previous in steps[: step.ordinal]):
         raise ExecutionPlanInvalidError
     assert step.tool_name is not None and step.tool_version is not None
+    all_invocations = repository.list_step_invocations_for_update(session, run.id)
+    prior = [item for item in all_invocations if item.step_id == step.id]
+    attempt = 0
+    if step.status == "running":
+        if (
+            len(prior) != 1
+            or prior[0].attempt != 0
+            or prior[0].status not in {"failed", "timed_out", "discarded"}
+        ):
+            raise ExecutionPlanInvalidError
+        definition = AGENT_TOOL_REGISTRY.get_exact(
+            step.tool_name, int(step.tool_version)
+        )
+        if (
+            definition is None
+            or classify_retry(
+                prior[0].safe_error_code,
+                authority=prior[0].authority,
+                idempotency=definition.idempotency.value,
+            )
+            != RetryClass.SAFE_TRANSIENT_READ
+        ):
+            _fail_active_step(session, run, step, "ambiguous_recovery_denied", now)
+            return None
+        retries_used = sum(item.attempt > 0 for item in all_invocations)
+        if retries_used >= run.retry_budget:
+            _fail_active_step(session, run, step, "retry_exhausted", now)
+            return None
+        attempt = 1
     total = repository.count_tool_invocations(session, run.id)
     per_tool = repository.count_tool_invocations(
         session, run.id, tool_name=step.tool_name
@@ -179,7 +277,6 @@ def reserve_next(
         configured_provider_available=provider_available,
         operator_aggregate_allowed=False,
     )
-    now = service.utc_now()
     if isinstance(policy, PolicyRejection):
         _fail_without_invocation(
             session, run, step, f"tool_policy_{policy.code.value}", now
@@ -190,16 +287,17 @@ def reserve_next(
     normalized = normalized_value
     input_hash = _hash(_canonical(normalized))
     identity = _hash(
-        f"{run.id}:{step.id}:0:{step.tool_name}:{step.tool_version}:{input_hash}".encode(
+        f"{run.id}:{step.id}:{attempt}:{step.tool_name}:{step.tool_version}:{input_hash}".encode(
             "ascii"
         )
     )
+    faults.fire(faults.FaultPoint.BEFORE_INVOCATION_RESERVATION)
     invocation = repository.reserve_tool_invocation(
         session,
         ToolInvocation(
             run_id=run.id,
             step_id=step.id,
-            attempt=0,
+            attempt=attempt,
             tool_name=step.tool_name,
             tool_version=step.tool_version,
             authority="read",
@@ -226,7 +324,49 @@ def reserve_next(
         correlation_id=run.correlation_id,
         occurred_at=now,
     )
+    faults.fire(faults.FaultPoint.AFTER_INVOCATION_RESERVATION)
     return step, invocation, policy.timeout_seconds
+
+
+def _fail_active_step(
+    session: Session, run: AgentRun, step: AgentStep, code: str, now: datetime
+) -> None:
+    step.status = "failed"
+    step.finished_at = now
+    service.transition_run(
+        session,
+        run.id,
+        expected_state=AgentRunState.RUNNING,
+        expected_revision=run.revision,
+        new_state=AgentRunState.FAILED,
+        now=now,
+        safe_error_code=code,
+    )
+
+
+def _expire_execution(
+    session: Session, run: AgentRun, steps: list[AgentStep], now: datetime
+) -> None:
+    for invocation in repository.list_step_invocations_for_update(session, run.id):
+        if invocation.status in {"reserved", "running"}:
+            invocation.status = "discarded"
+            invocation.safe_error_code = "deadline_expired"
+            invocation.started_at = invocation.started_at or now
+            invocation.finished_at = now
+    for step in steps:
+        if step.status in {"pending", "running"}:
+            step.status = "cancelled"
+            step.started_at = step.started_at or now
+            step.finished_at = now
+    service.transition_run(
+        session,
+        run.id,
+        expected_state=AgentRunState.RUNNING,
+        expected_revision=run.revision,
+        new_state=AgentRunState.EXPIRED,
+        now=now,
+        safe_error_code="deadline_expired",
+    )
 
 
 def _safe_projection(
@@ -271,8 +411,20 @@ def finalize_invocation(
     now = service.utc_now()
     if run.state != AgentRunState.RUNNING.value:
         invocation.status = "discarded"
-        invocation.safe_error_code = "tool_result_discarded"
+        invocation.safe_error_code = (
+            "cancellation_discard"
+            if run.state == AgentRunState.CANCELLED.value
+            else "tool_result_discarded"
+        )
         invocation.finished_at = now
+        return False
+    if now >= run.run_deadline:
+        invocation.status = "discarded"
+        invocation.safe_error_code = "deadline_expired"
+        invocation.finished_at = now
+        _expire_execution(
+            session, run, repository.list_agent_steps_for_update(session, run.id), now
+        )
         return False
     if safe_error_code is None and output is not None:
         definition = AGENT_TOOL_REGISTRY.get_exact(
@@ -293,9 +445,23 @@ def finalize_invocation(
             "timed_out" if safe_error_code == "tool_timeout" else "failed"
         )
         invocation.safe_error_code = safe_error_code
-        step.status = "failed"
+        definition = AGENT_TOOL_REGISTRY.get_exact(
+            invocation.tool_name, int(invocation.tool_version)
+        )
+        retryable = (
+            definition is not None
+            and invocation.attempt == 0
+            and classify_retry(
+                safe_error_code,
+                authority=invocation.authority,
+                idempotency=definition.idempotency.value,
+            )
+            == RetryClass.SAFE_TRANSIENT_READ
+        )
+        step.status = "running" if retryable else "failed"
     invocation.finished_at = now
-    step.finished_at = now
+    if step.status != "running":
+        step.finished_at = now
     repository.append_agent_event(
         session,
         run_id=run.id,
@@ -310,7 +476,7 @@ def finalize_invocation(
         correlation_id=run.correlation_id,
         occurred_at=now,
     )
-    if safe_error_code is not None:
+    if safe_error_code is not None and step.status == "failed":
         service.transition_run(
             session,
             run.id,
@@ -320,7 +486,7 @@ def finalize_invocation(
             now=now,
             safe_error_code=safe_error_code,
         )
-    return safe_error_code is None
+    return safe_error_code is None or step.status == "running"
 
 
 def complete_run(session: Session, claim: ExecutionClaim) -> AgentRun | None:
@@ -330,6 +496,7 @@ def complete_run(session: Session, claim: ExecutionClaim) -> AgentRun | None:
     steps = repository.list_agent_steps_for_update(session, run.id)
     if not steps or any(step.status != "succeeded" for step in steps):
         return None
+    faults.fire(faults.FaultPoint.BEFORE_RUN_COMPLETION)
     return service.transition_run(
         session,
         run.id,
@@ -350,6 +517,7 @@ def call_reserved_tool(
     started = monotonic()
     provider: EmbeddingProvider | None = None
     try:
+        faults.fire(faults.FaultPoint.BEFORE_TOOL_CALL)
         if (
             step.tool_name == "memory.search_explained"
             and invocation.validated_input.get("mode") in {"semantic", "hybrid"}
@@ -361,6 +529,7 @@ def call_reserved_tool(
             normalized_input=invocation.validated_input,
             context=ToolCallContext(session, claim.project_scope, provider),
         )
+        faults.fire(faults.FaultPoint.AFTER_TOOL_RETURN)
         if monotonic() - started > timeout_seconds:
             return None, "tool_timeout"
         return output, None
@@ -376,6 +545,8 @@ def call_reserved_tool(
         return None, "tool_output_invalid"
     except ProviderRequestError:
         return None, "tool_provider_failed"
+    except faults.FaultInjectionError:
+        raise
     except (ToolControlledFailure, SQLAlchemyError, ValueError):
         return None, "tool_controlled_failure"
     except Exception:
