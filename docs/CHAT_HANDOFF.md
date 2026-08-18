@@ -29,9 +29,11 @@ replayed older Runs retain their original value. Checkpoint 65 completed strict,
 durable frozen planning at `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`.
 Checkpoint 66 completed bounded read-only execution at
 `d4a3533282a8ed616fa0910fcea99b07b0f1b878`, with successful CI run
-`31959234267`. Checkpoint 67 adds idempotency, one global classified safe-read
+`31959234267`. Checkpoint 67 completed idempotency, one global classified safe-read
 retry, cancellation/deadline reconciliation, stale detection, and explicit
-synchronous single-Run operator recovery and is pending human review.
+synchronous single-Run operator recovery at
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; its exact successful `Second Brain
+CI` push run is `32025350296` (attempt 1, completed/success, zero artifacts).
 Checkpoint 68 is not started. No UI, approval execution, Automation, connector,
 or external behavior exists. Do not mistake an Agent Run
 for an Automation: V1.2 Runs are manually
@@ -53,6 +55,6 @@ relevant ADRs. Use Python 3.12 from `.venv` and only the verified
 `second_brain_test` database for integration tests. Never downgrade or recreate
 `second_brain`, and never delete the PostgreSQL volume.
 
-Do not stage, commit, push, open a PR, begin Checkpoint 68, or create another
-tag/Release without explicit instruction. Checkpoint 67 changes must remain
-unstaged and uncommitted pending human review.
+Checkpoint 68 is the next not-started checkpoint. Begin it only after its exact
+preflight and explicit checkpoint instructions; do not stage, commit, push,
+open a PR, or create another tag/Release without explicit instruction.

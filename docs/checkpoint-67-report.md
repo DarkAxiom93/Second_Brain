@@ -1,7 +1,8 @@
 # Checkpoint 67 report
 
 Checkpoint: 67 — Idempotency, Cancellation, Recovery, and Failure Injection.
-Pending human review. Checkpoint 66 is complete at
+Human review approved; complete at
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`. Checkpoint 66 is complete at
 `d4a3533282a8ed616fa0910fcea99b07b0f1b878`; its exact successful `Second Brain
 CI` push run is `31959234267` (attempt 1, completed/success, zero artifacts).
 Checkpoint 68 is not started.
@@ -62,7 +63,10 @@ Warnings: Recovery is never automatic. There is no worker, scheduler, lease,
 heartbeat, polling, startup recovery, Approval behavior, write/propose/execute
 authority, dependency, CI, Docker, frontend, export-format, or migration change.
 
-Git status: Checkpoint 67 changes are unstaged and uncommitted. Nothing was
-staged, committed, pushed, or submitted as a PR.
+Final lifecycle: Committed as
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`, pushed to `origin/main`, and
+validated by exact successful `Second Brain CI` push run `32025350296` (attempt
+1, completed/success, zero artifacts). The final repository was synchronized
+and clean at that commit.
 
 Scope confirmation: Checkpoint 67 only. Checkpoint 68 was not started.

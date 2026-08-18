@@ -40,10 +40,11 @@ resolver at `35950c60fd842a4ad022f130a3074ce8d21d9bbc`. Checkpoint 65 completed
 strict structured planning at `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`.
 Checkpoint 66 completed synchronous ordered execution through exactly five
 scoped application-owned reads at
-`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 adds a closed retry
+`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 completed a closed retry
 classifier, at most one global safe-read retry, terminal execution replay,
 deadline/cancellation reconciliation, stale detection, and one explicit
-synchronous operator recovery command and is pending human review. Recovery is
+synchronous operator recovery command at
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`. Recovery is
 never automatic; there is no worker, scheduler, lease, heartbeat, or startup
 recovery. The architecture is in
 [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md) and

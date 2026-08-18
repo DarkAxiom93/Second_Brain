@@ -7,8 +7,8 @@ Local V1.1 is published as `v1.1.0` from
 `01832a94ae6f80bdacd0cd9301af3f294302e3e8`. Checkpoint 64 is complete at
 `35950c60fd842a4ad022f130a3074ce8d21d9bbc`, Checkpoint 65 is complete at
 `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`, and Checkpoint 66 is complete at
-`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 is pending human
-review; Checkpoint 68 is not started.
+`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 is complete at
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; Checkpoint 68 is not started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

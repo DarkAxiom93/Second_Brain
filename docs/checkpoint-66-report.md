@@ -1,8 +1,8 @@
 # Checkpoint 66 report
 
-Checkpoint: 66 — Bounded Read-Only Executor. Pending human review. Checkpoint
-65 is complete at `1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`; Checkpoint 67
-has not started.
+Checkpoint: 66 — Bounded Read-Only Executor. Human review approved; complete at
+`d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 65 is complete at
+`1b32d91e62feb10efd5c2f2c241ee43b75b5b5e2`.
 
 Files changed: Agent execution coordinator, exact dispatch/read wrappers,
 Agent Runtime repository primitives, public execution schemas/routes, focused
@@ -70,7 +70,9 @@ recovery command, worker, scheduler, lease, propose/execute authority, write
 Tool, connector, dependency, Docker, CI, frontend, migration, or export-format
 change. Those recovery concerns remain for Checkpoint 67.
 
-Git status: All Checkpoint 66 changes are unstaged and uncommitted. No staging,
-commit, push, or PR was performed.
+Final lifecycle: Committed as
+`d4a3533282a8ed616fa0910fcea99b07b0f1b878`, pushed to `origin/main`, and
+validated by successful `Second Brain CI` push run `31959234267`.
 
-Scope confirmation: Checkpoint 66 only. Checkpoint 67 was not started.
+Scope confirmation: Checkpoint 66 only. Checkpoint 67 subsequently completed at
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; Checkpoint 68 is not started.
