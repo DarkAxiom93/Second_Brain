@@ -10,6 +10,7 @@ import { Memories, MemoryDetail } from "./Memories";
 import { Search } from "./Search";
 import { Answers } from "./Answers";
 import { Settings } from "./Settings";
+import { AgentRunDetail, AgentRuns } from "./Agents";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -19,6 +20,7 @@ const navigation = [
   ["/memories", "Memories"],
   ["/search", "Search"],
   ["/answers", "Answers"],
+  ["/agents", "Agent"],
   ["/settings", "Settings"],
 ] as const;
 
@@ -132,6 +134,8 @@ export function App() {
           <Route path="/memories/:memoryId" element={<MemoryDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/answers" element={<Answers />} />
+          <Route path="/agents" element={<AgentRuns />} />
+          <Route path="/agents/:runId" element={<AgentRunDetail />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

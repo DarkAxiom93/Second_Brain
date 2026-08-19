@@ -121,6 +121,13 @@ export type LinkedSource = {
 };
 export type SimilarityRead = { target_memory_id: string; candidates: Array<{ memory_id: string; classification: "exact_duplicate" | "similar"; lexical_similarity: number | null; semantic_similarity: number | null; reason: string }> };
 export type ContradictionRead = { target_memory_id: string; candidates: Array<{ memory_id: string; classification: "potential_contradiction"; evidence_type: "explicit_negation" | "opposing_boolean_state"; reason: string; lexical_similarity: number | null; semantic_similarity: number | null; target_state: string; candidate_state: string }> };
+export type AgentRunState = "created" | "planning" | "ready" | "running" | "awaiting_approval" | "completed" | "failed" | "cancelled" | "expired";
+export type AgentRun = { id: string; project_id: string | null; agent_kind: string; agent_version: string; goal_summary: string; registry_version: string; policy_version: string; state: AgentRunState; step_budget: number; tool_call_budget: number; retry_budget: number; planning_deadline: string; run_deadline: string; revision: number; safe_error_code: string | null; created_at: string; updated_at: string; started_at: string | null; finished_at: string | null };
+export type AgentStep = { ordinal: number; purpose: string; tool_name: string; tool_version: number; normalized_input: Record<string, unknown>; expected_evidence: string[]; success_condition: string; stop_condition: string };
+export type AgentPlan = { run: AgentRun; goal_summary: string; steps: AgentStep[] };
+export type AgentExecutionStep = { ordinal: number; purpose: string; tool_name: string; tool_version: number; status: string; invocation_status: string | null; safe_result_summary: string | null; evidence_references: Array<Record<string, unknown>>; safe_error_code: string | null };
+export type AgentExecution = { run: AgentRun; steps: AgentExecutionStep[] };
+export type ApprovalRequest = { id: string; run_id: string; step_ordinal: number; action_type: string; target_type: string; target_id: string; target_version: string; proposed_input: Record<string, unknown>; preview: string; evidence_references: Array<Record<string, unknown>>; risk_classification: string; status: "pending" | "approved" | "rejected" | "expired" | "superseded"; created_at: string; expires_at: string; reviewed_at: string | null };
 
 export class SafeApiError extends Error {
   constructor() {
@@ -148,6 +155,7 @@ export class SourceDocumentNotFoundError extends Error {
 }
 export class ProposalNotFoundError extends Error { constructor() { super("Proposal not found."); this.name = "ProposalNotFoundError"; } }
 export class MemoryNotFoundError extends Error { constructor() { super("Memory not found."); this.name = "MemoryNotFoundError"; } }
+export class AgentRunNotFoundError extends Error { constructor() { super("Agent Run not found."); this.name = "AgentRunNotFoundError"; } }
 export class ApiConflictError extends Error { constructor() { super("The proposal changed. Refresh and try again."); this.name = "ApiConflictError"; } }
 export class SearchProviderError extends Error { constructor(message: string) { super(message); this.name = "SearchProviderError"; } }
 export class AnswerProviderError extends Error { constructor(message: string) { super(message); this.name = "AnswerProviderError"; } }
@@ -172,8 +180,8 @@ async function request<T>(
   path: string,
   validate: (value: unknown) => value is T,
   externalSignal?: AbortSignal,
-  init?: { method: "POST" | "PUT"; body?: unknown },
-  notFoundError?: "project" | "source" | "document" | "proposal" | "memory",
+  init?: { method: "POST" | "PUT"; body?: unknown; headers?: Record<string, string> },
+  notFoundError?: "project" | "source" | "document" | "proposal" | "memory" | "agent-run",
   searchErrors = false,
   answerErrors = false,
 ): Promise<T> {
@@ -188,6 +196,7 @@ async function request<T>(
       headers: {
         Accept: "application/json",
         ...(init && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
+        ...init?.headers,
       },
       ...(init ? { body: init.body instanceof FormData ? init.body : JSON.stringify(init.body) } : {}),
       signal: controller.signal,
@@ -198,6 +207,7 @@ async function request<T>(
       if (notFoundError === "source") throw new SourceNotFoundError();
       if (notFoundError === "document") throw new SourceDocumentNotFoundError();
       if (notFoundError === "proposal") throw new ProposalNotFoundError();
+      if (notFoundError === "agent-run") throw new AgentRunNotFoundError();
       throw new MemoryNotFoundError();
     }
     if (response.status === 409) throw new ApiConflictError();
@@ -233,7 +243,7 @@ async function request<T>(
     }
     return payload;
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof ApiConflictError || error instanceof SearchProviderError || error instanceof AnswerProviderError) {
+    if (error instanceof ProjectNotFoundError || error instanceof SourceNotFoundError || error instanceof SourceDocumentNotFoundError || error instanceof ProposalNotFoundError || error instanceof MemoryNotFoundError || error instanceof AgentRunNotFoundError || error instanceof ApiConflictError || error instanceof SearchProviderError || error instanceof AnswerProviderError) {
       throw error;
     }
     throw new SafeApiError();
@@ -258,6 +268,28 @@ function isTimestamp(value: unknown): value is string {
 }
 
 const nullableTimestamp = (value: unknown): value is string | null => value === null || isTimestamp(value);
+const objectRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+function isAgentRun(value: unknown): value is AgentRun {
+  if (!objectRecord(value)) return false;
+  const keys = ["id","project_id","agent_kind","agent_version","goal_summary","registry_version","policy_version","state","step_budget","tool_call_budget","retry_budget","planning_deadline","run_deadline","revision","safe_error_code","created_at","updated_at","started_at","finished_at"];
+  return exactKeys(value, keys) && isProjectId(value.id as string) && nullableUuid(value.project_id) && [value.agent_kind,value.agent_version,value.goal_summary,value.registry_version,value.policy_version].every(v => typeof v === "string") && ["created","planning","ready","running","awaiting_approval","completed","failed","cancelled","expired"].includes(value.state as string) && [value.step_budget,value.tool_call_budget,value.retry_budget,value.revision].every(v => Number.isInteger(v) && (v as number) >= 0) && [value.planning_deadline,value.run_deadline,value.created_at,value.updated_at].every(isTimestamp) && nullableTimestamp(value.started_at) && nullableTimestamp(value.finished_at) && isNullableString(value.safe_error_code);
+}
+function isAgentStep(value: unknown): value is AgentStep { if (!objectRecord(value)) return false; return exactKeys(value,["ordinal","purpose","tool_name","tool_version","normalized_input","expected_evidence","success_condition","stop_condition"]) && Number.isInteger(value.ordinal) && typeof value.purpose === "string" && typeof value.tool_name === "string" && Number.isInteger(value.tool_version) && objectRecord(value.normalized_input) && Array.isArray(value.expected_evidence) && value.expected_evidence.every(v => typeof v === "string") && typeof value.success_condition === "string" && typeof value.stop_condition === "string"; }
+function isAgentPlan(value: unknown): value is AgentPlan { return objectRecord(value) && exactKeys(value,["run","goal_summary","steps"]) && isAgentRun(value.run) && typeof value.goal_summary === "string" && Array.isArray(value.steps) && value.steps.every(isAgentStep); }
+function isExecutionStep(value: unknown): value is AgentExecutionStep { if (!objectRecord(value)) return false; return exactKeys(value,["ordinal","purpose","tool_name","tool_version","status","invocation_status","safe_result_summary","evidence_references","safe_error_code"]) && Number.isInteger(value.ordinal) && typeof value.purpose === "string" && typeof value.tool_name === "string" && Number.isInteger(value.tool_version) && typeof value.status === "string" && isNullableString(value.invocation_status) && isNullableString(value.safe_result_summary) && Array.isArray(value.evidence_references) && value.evidence_references.every(objectRecord) && isNullableString(value.safe_error_code); }
+function isAgentExecution(value: unknown): value is AgentExecution { return objectRecord(value) && exactKeys(value,["run","steps"]) && isAgentRun(value.run) && Array.isArray(value.steps) && value.steps.every(isExecutionStep); }
+function isApproval(value: unknown): value is ApprovalRequest { if (!objectRecord(value)) return false; return exactKeys(value,["id","run_id","step_ordinal","action_type","target_type","target_id","target_version","proposed_input","preview","evidence_references","risk_classification","status","created_at","expires_at","reviewed_at"]) && isProjectId(value.id as string) && isProjectId(value.run_id as string) && Number.isInteger(value.step_ordinal) && [value.action_type,value.target_type,value.target_version,value.preview,value.risk_classification].every(v => typeof v === "string") && isProjectId(value.target_id as string) && objectRecord(value.proposed_input) && Array.isArray(value.evidence_references) && value.evidence_references.every(objectRecord) && ["pending","approved","rejected","expired","superseded"].includes(value.status as string) && isTimestamp(value.created_at) && isTimestamp(value.expires_at) && nullableTimestamp(value.reviewed_at); }
+
+export function listAgentRuns(signal?: AbortSignal) { return request("/agent-runs?limit=50&offset=0", (v): v is AgentRun[] => Array.isArray(v) && v.every(isAgentRun), signal); }
+export function createAgentRun(body: { project_id: string | null; agent_kind: string; agent_version: string; goal_summary: string }, signal?: AbortSignal) { return request("/agent-runs", isAgentRun, signal, { method: "POST", body, headers: { "Idempotency-Key": crypto.randomUUID() } }); }
+export function getAgentRun(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}`, isAgentRun, signal, undefined, "agent-run"); }
+export function getAgentPlan(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}/plan`, isAgentPlan, signal); }
+export function planAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/plan`, isAgentPlan, signal, { method: "POST", body: { expected_revision: revision } }); }
+export function getAgentExecution(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}/execution`, isAgentExecution, signal); }
+export function executeAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/execute`, isAgentExecution, signal, { method: "POST", body: { expected_revision: revision } }); }
+export function cancelAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/cancel`, isAgentRun, signal, { method: "POST", body: { expected_revision: revision } }); }
+export function listApprovalRequests(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}/approval-requests?limit=50&offset=0`, (v): v is ApprovalRequest[] => Array.isArray(v) && v.every(isApproval), signal); }
+export function reviewApproval(id: string, decision: "approve" | "reject", signal?: AbortSignal) { return request(`/approval-requests/${id}/review`, isApproval, signal, { method: "POST", body: { decision } }); }
 function isMemory(value: unknown): value is MemoryRead {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;

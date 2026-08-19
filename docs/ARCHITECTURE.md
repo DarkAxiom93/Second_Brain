@@ -10,7 +10,7 @@ in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
 The stable recovery architecture is released as `v1.0.0` at commit
 `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32`. The supported release topology
 remains loopback Vite and FastAPI plus the named-volume PostgreSQL service;
-there is no authentication or cloud boundary. All eight top-level UI routes are
+there is no authentication or cloud boundary. All nine top-level UI routes are
 functional. Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`; `v1.0.0` remains the pre-V1.1
 recovery point.
@@ -55,7 +55,8 @@ commits its claim before provider latency and validates the whole result before
 atomically freezing pending Steps with `ready`. There is no generic transition
 or child-entity API. Execution is exposed only at
 `POST /agent-runs/{run_id}/execute` with its bounded projection at
-`GET /agent-runs/{run_id}/execution`; there is no UI, approval execution,
+`GET /agent-runs/{run_id}/execution`. Checkpoint 69 adds the explicit-refresh-only
+Agent Runs UI at `/agents` and `/agents/:runId`; there is no approval execution,
 Automation, connector, or external behavior. The registry contains exactly
 seven version-1 read-only metadata definitions: `project.get`, `memory.get`,
 `memory.search_explained`, `source.get`, `source_chunk.get`,

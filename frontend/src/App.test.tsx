@@ -33,7 +33,7 @@ describe("application shell", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
     for (const name of [
       "Dashboard", "Projects", "Sources", "Proposals", "Memories",
-      "Search", "Answers", "Settings",
+      "Search", "Answers", "Agent", "Settings",
     ]) {
       expect(screen.getByRole("link", { name })).toBeInTheDocument();
     }
@@ -51,6 +51,17 @@ describe("application shell", () => {
     const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock); renderAt("/answers");
     expect(screen.getByRole("heading", { name: "Ask a question" })).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the Agent route from its keyboard-operable active navigation link", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
+    renderAt("/agents");
+    const link = screen.getByRole("link", { name: "Agent" });
+    expect(link).toHaveClass("active");
+    link.focus();
+    expect(link).toHaveFocus();
+    expect(await screen.findByRole("heading", { name: "Agent Runs" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Create a Run" })).toBeInTheDocument();
   });
 
   it("opens functional Search without requesting before submission", () => {

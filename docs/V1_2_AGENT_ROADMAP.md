@@ -11,7 +11,8 @@ Checkpoint 66 completed the bounded read-only executor at
 idempotency, cancellation, deadlines, one safe-read retry, and explicit
 synchronous operator recovery at
 `7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`. Checkpoint 68 is complete at
-`1bc90b4339bd5466fda10e5d04711e3f025a0e01`; Checkpoint 69 is not started. The security remediation base is
+`1bc90b4339bd5466fda10e5d04711e3f025a0e01`; Checkpoint 69 is pending human
+review. The security remediation base is
 `ad3c143a568be7c09a73b170f2b5be6347a27a40` with successful CI run
 `31950242783`.
 
@@ -330,7 +331,7 @@ Implementation is complete at
 `memory.update`; the four additive APIs provide immutable creation, bounded
 read/list, and human-only approve/reject review. Expired and stale targets fail
 closed as terminal Approval states. There is no proposal execution, target
-mutation, write Tool, or execute authority. Checkpoint 69 is not started.
+mutation, write Tool, or execute authority. Checkpoint 69 is pending human review.
 
 - **Goal/why:** Persist exact immutable proposals and human decisions without
   enabling execution.
