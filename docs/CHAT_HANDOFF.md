@@ -39,8 +39,13 @@ Checkpoint 68 is complete at
 CI` push run is `32219122039` (attempt 1, completed/success, zero artifacts). It adds exactly four
 Approval APIs and one proposal-only `memory.update` definition with human-only
 review, expiry, and stale-target handling. Approval cannot mutate a Memory or
-execute an action. Checkpoint 69 is not started. No UI, approval execution, Automation, connector,
-or external behavior exists. Do not mistake an Agent Run
+execute an action. Checkpoint 69 is complete at
+`e6324e52292e108d84666f88aeccf434c92ab39c`; its exact successful `Second Brain
+CI` push run is `32273491445` (attempt 1, completed/success, zero artifacts).
+It adds the accessible `/agents` and `/agents/:runId` UI with explicit Run
+creation, planning, bounded read-only execution, cancellation, refresh, and
+exact Approval review. There is no approval execution, Automation, connector,
+or external behavior. Do not mistake an Agent Run
 for an Automation: V1.2 Runs are manually
 initiated; Automation is a deferred future trigger that creates a Run.
 
@@ -60,6 +65,6 @@ relevant ADRs. Use Python 3.12 from `.venv` and only the verified
 `second_brain_test` database for integration tests. Never downgrade or recreate
 `second_brain`, and never delete the PostgreSQL volume.
 
-Checkpoint 69 is the next not-started checkpoint. Begin it only after its exact
+Checkpoint 70 is the next not-started checkpoint. Begin it only after its exact
 preflight and explicit checkpoint instructions; do not stage, commit, push,
 open a PR, or create another tag/Release without explicit instruction.

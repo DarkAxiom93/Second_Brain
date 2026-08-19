@@ -1,6 +1,6 @@
 # Checkpoint 69 report
 
-Status: Pending human review
+Status: Complete at `e6324e52292e108d84666f88aeccf434c92ab39c`
 
 ## Preflight
 
@@ -63,5 +63,25 @@ Status: Pending human review
   `107` frontend tests, ESLint, TypeScript, production build, and
   `git diff --check`.
 
-All Checkpoint 69 changes are intentionally unstaged and uncommitted for human
-review.
+## Final acceptance audit
+
+The approved 40-item UI audit covered: (1) Agent navigation, (2) `/agents`,
+(3) `/agents/:runId`, (4) loading, (5) empty, (6) successful, and (7) failed
+list states, (8) Run creation, (9) exact Project and (10) explicitly unassigned
+scope, (11) every public Run state, explicit (12) Plan, (13) Execute, (14)
+Cancel, and (15) Refresh, (16) conflict handling, (17) no optimistic success,
+(18) ordered Steps, (19) safe execution summaries, (20) safe evidence,
+(21) Approval listing, (22) exact confirmation, (23) approve, (24) reject,
+(25) terminal non-actionability, (26) review conflict, (27) safe preview,
+(28) private-field exclusion, (29) no Approval-triggered execution,
+(30) keyboard/focus behavior, (31) live status, (32) reduced motion,
+(33) responsive structure, (34) no polling, (35) no automatic retry,
+(36) no automatic planning, (37) no automatic execution, (38) no automatic
+approval, (39) no browser persistence, and (40) safe error rendering.
+
+Human review approved the implementation. It was committed as
+`e6324e52292e108d84666f88aeccf434c92ab39c`, pushed to `origin/main`, and passed
+exact `Second Brain CI` push run `32273491445` on branch `main` at attempt `1`
+with status `completed`, conclusion `success`, and `0` artifacts. The repository
+was synchronized and clean before this documentation-only state update.
+Checkpoint 70 remains not started.
