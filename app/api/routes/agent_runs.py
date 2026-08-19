@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Callable
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -20,10 +20,15 @@ from app.agent_planning.provider import (
     PlanningProviderTimeoutError,
     PlanningProviderUnavailableError,
 )
-from app.agent_runs import executor, faults, service
+from app.agent_runs import approvals, executor, faults, service
 from app.db.dependencies import get_db_session
 from app.embeddings import EmbeddingProvider, get_embedding_provider
-from app.models.agent_runtime import AgentRun, AgentStep, ToolInvocation
+from app.models.agent_runtime import (
+    AgentRun,
+    AgentStep,
+    ApprovalRequest,
+    ToolInvocation,
+)
 from app.repositories import agent_runtime as repository
 from app.schemas.agent_run import (
     AgentRunCancel,
@@ -36,9 +41,14 @@ from app.schemas.agent_run import (
     AgentRunState,
     AgentStepExecutionRead,
     AgentStepRead,
+    ApprovalRequestCreate,
+    ApprovalRequestRead,
+    ApprovalRequestStatus,
+    ApprovalReview,
 )
 
 router = APIRouter(prefix="/agent-runs", tags=["agent-runs"])
+approval_router = APIRouter(prefix="/approval-requests", tags=["approval-requests"])
 
 
 def planning_provider_resolver() -> Callable[[], PlanningProvider]:
@@ -65,6 +75,148 @@ def _validate_idempotency_key(value: str) -> str:
     ):
         raise _error(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid Idempotency-Key")
     return value
+
+
+def _approval_projection(
+    session: Session, approval: ApprovalRequest
+) -> ApprovalRequestRead:
+    step = repository.get_agent_step(session, approval.run_id, approval.step_id)
+    if step is None:
+        raise approvals.NotFoundError("agent step not found")
+    return ApprovalRequestRead(
+        id=approval.id,
+        run_id=approval.run_id,
+        step_ordinal=step.ordinal,
+        action_type=approval.action_type,
+        target_type=approval.target_type,
+        target_id=approval.target_public_id,
+        target_version=approval.target_version,
+        proposed_input=approval.normalized_input,
+        preview=approval.preview,
+        evidence_references=approval.evidence_references,
+        risk_classification=approval.risk_classification,
+        status=cast(ApprovalRequestStatus, approval.status),
+        created_at=approval.created_at,
+        expires_at=approval.expires_at,
+        reviewed_at=approval.reviewed_at,
+    )
+
+
+@router.post(
+    "/{run_id}/approval-requests",
+    response_model=ApprovalRequestRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_approval_request(
+    run_id: uuid.UUID,
+    request: ApprovalRequestCreate,
+    response: Response,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ApprovalRequestRead:
+    try:
+        approval, created = approvals.create_proposal(
+            session,
+            run_id=run_id,
+            step_ordinal=request.step_ordinal,
+            action_type=request.action_type,
+            target_id=request.target_id,
+            proposed_input=request.proposed_input,
+        )
+        session.commit()
+        session.refresh(approval)
+        if not created:
+            response.status_code = status.HTTP_200_OK
+        return _approval_projection(session, approval)
+    except approvals.NotFoundError as exc:
+        session.rollback()
+        raise _error(status.HTTP_404_NOT_FOUND, str(exc)) from None
+    except approvals.InvalidProposalError as exc:
+        session.rollback()
+        raise _error(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from None
+    except IntegrityError:
+        session.rollback()
+        raise _error(status.HTTP_409_CONFLICT, "proposal creation conflict") from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
+
+
+@router.get("/{run_id}/approval-requests", response_model=list[ApprovalRequestRead])
+def list_approval_requests(
+    run_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[ApprovalRequestRead]:
+    try:
+        if repository.get_agent_run(session, run_id) is None:
+            raise approvals.NotFoundError("agent run not found")
+        rows = repository.list_approval_requests(
+            session, run_id, limit=limit, offset=offset
+        )
+        return [_approval_projection(session, row) for row in rows]
+    except approvals.NotFoundError as exc:
+        raise _error(status.HTTP_404_NOT_FOUND, str(exc)) from None
+    except SQLAlchemyError:
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
+
+
+@approval_router.get("/{approval_id}", response_model=ApprovalRequestRead)
+def get_approval_request(
+    approval_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ApprovalRequestRead:
+    try:
+        approval = repository.get_approval_request_by_id(session, approval_id)
+        if approval is None:
+            raise approvals.NotFoundError("approval request not found")
+        return _approval_projection(session, approval)
+    except approvals.NotFoundError as exc:
+        raise _error(status.HTTP_404_NOT_FOUND, str(exc)) from None
+    except SQLAlchemyError:
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
+
+
+@approval_router.post("/{approval_id}/review", response_model=ApprovalRequestRead)
+def review_approval_request(
+    approval_id: uuid.UUID,
+    request: ApprovalReview,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ApprovalRequestRead:
+    try:
+        approval, _changed = approvals.review_proposal(
+            session, approval_id=approval_id, decision=request.decision
+        )
+        session.commit()
+        session.refresh(approval)
+        return _approval_projection(session, approval)
+    except (approvals.ExpiredApprovalError, approvals.StaleApprovalError) as exc:
+        # Expiry/staleness is a durable terminal transition and must commit.
+        try:
+            session.commit()
+        except SQLAlchemyError:
+            session.rollback()
+            raise _error(
+                status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+            ) from None
+        raise _error(status.HTTP_409_CONFLICT, str(exc)) from None
+    except approvals.NotFoundError as exc:
+        session.rollback()
+        raise _error(status.HTTP_404_NOT_FOUND, str(exc)) from None
+    except approvals.ReviewConflictError as exc:
+        session.rollback()
+        raise _error(status.HTTP_409_CONFLICT, str(exc)) from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
 
 
 @router.post("", response_model=AgentRunRead, status_code=status.HTTP_201_CREATED)

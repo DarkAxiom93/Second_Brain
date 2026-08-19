@@ -160,6 +160,14 @@ def get_agent_step_for_update(
     )
 
 
+def get_agent_step(
+    session: Session, run_id: uuid.UUID, step_id: uuid.UUID
+) -> AgentStep | None:
+    return session.scalar(
+        select(AgentStep).where(AgentStep.id == step_id, AgentStep.run_id == run_id)
+    )
+
+
 def count_agent_steps(session: Session, run_id: uuid.UUID) -> int:
     """Return the durable plan size without loading private Step rows."""
 
@@ -282,6 +290,87 @@ def get_approval_request(
             ApprovalRequest.id == approval_id, ApprovalRequest.run_id == run_id
         )
     )
+
+
+def get_approval_request_by_id(
+    session: Session, approval_id: uuid.UUID
+) -> ApprovalRequest | None:
+    return session.scalar(
+        select(ApprovalRequest).where(ApprovalRequest.id == approval_id)
+    )
+
+
+def get_approval_request_for_update(
+    session: Session, approval_id: uuid.UUID
+) -> ApprovalRequest | None:
+    return session.scalar(
+        select(ApprovalRequest)
+        .where(ApprovalRequest.id == approval_id)
+        .with_for_update(of=ApprovalRequest)
+    )
+
+
+def get_exact_approval_request(
+    session: Session,
+    *,
+    run_id: uuid.UUID,
+    step_id: uuid.UUID,
+    action_type: str,
+    target_type: str,
+    target_public_id: uuid.UUID,
+    target_version: str,
+    proposal_hash: str,
+) -> ApprovalRequest | None:
+    return session.scalar(
+        select(ApprovalRequest).where(
+            ApprovalRequest.run_id == run_id,
+            ApprovalRequest.step_id == step_id,
+            ApprovalRequest.action_type == action_type,
+            ApprovalRequest.target_type == target_type,
+            ApprovalRequest.target_public_id == target_public_id,
+            ApprovalRequest.target_version == target_version,
+            ApprovalRequest.proposal_hash == proposal_hash,
+        )
+    )
+
+
+def list_approval_requests(
+    session: Session, run_id: uuid.UUID, *, limit: int, offset: int
+) -> list[ApprovalRequest]:
+    return list(
+        session.scalars(
+            select(ApprovalRequest)
+            .where(ApprovalRequest.run_id == run_id)
+            .order_by(ApprovalRequest.created_at.asc(), ApprovalRequest.id.asc())
+            .limit(limit)
+            .offset(offset)
+        ).all()
+    )
+
+
+def get_agent_step_by_ordinal_for_update(
+    session: Session, run_id: uuid.UUID, ordinal: int
+) -> AgentStep | None:
+    return session.scalar(
+        select(AgentStep)
+        .where(AgentStep.run_id == run_id, AgentStep.ordinal == ordinal)
+        .with_for_update(of=AgentStep)
+    )
+
+
+def list_step_evidence(
+    session: Session, run_id: uuid.UUID, step_id: uuid.UUID
+) -> list[dict[str, Any]]:
+    rows = session.scalars(
+        select(ToolInvocation)
+        .where(
+            ToolInvocation.run_id == run_id,
+            ToolInvocation.step_id == step_id,
+            ToolInvocation.status == "succeeded",
+        )
+        .order_by(ToolInvocation.attempt.asc(), ToolInvocation.id.asc())
+    ).all()
+    return [reference for row in rows for reference in row.evidence_references]
 
 
 def append_agent_event(

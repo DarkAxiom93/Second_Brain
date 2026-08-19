@@ -90,7 +90,9 @@ def test_create_schema_rejects_invalid_or_unknown_fields(
         _request(**changes)
 
 
-def test_openapi_exposes_exactly_eight_safe_agent_run_operations() -> None:
+def test_openapi_exposes_exact_safe_agent_run_operations_through_checkpoint_68() -> (
+    None
+):
     schema = TestClient(create_app()).app.openapi()
     paths = schema["paths"]
     assert set(path for path in paths if path.startswith("/agent-runs")) == {
@@ -100,6 +102,7 @@ def test_openapi_exposes_exactly_eight_safe_agent_run_operations() -> None:
         "/agent-runs/{run_id}/plan",
         "/agent-runs/{run_id}/execute",
         "/agent-runs/{run_id}/execution",
+        "/agent-runs/{run_id}/approval-requests",
     }
     assert set(paths["/agent-runs"]) == {"get", "post"}
     assert set(paths["/agent-runs/{run_id}"]) == {"get"}
@@ -113,7 +116,6 @@ def test_openapi_exposes_exactly_eight_safe_agent_run_operations() -> None:
             "agent-events",
             "agent-steps",
             "tool-invocations",
-            "approval-requests",
         )
     )
     public_fields = set(AgentRunRead.model_fields)

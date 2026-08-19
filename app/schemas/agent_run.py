@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
@@ -37,6 +37,9 @@ StableAgentVersion = Annotated[
         max_length=50,
         pattern=r"^[A-Za-z0-9](?:[A-Za-z0-9._+-]*[A-Za-z0-9])?$",
     ),
+]
+ApprovalRequestStatus = Literal[
+    "pending", "approved", "rejected", "expired", "superseded"
 ]
 
 
@@ -148,3 +151,47 @@ class AgentStepExecutionRead(BaseModel):
 class AgentRunExecutionRead(BaseModel):
     run: AgentRunRead
     steps: list[AgentStepExecutionRead]
+
+
+class ApprovalRequestCreate(BaseModel):
+    """Only caller-controlled proposal fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    step_ordinal: Annotated[int, Field(ge=0)]
+    action_type: Literal["memory.update"]
+    target_id: uuid.UUID
+    proposed_input: dict[str, object]
+
+
+class ApprovalReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Literal["approve", "reject"]
+
+
+class ApprovalRequestRead(BaseModel):
+    """Allowlisted public Approval projection; private identities stay hidden."""
+
+    id: uuid.UUID
+    run_id: uuid.UUID
+    step_ordinal: int
+    action_type: str
+    target_type: str
+    target_id: uuid.UUID
+    target_version: str
+    proposed_input: dict[str, object]
+    preview: str
+    evidence_references: list[dict[str, object]]
+    risk_classification: str
+    status: ApprovalRequestStatus
+    created_at: datetime
+    expires_at: datetime
+    reviewed_at: datetime | None
+
+    @field_validator("created_at", "expires_at", "reviewed_at")
+    @classmethod
+    def require_approval_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("timestamp must be timezone-aware")
+        return value

@@ -174,6 +174,57 @@ class MemoryCreate(BaseModel):
         return value
 
 
+class MemoryUpdate(BaseModel):
+    """Strict partial Memory update input shared by proposal validation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    content: Annotated[
+        str | None,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=16000),
+    ] = None
+    source: Annotated[
+        str | None,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=100),
+    ] = None
+    title: Annotated[str | None, StringConstraints(max_length=255)] = None
+    summary: Annotated[str | None, StringConstraints(max_length=4000)] = None
+    memory_type: MemoryType | None = None
+    importance: Annotated[float | None, Field(ge=0.0, le=1.0)] = None
+    confidence: Annotated[float | None, Field(ge=0.0, le=1.0)] = None
+    status: MemoryStatus | None = None
+    event_time: datetime | None = None
+    expires_at: datetime | None = None
+    supersedes_id: uuid.UUID | None = None
+
+    @field_validator("title", "summary", mode="before")
+    @classmethod
+    def trim_update_text(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
+
+    @field_validator("event_time", "expires_at")
+    @classmethod
+    def require_update_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("timestamp must be timezone-aware")
+        return value
+
+    @model_validator(mode="after")
+    def require_update_field(self) -> "MemoryUpdate":
+        if not self.model_fields_set:
+            raise ValueError("at least one update field is required")
+        required = {"content", "memory_type", "importance", "confidence", "status"}
+        if any(
+            field in self.model_fields_set and getattr(self, field) is None
+            for field in required
+        ):
+            raise ValueError("non-nullable update field cannot be null")
+        return self
+
+
 class MemoryRead(BaseModel):
     """Public representation of a persisted memory."""
 

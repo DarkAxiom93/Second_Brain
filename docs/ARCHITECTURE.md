@@ -72,6 +72,16 @@ exact immutable human review, and execute authority is unavailable. Schedulers,
 workers, connectors, external writes, arbitrary execution, and remote or
 multi-user operation remain outside V1.2.
 
+Checkpoint 68 is pending human review. Its four additive Approval APIs create,
+list, retrieve, and human-review immutable `memory.update` proposals using the
+existing CP62 persistence. Creation derives the exact scoped target version,
+canonical payload hash, bounded preview/evidence/risk, expiry, and execution
+identity server-side. Review serializes Approval, Run, and target locks; expiry
+becomes `expired`, target or scope drift becomes `superseded`, and exact
+same-decision replay is write-free. Approval never changes a Memory, invokes a
+Tool, transitions a Run, consumes the frozen execution identity, or grants
+write/execute authority.
+
 The Checkpoint 56 CI workflow is an early regression signal on pull requests to
 `main`, pushes to `main`, and manual dispatch. Its Windows runner performs the
 established non-database Quick path and locked frontend checks without secrets,

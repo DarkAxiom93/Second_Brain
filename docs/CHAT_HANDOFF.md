@@ -34,7 +34,10 @@ retry, cancellation/deadline reconciliation, stale detection, and explicit
 synchronous single-Run operator recovery at
 `7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; its exact successful `Second Brain
 CI` push run is `32025350296` (attempt 1, completed/success, zero artifacts).
-Checkpoint 68 is not started. No UI, approval execution, Automation, connector,
+Checkpoint 68 is implemented and pending human review. It adds exactly four
+Approval APIs and one proposal-only `memory.update` definition with human-only
+review, expiry, and stale-target handling. Approval cannot mutate a Memory or
+execute an action. Checkpoint 69 is not started. No UI, approval execution, Automation, connector,
 or external behavior exists. Do not mistake an Agent Run
 for an Automation: V1.2 Runs are manually
 initiated; Automation is a deferred future trigger that creates a Run.
@@ -55,6 +58,6 @@ relevant ADRs. Use Python 3.12 from `.venv` and only the verified
 `second_brain_test` database for integration tests. Never downgrade or recreate
 `second_brain`, and never delete the PostgreSQL volume.
 
-Checkpoint 68 is the next not-started checkpoint. Begin it only after its exact
+Checkpoint 69 is the next not-started checkpoint. Begin it only after its exact
 preflight and explicit checkpoint instructions; do not stage, commit, push,
 open a PR, or create another tag/Release without explicit instruction.

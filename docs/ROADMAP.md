@@ -32,9 +32,11 @@ ordered execution through exactly five scoped application reads at
 `d4a3533282a8ed616fa0910fcea99b07b0f1b878`. Checkpoint 67 completed one
 safe-read retry, deterministic cancellation/deadline reconciliation, and
 explicit synchronous operator recovery at
-`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`. Checkpoint 68 is the next
-not-started checkpoint. No Agent UI, approval execution,
-Automation, connector, propose, or write behavior exists.
+`7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`. Checkpoint 68 is implemented and
+pending human review. It adds immutable `memory.update` proposals and exact
+human approve/reject review without target mutation or execution authority.
+Checkpoint 69 is not started. No Agent UI, approval execution, Automation,
+connector, propose authority, or write Tool exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,
