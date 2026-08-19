@@ -34,7 +34,9 @@ retry, cancellation/deadline reconciliation, stale detection, and explicit
 synchronous single-Run operator recovery at
 `7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; its exact successful `Second Brain
 CI` push run is `32025350296` (attempt 1, completed/success, zero artifacts).
-Checkpoint 68 is implemented and pending human review. It adds exactly four
+Checkpoint 68 is complete at
+`1bc90b4339bd5466fda10e5d04711e3f025a0e01`; its exact successful `Second Brain
+CI` push run is `32219122039` (attempt 1, completed/success, zero artifacts). It adds exactly four
 Approval APIs and one proposal-only `memory.update` definition with human-only
 review, expiry, and stale-target handling. Approval cannot mutate a Memory or
 execute an action. Checkpoint 69 is not started. No UI, approval execution, Automation, connector,

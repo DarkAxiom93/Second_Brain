@@ -72,7 +72,8 @@ exact immutable human review, and execute authority is unavailable. Schedulers,
 workers, connectors, external writes, arbitrary execution, and remote or
 multi-user operation remain outside V1.2.
 
-Checkpoint 68 is pending human review. Its four additive Approval APIs create,
+Checkpoint 68 is complete at
+`1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the
 existing CP62 persistence. Creation derives the exact scoped target version,
 canonical payload hash, bounded preview/evidence/risk, expiry, and execution

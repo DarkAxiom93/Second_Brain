@@ -72,7 +72,7 @@ history. A dash means Alembic had not yet been introduced.
 | 65 | Structured planning provider | Complete | `0010_agent_runtime_persistence` | `1b32d91` |
 | 66 | Bounded read-only executor | Complete | `0010_agent_runtime_persistence` | `d4a3533` |
 | 67 | Idempotency, cancellation, recovery, and failure injection | Complete | `0010_agent_runtime_persistence` | `7b6c6bb` |
-| 68 | Approval and proposed-action foundation | Pending human review | `0010_agent_runtime_persistence` | - |
+| 68 | Approval and proposed-action foundation | Complete | `0010_agent_runtime_persistence` | `1bc90b4` |
 | 69 | Agent Runs and Approval UI | Not started | TBD | - |
 | 70 | Read-only Research Agent | Not started | TBD | - |
 | 71 | Advisory Memory Curator Agent | Not started | TBD | - |
