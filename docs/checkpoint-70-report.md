@@ -1,6 +1,6 @@
 # Checkpoint 70 report
 
-Checkpoint: 70 - Read-only Research Agent (pending human review)
+Checkpoint: 70 - Read-only Research Agent (Complete)
 
 ## Preflight
 
@@ -54,7 +54,12 @@ No migration, dependency, CI, Docker, registry-version, or export-format change
 was made. Alembic remains `0010_agent_runtime_persistence`, registry remains
 `agent-tools-v1`, and Project export remains version `1`.
 
-Checkpoint 70 is pending human review. Checkpoint 71 remains not started.
+Checkpoint 70 received human approval and is complete at implementation commit
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c` (`feat: add read-only research
+agent`). The commit was pushed to `origin/main`. Authenticated GitHub CLI
+identified exact successful `Second Brain CI` push run `32401692854`: branch
+`main`, exact implementation SHA, event `push`, attempt `1`, status `completed`,
+conclusion `success`, and artifact count `0`. Checkpoint 71 remains not started.
 
 ## Final acceptance audit remediation
 
@@ -84,3 +89,22 @@ evidence, prompt-injection variants, repeated-result determinism, synthesis
 cancellation/deadline races, provider failures, safe insufficiency rendering,
 and rejection of private citation fields. These changes remain within
 Checkpoint 70; Checkpoint 71 was not started.
+
+## Final acceptance evidence
+
+- Focused backend/PostgreSQL verification: `102 passed`.
+- Focused frontend verification: `20 passed`.
+- Backend Full verification: `826 passed`, zero skipped.
+- Frontend Full verification: `111 passed`.
+- Ruff lint and formatting, mypy, ESLint, TypeScript, and the production build
+  passed.
+- Alembic current and sole head were `0010_agent_runtime_persistence`, and
+  `alembic check` passed with no new upgrade operations.
+- `git diff --check` passed.
+
+The accepted implementation preserves deterministic versioned citations,
+citation of every substantive answered claim, fail-closed stale/intervening
+evidence handling, explicit insufficient evidence, prompt-injection resistance,
+zero domain mutation, and zero Approval/proposal creation. It adds no external
+research, polling, automatic execution/retry, browser persistence, migration,
+registry-version change, or export-format change. Checkpoint 71 was not started.

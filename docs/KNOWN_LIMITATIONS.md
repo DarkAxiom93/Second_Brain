@@ -11,8 +11,9 @@ Local V1.1 is published as `v1.1.0` from
 `7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Approval remains proposal-only: it cannot execute or
 mutate a target. Checkpoint 69 completed the manual Agent Runs and Approval
-review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 is pending
-human review.
+review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 completed
+the fixed read-only Research Agent at
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is not started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

@@ -36,9 +36,11 @@ explicit synchronous operator recovery at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. It adds immutable `memory.update` proposals and exact
 human approve/reject review without target mutation or execution authority.
 Checkpoint 69 completed the accessible manual Agent Runs and exact Approval
-review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`. Checkpoint 70 is pending
-human review with one fixed, cited, read-only Research Agent. No approval execution, Automation,
-connector, propose authority, or write Tool exists.
+review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`. Checkpoint 70 completed one
+fixed, cited, read-only Research Agent at
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is not started. No
+approval execution, Automation, connector, propose authority, or write Tool
+exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

@@ -49,6 +49,17 @@ or external behavior. Do not mistake an Agent Run
 for an Automation: V1.2 Runs are manually
 initiated; Automation is a deferred future trigger that creates a Run.
 
+Checkpoint 70 is complete at
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`; its exact successful `Second Brain
+CI` push run is `32401692854` (attempt 1, completed/success, zero artifacts).
+It adds the immutable `research` version `1` Agent with `read` authority and the
+exact five-Tool allowlist `project.get`, `memory.get`,
+`memory.search_explained`, `source.get`, and `source_chunk.get`. Its substantive
+answered claims require deterministic versioned citations; stale or intervening
+evidence fails closed, and empty evidence returns explicit insufficiency. It
+cannot mutate domain state, create Approvals or proposals, perform external
+research, poll, retry automatically, or persist browser state.
+
 The proposed initial runtime is bounded and read-only. Code-owned versioned
 tools, strict structured plans, nullable Project isolation, exact immutable
 human approval foundations, safe audit state, cancellation/recovery, and
@@ -65,6 +76,6 @@ relevant ADRs. Use Python 3.12 from `.venv` and only the verified
 `second_brain_test` database for integration tests. Never downgrade or recreate
 `second_brain`, and never delete the PostgreSQL volume.
 
-Checkpoint 70 is the next not-started checkpoint. Begin it only after its exact
-preflight and explicit checkpoint instructions; do not stage, commit, push,
-open a PR, or create another tag/Release without explicit instruction.
+Checkpoint 71 is not started. Begin it only after its exact preflight and
+explicit checkpoint instructions; do not stage, commit, push, open a PR, or
+create another tag/Release without explicit instruction.
