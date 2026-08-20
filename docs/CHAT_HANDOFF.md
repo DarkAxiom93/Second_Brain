@@ -76,8 +76,11 @@ relevant ADRs. Use Python 3.12 from `.venv` and only the verified
 `second_brain_test` database for integration tests. Never downgrade or recreate
 `second_brain`, and never delete the PostgreSQL volume.
 
-Checkpoint 71 is implemented and pending human review. It adds immutable
-`memory_curator` version `1` with `propose` maximum authority, exactly two
-scoped read Tools, bounded cited advice, and only immutable `memory.update`
-Approval Requests. No proposal execution or domain mutation exists. Checkpoint
-72 is not started; do not stage, commit, push, open a PR, or begin it.
+Checkpoint 71 is complete at
+`1dd8e83804c724e6790a704faa5ee13aad9dd3fe`; its exact successful `Second Brain
+CI` push run is `32410053222` (attempt 1, completed/success, zero artifacts). It
+adds immutable `memory_curator` version `1` with `propose` maximum authority,
+exactly `memory.get` and `memory.search_explained`, bounded cited advice, and
+only immutable `memory.update` Approval Requests. No proposal execution or
+domain mutation exists. Checkpoint 72 is not started; do not stage, commit,
+push, open a PR, or begin it.

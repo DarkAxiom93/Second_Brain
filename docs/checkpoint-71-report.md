@@ -1,6 +1,6 @@
 # Checkpoint 71 report
 
-Checkpoint: 71 - Advisory Memory Curator Agent (Pending human review)
+Checkpoint: 71 - Advisory Memory Curator Agent (Complete)
 
 ## Preflight
 
@@ -47,7 +47,17 @@ Checkpoint: 71 - Advisory Memory Curator Agent (Pending human review)
   change was made. Alembic remains `0010_agent_runtime_persistence`; Research
   and Project export remain version 1.
 
-Checkpoint 71 is pending human review. Checkpoint 72 is not started.
+Checkpoint 71 is complete. Checkpoint 72 is not started.
+
+## Post-acceptance lifecycle
+
+- Human review approved the final implementation and verification evidence.
+- The exact implementation commit is
+  `1dd8e83804c724e6790a704faa5ee13aad9dd3fe` (`feat: add advisory memory curator
+  agent`) and was pushed to `origin/main`.
+- Exact `Second Brain CI` push run `32410053222` matched branch `main` and the
+  implementation SHA; attempt 1 completed successfully with zero artifacts.
+- Checkpoint 72 remains not started.
 
 ## Verification
 

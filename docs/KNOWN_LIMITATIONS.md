@@ -13,7 +13,9 @@ Local V1.1 is published as `v1.1.0` from
 mutate a target. Checkpoint 69 completed the manual Agent Runs and Approval
 review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 completed
 the fixed read-only Research Agent at
-`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is not started.
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`; Checkpoint 71 completed the fixed
+advisory Memory Curator Agent at
+`1dd8e83804c724e6790a704faa5ee13aad9dd3fe`. Checkpoint 72 is not started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -23,8 +25,9 @@ the fixed read-only Research Agent at
   planning. A private seven-definition `agent-tools-v1` registry and pure policy
   resolver and bounded five-Tool read executor exist. Execution has at most one
   global classified safe-read retry and explicit synchronous recovery. The
-  explicit-refresh Agent UI and fixed read-only Research Agent exist. There is
-  no Approval execution or Memory Curator Agent.
+  explicit-refresh Agent UI, fixed read-only Research Agent, and fixed advisory
+  Memory Curator Agent exist. The Curator can create only immutable
+  `memory.update` Approval Requests; there is no Approval execution.
 - There are no scheduled jobs, background workers, autonomous agents, or
   Automations. An Automation is deferred and would be a trigger that creates an
   Agent Run, not the Run itself.
