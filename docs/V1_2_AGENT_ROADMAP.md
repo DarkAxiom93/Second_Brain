@@ -13,7 +13,8 @@ synchronous operator recovery at
 `7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`. Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Checkpoint 69 is complete at
 `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 is complete at
-`12a70f5e367db76cb4f0e05fb350acabc0230c3c`, and Checkpoint 71 is not started.
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`, Checkpoint 71 is pending human
+review, and Checkpoint 72 is not started.
 The security remediation base is
 `ad3c143a568be7c09a73b170f2b5be6347a27a40` with successful CI run
 `31950242783`.
@@ -335,7 +336,8 @@ read/list, and human-only approve/reject review. Expired and stale targets fail
 closed as terminal Approval states. There is no proposal execution, target
 mutation, write Tool, or execute authority. Checkpoint 69 is complete at
 `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 is complete at
-`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is not started.
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is pending human
+review; Checkpoint 72 is not started.
 
 - **Goal/why:** Persist exact immutable proposals and human decisions without
   enabling execution.

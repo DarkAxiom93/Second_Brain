@@ -14,6 +14,7 @@ from app.agent_planning.provider import PlanningContext, PlanningResult
 from app.agent_runs import service as run_service
 from app.agent_tools.policy import PolicyRejection, resolve_tool_policy
 from app.agent_tools.registry import AGENT_TOOL_REGISTRY, REGISTRY_VERSION
+from app.curator.catalog import CURATOR_TOOLS, is_curator, is_unknown_curator
 from app.models.agent_runtime import AgentRun, AgentStep
 from app.repositories import agent_runtime as repository
 from app.research.catalog import RESEARCH_TOOLS, is_research, is_unknown_research
@@ -95,7 +96,9 @@ def claim_planning(
         raise run_service.AgentRunRevisionConflictError
     if run.registry_version != REGISTRY_VERSION:
         raise AgentRunRegistryVersionError
-    if is_unknown_research(run.agent_kind, run.agent_version):
+    if is_unknown_research(run.agent_kind, run.agent_version) or is_unknown_curator(
+        run.agent_kind, run.agent_version
+    ):
         raise AgentDefinitionUnsupportedError
     if run.state != AgentRunState.CREATED.value:
         raise run_service.AgentRunTransitionConflictError
@@ -124,12 +127,16 @@ def claim_planning(
 def build_context(claim: PlanningClaim) -> PlanningContext:
     permitted_tools: list[dict[str, Any]] = []
     allowed = (
-        RESEARCH_TOOLS if is_research(claim.agent_kind, claim.agent_version) else None
+        RESEARCH_TOOLS
+        if is_research(claim.agent_kind, claim.agent_version)
+        else (
+            CURATOR_TOOLS if is_curator(claim.agent_kind, claim.agent_version) else None
+        )
     )
     definitions = (
         [
             definition
-            for identity in RESEARCH_TOOLS
+            for identity in allowed
             if (definition := AGENT_TOOL_REGISTRY.get_exact(*identity)) is not None
         ]
         if allowed is not None
@@ -186,6 +193,13 @@ def validate_plan(
         raise PlanningOutputRejectedError
 
     per_tool: Counter[tuple[str, int]] = Counter()
+    allowed = (
+        RESEARCH_TOOLS
+        if is_research(claim.agent_kind, claim.agent_version)
+        else (
+            CURATOR_TOOLS if is_curator(claim.agent_kind, claim.agent_version) else None
+        )
+    )
     seen: set[tuple[str, int, str]] = set()
     validated: list[ValidatedStep] = []
     import json
@@ -202,10 +216,7 @@ def validate_plan(
         ):
             raise PlanningPolicyRejectedError
         identity = (step.tool_name, step.tool_version)
-        if (
-            is_research(claim.agent_kind, claim.agent_version)
-            and identity not in RESEARCH_TOOLS
-        ):
+        if allowed is not None and identity not in allowed:
             raise PlanningPolicyRejectedError
         candidate_input: object = step.candidate_input
         definition = AGENT_TOOL_REGISTRY.get_exact(*identity)

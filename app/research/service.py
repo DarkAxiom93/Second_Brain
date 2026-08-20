@@ -310,6 +310,14 @@ def _still_current(
     return True
 
 
+def evidence_is_current(
+    session: Session, run: AgentRun, items: list[CollectedEvidence]
+) -> bool:
+    """Public fail-closed reuse boundary for evidence-backed Agents."""
+
+    return _still_current(session, run, items)
+
+
 def persist_result(
     session: Session,
     *,

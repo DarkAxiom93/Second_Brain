@@ -29,6 +29,7 @@ from app.agent_tools.registry import (
     Authority,
     IdempotencyClass,
 )
+from app.curator.catalog import CURATOR_TOOLS, is_curator, is_unknown_curator
 from app.embeddings import (
     EmbeddingProvider,
     InvalidEmbeddingResponseError,
@@ -141,7 +142,9 @@ def claim_execution(
         raise service.AgentRunTransitionConflictError
     if run.registry_version != REGISTRY_VERSION:
         raise ExecutionRegistryVersionError
-    if is_unknown_research(run.agent_kind, run.agent_version):
+    if is_unknown_research(run.agent_kind, run.agent_version) or is_unknown_curator(
+        run.agent_kind, run.agent_version
+    ):
         raise ExecutionAgentVersionError
     now = service.utc_now()
     if now >= run.run_deadline:
@@ -169,6 +172,10 @@ def claim_execution(
             or (
                 is_research(run.agent_kind, run.agent_version)
                 and (step.tool_name, version) not in RESEARCH_TOOLS
+            )
+            or (
+                is_curator(run.agent_kind, run.agent_version)
+                and (step.tool_name, version) not in CURATOR_TOOLS
             )
         ):
             valid_tools = False
@@ -245,7 +252,9 @@ def reserve_next(
     if not candidates:
         return None
     step = candidates[0]
-    if is_unknown_research(run.agent_kind, run.agent_version):
+    if is_unknown_research(run.agent_kind, run.agent_version) or is_unknown_curator(
+        run.agent_kind, run.agent_version
+    ):
         _fail_without_invocation(
             session, run, step, "agent_definition_unsupported", now
         )
@@ -539,6 +548,18 @@ def complete_run(session: Session, claim: ExecutionClaim) -> AgentRun | None:
             expected_revision=run.revision,
             new_state=AgentRunState.FAILED,
             safe_error_code="research_result_missing",
+        )
+    if is_curator(run.agent_kind, run.agent_version) and not any(
+        event.event_type == "curator.result"
+        for event in repository.list_agent_events(session, run.id, limit=1000)
+    ):
+        return service.transition_run(
+            session,
+            run.id,
+            expected_state=AgentRunState.RUNNING,
+            expected_revision=run.revision,
+            new_state=AgentRunState.FAILED,
+            safe_error_code="curator_result_missing",
         )
     faults.fire(faults.FaultPoint.BEFORE_RUN_COMPLETION)
     return service.transition_run(

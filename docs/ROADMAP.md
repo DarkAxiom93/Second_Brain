@@ -38,9 +38,9 @@ human approve/reject review without target mutation or execution authority.
 Checkpoint 69 completed the accessible manual Agent Runs and exact Approval
 review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`. Checkpoint 70 completed one
 fixed, cited, read-only Research Agent at
-`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is not started. No
-approval execution, Automation, connector, propose authority, or write Tool
-exists.
+`12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 is pending human
+review with one fixed advisory `memory_curator` version `1`; Checkpoint 72 is
+not started. No approval execution, Automation, connector, or write Tool exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

@@ -84,6 +84,14 @@ type, public UUID, and application-owned current version. Insufficient results
 contain no claims or citations. Raw evidence, provider/Tool payloads, prompts,
 and private Run/Step/Invocation identities remain private.
 
+Curator kind `memory_curator` version `1` is code-owned with maximum authority
+`propose`; unknown versions are rejected. Its exact read Tool allowlist is
+`memory.get` and `memory.search_explained`, both version 1. The execution
+projection adds nullable `curator_result` with bounded findings, versioned
+public evidence identities, and immutable proposed-action identities. Its
+closed proposal catalog is only `memory.update`; proposal creation occurs only
+during validated synthesis. Existing explicit human review never executes it.
+
 ## Explained Memory search
 
 `POST /memories/search/explained` is the only additive explained-search route.

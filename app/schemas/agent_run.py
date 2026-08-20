@@ -167,10 +167,34 @@ class ResearchResultRead(BaseModel):
     insufficiency: Annotated[str | None, StringConstraints(max_length=1000)]
 
 
+class CuratorEvidenceRead(BaseModel):
+    entity_type: Literal["project", "memory", "source", "source_chunk"]
+    entity_id: uuid.UUID
+    version: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+
+
+class CuratorFindingRead(BaseModel):
+    text: Annotated[str, StringConstraints(min_length=1, max_length=500)]
+    evidence: Annotated[list[CuratorEvidenceRead], Field(min_length=1, max_length=20)]
+
+
+class CuratorProposedActionRead(BaseModel):
+    approval_id: uuid.UUID
+    action_type: Literal["memory.update"]
+    target_id: uuid.UUID
+    target_version: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+
+
+class CuratorResultRead(BaseModel):
+    findings: Annotated[list[CuratorFindingRead], Field(max_length=10)]
+    proposed_actions: Annotated[list[CuratorProposedActionRead], Field(max_length=5)]
+
+
 class AgentRunExecutionRead(BaseModel):
     run: AgentRunRead
     steps: list[AgentStepExecutionRead]
     research_result: ResearchResultRead | None = None
+    curator_result: CuratorResultRead | None = None
 
 
 class ApprovalRequestCreate(BaseModel):

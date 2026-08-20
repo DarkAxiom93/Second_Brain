@@ -140,6 +140,17 @@ describe("Agent Runs list and creation", () => {
     const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
     expect(body).toMatchObject({ agent_kind: "research", agent_version: "1" });
   });
+
+  it("selects the fixed Memory Curator identity", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(response([])).mockResolvedValueOnce(response(run("created", { agent_kind: "memory_curator" }), 201));
+    vi.stubGlobal("fetch", fetchMock);
+    renderList();
+    await screen.findByText("No Agent Runs found.");
+    await userEvent.selectOptions(screen.getByLabelText("Agent choice"), "memory_curator");
+    expect(screen.getByLabelText("Agent kind")).toHaveValue("memory_curator");
+    expect(screen.getByLabelText("Agent kind")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Agent version")).toHaveValue("1");
+  });
 });
 
 describe("Agent Run detail", () => {
@@ -334,9 +345,30 @@ describe("Agent Run detail", () => {
     expect(screen.getByText("Status: Answered")).toBeInTheDocument();
     expect(screen.getByText("Supported local claim")).toBeInTheDocument();
     expect(screen.getByText("Citations: [1]")).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`memory ${target}`))).toHaveTextContent(`version ${"a".repeat(64)}`);
+    expect(screen.getAllByText(new RegExp(`memory ${target}`))[0]).toHaveTextContent(`version ${"a".repeat(64)}`);
     expect(screen.queryByRole("heading", { name: "Approval Requests" })).not.toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("raw provider");
+  });
+
+  it("renders safe Curator findings, evidence, proposals, and Approval review", async () => {
+    const value = run("completed", { agent_kind: "memory_curator", agent_version: "1" });
+    const result = { run: value, steps: [], research_result: null, curator_result: { findings: [{ text: "Clarify the title.", evidence: [{ entity_type: "memory", entity_id: target, version: "a".repeat(64) }] }], proposed_actions: [{ approval_id: approvalId, action_type: "memory.update", target_id: target, target_version: "a".repeat(64) }] } };
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(response(url.includes("approval-requests") ? [approval()] : url.endsWith("/execution") ? result : url.endsWith("/plan") ? { run: value, goal_summary: value.goal_summary, steps: [] } : value))));
+    renderDetail();
+    expect(await screen.findByRole("heading", { name: "Curator advice" })).toBeInTheDocument();
+    expect(screen.getByText("Clarify the title.")).toBeInTheDocument();
+    expect(screen.getAllByText(new RegExp(`memory ${target}`))[0]).toHaveTextContent(`version ${"a".repeat(64)}`);
+    expect(screen.getByRole("heading", { name: "Approval Requests" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve exact proposal" })).toBeEnabled();
+  });
+
+  it("rejects Curator projections containing private identities", async () => {
+    const value = run("completed", { agent_kind: "memory_curator", agent_version: "1" });
+    const result = { run: value, steps: [], curator_result: { findings: [], proposed_actions: [{ approval_id: approvalId, action_type: "memory.update", target_id: target, target_version: "a".repeat(64), execution_identity: "private" }] } };
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(response(url.includes("approval-requests") ? [] : url.endsWith("/execution") ? result : url.endsWith("/plan") ? { run: value, goal_summary: value.goal_summary, steps: [] } : value))));
+    renderDetail();
+    expect(await screen.findByRole("heading", { name: "Run unavailable" })).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("private");
   });
 
   it("renders safe Research insufficiency without claims, citations, or raw content", async () => {

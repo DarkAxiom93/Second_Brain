@@ -83,6 +83,14 @@ helper. Empty evidence returns explicit insufficiency without provider
 resolution. Research has no proposal, Approval creation, execute authority,
 mutation, operator aggregate, external research, browser, or HTTP capability.
 
+Checkpoint 71 adds one immutable `memory_curator` version `1` Agent with maximum
+authority `propose`. It uses only `memory.get` and `memory.search_explained`
+version 1 from the unchanged `agent-tools-v1` registry. Strict synthesis may
+persist bounded cited findings and create only immutable `memory.update`
+Approval Requests through the Checkpoint 68 foundation. Application code
+derives all target, version, identity, risk, expiry, scope, and status fields;
+neither the Run nor Approval review mutates a Memory or executes an action.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

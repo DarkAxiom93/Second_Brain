@@ -9,6 +9,7 @@ from typing import Any, Literal
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.curator.catalog import is_curator
 from app.models.agent_runtime import ApprovalRequest
 from app.models.memory import Memory
 from app.repositories import agent_runtime as repository
@@ -128,7 +129,11 @@ def _safe_evidence(references: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
         key = (str(entity_type), public_id)
         if key not in seen:
-            result.append({"entity_type": entity_type, "id": public_id})
+            safe = {"entity_type": entity_type, "id": public_id}
+            version = reference.get("version")
+            if isinstance(version, str) and len(version) == 64:
+                safe["version"] = version
+            result.append(safe)
             seen.add(key)
         if len(result) == MAX_EVIDENCE:
             break
@@ -140,7 +145,7 @@ def _preview(normalized_input: dict[str, Any]) -> str:
     return f"Update Memory fields: {fields}"[:2000]
 
 
-def create_proposal(
+def _create_proposal(
     session: Session,
     *,
     run_id: uuid.UUID,
@@ -148,6 +153,9 @@ def create_proposal(
     action_type: str,
     target_id: uuid.UUID,
     proposed_input: dict[str, Any],
+    validated_evidence: list[dict[str, Any]] | None,
+    expected_target_version: str | None,
+    allow_curator: bool,
     now: datetime | None = None,
 ) -> tuple[ApprovalRequest, bool]:
     captured_at = now or datetime.now(UTC)
@@ -158,6 +166,12 @@ def create_proposal(
         raise NotFoundError("agent run not found")
     if is_research(run.agent_kind, run.agent_version):
         raise InvalidProposalError("Research Agent cannot create proposals")
+    if allow_curator and not is_curator(run.agent_kind, run.agent_version):
+        raise InvalidProposalError("Curator proposal requires exact Curator identity")
+    if is_curator(run.agent_kind, run.agent_version) and not allow_curator:
+        raise InvalidProposalError(
+            "Memory Curator proposals are created only during synthesis"
+        )
     step = repository.get_agent_step_by_ordinal_for_update(
         session, run_id, step_ordinal
     )
@@ -166,8 +180,10 @@ def create_proposal(
     target = memory_repository.lock_memory(session, target_id)
     if target is None or target.project_id != run.project_id:
         raise NotFoundError("target memory not found")
-    normalized = normalize_memory_update(proposed_input, target=target)
     version = target_version(target)
+    if expected_target_version is not None and version != expected_target_version:
+        raise InvalidProposalError("proposal target evidence is stale")
+    normalized = normalize_memory_update(proposed_input, target=target)
     identity = proposal_hash(
         target_id=target.id, version=version, normalized_input=normalized
     )
@@ -183,7 +199,11 @@ def create_proposal(
     )
     if existing is not None:
         return existing, False
-    evidence = _safe_evidence(repository.list_step_evidence(session, run.id, step.id))
+    evidence = _safe_evidence(
+        repository.list_step_evidence(session, run.id, step.id)
+        if validated_evidence is None
+        else validated_evidence
+    )
     approval = repository.insert_approval_request(
         session,
         ApprovalRequest(
@@ -218,6 +238,68 @@ def create_proposal(
         event_idempotency_hash=_digest({"event": "created", "proposal": identity}),
     )
     return approval, True
+
+
+def create_proposal(
+    session: Session,
+    *,
+    run_id: uuid.UUID,
+    step_ordinal: int,
+    action_type: str,
+    target_id: uuid.UUID,
+    proposed_input: dict[str, Any],
+    now: datetime | None = None,
+) -> tuple[ApprovalRequest, bool]:
+    """Create the existing CP68 manual proposal without widened behavior."""
+
+    return _create_proposal(
+        session,
+        run_id=run_id,
+        step_ordinal=step_ordinal,
+        action_type=action_type,
+        target_id=target_id,
+        proposed_input=proposed_input,
+        validated_evidence=None,
+        expected_target_version=None,
+        allow_curator=False,
+        now=now,
+    )
+
+
+def create_curator_proposal(
+    session: Session,
+    *,
+    run_id: uuid.UUID,
+    step_ordinal: int,
+    action_type: str,
+    target_id: uuid.UUID,
+    expected_target_version: str,
+    proposed_input: dict[str, Any],
+    validated_evidence: list[dict[str, Any]],
+    now: datetime | None = None,
+) -> tuple[ApprovalRequest, bool]:
+    """Create one CP68 proposal only from validated Curator synthesis."""
+
+    if (
+        not isinstance(expected_target_version, str)
+        or len(expected_target_version) != 64
+        or any(
+            character not in "0123456789abcdef" for character in expected_target_version
+        )
+    ):
+        raise InvalidProposalError("invalid proposal target version")
+    return _create_proposal(
+        session,
+        run_id=run_id,
+        step_ordinal=step_ordinal,
+        action_type=action_type,
+        target_id=target_id,
+        proposed_input=proposed_input,
+        validated_evidence=validated_evidence,
+        expected_target_version=expected_target_version,
+        allow_curator=True,
+        now=now,
+    )
 
 
 def review_proposal(

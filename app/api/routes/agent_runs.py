@@ -21,6 +21,18 @@ from app.agent_planning.provider import (
     PlanningProviderUnavailableError,
 )
 from app.agent_runs import approvals, executor, faults, service
+from app.curator import service as curator_service
+from app.curator.catalog import CURATOR_KIND, curator_definition, is_curator
+from app.curator.dependencies import get_curator_provider
+from app.curator.provider import (
+    CuratorOutputInvalidError,
+    CuratorProvider,
+    CuratorProviderError,
+    CuratorProviderRequestError,
+    CuratorProviderResult,
+    CuratorProviderTimeoutError,
+    CuratorProviderUnavailableError,
+)
 from app.db.dependencies import get_db_session
 from app.embeddings import EmbeddingProvider, get_embedding_provider
 from app.models.agent_runtime import (
@@ -57,6 +69,7 @@ from app.schemas.agent_run import (
     ApprovalRequestRead,
     ApprovalRequestStatus,
     ApprovalReview,
+    CuratorResultRead,
     ResearchResultRead,
 )
 
@@ -78,6 +91,10 @@ def embedding_provider_resolver() -> Callable[[], EmbeddingProvider]:
 
 def research_provider_resolver() -> Callable[[], ResearchProvider]:
     return get_research_provider
+
+
+def curator_provider_resolver() -> Callable[[], CuratorProvider]:
+    return get_curator_provider
 
 
 def _error(status_code: int, detail: str) -> HTTPException:
@@ -252,6 +269,14 @@ def create_agent_run(
         raise _error(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "unsupported Research Agent version"
         )
+    if (
+        request.agent_kind == CURATOR_KIND
+        and curator_definition(request.agent_kind, request.agent_version) is None
+    ):
+        raise _error(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "unsupported Memory Curator Agent version",
+        )
     key_hash = service.hash_idempotency_key(_validate_idempotency_key(idempotency_key))
     fingerprint = service.normalized_request_fingerprint(request)
     try:
@@ -381,6 +406,7 @@ def _execution_projection(
     steps: list[AgentStep],
     invocations: list[ToolInvocation],
     research_result: dict[str, object] | None = None,
+    curator_result: dict[str, object] | None = None,
 ) -> AgentRunExecutionRead:
     by_step = {item.step_id: item for item in invocations}
     return AgentRunExecutionRead(
@@ -389,6 +415,11 @@ def _execution_projection(
             None
             if research_result is None
             else ResearchResultRead.model_validate(research_result)
+        ),
+        curator_result=(
+            None
+            if curator_result is None
+            else CuratorResultRead.model_validate(curator_result)
         ),
         steps=[
             AgentStepExecutionRead(
@@ -426,7 +457,11 @@ def _load_execution(session: Session, run_id: uuid.UUID) -> AgentRunExecutionRea
     steps = repository.list_agent_steps(session, run_id, limit=13)
     invocations = repository.list_step_invocations(session, run_id)
     return _execution_projection(
-        run, steps, list(invocations), research_service.get_result(session, run.id)
+        run,
+        steps,
+        list(invocations),
+        research_service.get_result(session, run.id),
+        curator_service.get_result(session, run.id),
     )
 
 
@@ -459,6 +494,9 @@ def execute_agent_run(
     ],
     resolve_research_provider: Annotated[
         Callable[[], ResearchProvider], Depends(research_provider_resolver)
+    ],
+    resolve_curator_provider: Annotated[
+        Callable[[], CuratorProvider], Depends(curator_provider_resolver)
     ],
 ) -> AgentRunExecutionRead:
     """Claim and synchronously execute one complete frozen read-only plan."""
@@ -501,6 +539,8 @@ def execute_agent_run(
 
     collected: list[research_service.CollectedEvidence] = []
     research_run = is_research(claim.agent_kind, claim.agent_version)
+    curator_run = is_curator(claim.agent_kind, claim.agent_version)
+    evidence_agent = research_run or curator_run
     while True:
         try:
             reserved = executor.reserve_next(
@@ -533,10 +573,10 @@ def execute_agent_run(
             invocation,
             timeout_seconds,
             resolve_provider,
-            capture_research_evidence if research_run else None,
+            capture_research_evidence if evidence_agent else None,
         )
         references: list[dict[str, object]] | None = None
-        if research_run and output is not None and safe_error is None:
+        if evidence_agent and output is not None and safe_error is None:
             try:
                 evidence_run = repository.get_agent_run(session, claim.run_id)
                 if evidence_run is None:
@@ -632,6 +672,54 @@ def execute_agent_run(
                 )
                 session.commit()
 
+    if curator_run:
+        active = curator_service.claim_synthesis(session, claim.run_id)
+        session.commit()
+        if active:
+            try:
+                curator_result = (
+                    CuratorProviderResult(findings=[], proposals=[])
+                    if not collected
+                    else resolve_curator_provider().synthesize(
+                        goal=claim.goal_summary,
+                        evidence=[item.provider_value() for item in collected],
+                    )
+                )
+                curator_service.persist_result(
+                    session,
+                    run_id=claim.run_id,
+                    evidence=collected,
+                    result=curator_result,
+                )
+                session.commit()
+            except CuratorProviderUnavailableError:
+                session.rollback()
+                curator_service.fail_result(
+                    session, claim.run_id, "curator_provider_unavailable"
+                )
+                session.commit()
+            except CuratorProviderTimeoutError:
+                session.rollback()
+                curator_service.fail_result(
+                    session, claim.run_id, "curator_provider_timeout"
+                )
+                session.commit()
+            except CuratorProviderRequestError:
+                session.rollback()
+                curator_service.fail_result(
+                    session, claim.run_id, "curator_provider_failed"
+                )
+                session.commit()
+            except (
+                CuratorOutputInvalidError,
+                CuratorProviderError,
+                curator_service.CuratorValidationError,
+            ):
+                session.rollback()
+                curator_service.fail_result(
+                    session, claim.run_id, "curator_result_invalid"
+                )
+                session.commit()
     try:
         completed = executor.complete_run(session, claim)
         session.commit()

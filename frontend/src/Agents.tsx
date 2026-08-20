@@ -34,7 +34,7 @@ export function AgentRuns() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
   const [goal, setGoal] = useState("");
-  const [agentChoice, setAgentChoice] = useState<"manual" | "research">("manual");
+  const [agentChoice, setAgentChoice] = useState<"manual" | "research" | "memory_curator">("manual");
   const [kind, setKind] = useState("manual");
   const [version, setVersion] = useState("1");
   const [scope, setScope] = useState<"unassigned" | "project">("unassigned");
@@ -43,7 +43,7 @@ export function AgentRuns() {
   const [busy, setBusy] = useState(false);
   const goalRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
-  const research = agentChoice === "research";
+  const fixedIdentity = agentChoice !== "manual";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -104,13 +104,13 @@ export function AgentRuns() {
         <label htmlFor="agent-goal">Goal summary</label>
         <textarea ref={goalRef} id="agent-goal" maxLength={1000} aria-describedby={describedBy} value={goal} onChange={(event) => setGoal(event.target.value)} disabled={busy} />
         <label htmlFor="agent-choice">Agent choice</label>
-        <select id="agent-choice" value={agentChoice} onChange={(event) => { const value = event.target.value as "manual" | "research"; setAgentChoice(value); setKind(value === "research" ? "research" : "manual"); setVersion("1"); }} disabled={busy}>
-          <option value="manual">Manual</option><option value="research">Research</option>
+        <select id="agent-choice" value={agentChoice} onChange={(event) => { const value = event.target.value as "manual" | "research" | "memory_curator"; setAgentChoice(value); setKind(value === "manual" ? "manual" : value); setVersion("1"); }} disabled={busy}>
+          <option value="manual">Manual</option><option value="research">Research</option><option value="memory_curator">Memory Curator</option>
         </select>
         <label htmlFor="agent-kind">Agent kind</label>
-        <input id="agent-kind" maxLength={100} aria-describedby={describedBy} value={kind} onChange={(event) => setKind(event.target.value)} disabled={busy || research} readOnly={research} />
+        <input id="agent-kind" maxLength={100} aria-describedby={describedBy} value={kind} onChange={(event) => setKind(event.target.value)} disabled={busy || fixedIdentity} readOnly={fixedIdentity} />
         <label htmlFor="agent-version">Agent version</label>
-        <input id="agent-version" maxLength={50} aria-describedby={describedBy} value={version} onChange={(event) => setVersion(event.target.value)} disabled={busy || research} readOnly={research} />
+        <input id="agent-version" maxLength={50} aria-describedby={describedBy} value={version} onChange={(event) => setVersion(event.target.value)} disabled={busy || fixedIdentity} readOnly={fixedIdentity} />
         <fieldset><legend>Scope</legend>
           <label><input type="radio" name="scope" checked={scope === "unassigned"} onChange={() => setScope("unassigned")} /> Explicitly unassigned</label>
           <label><input type="radio" name="scope" checked={scope === "project"} onChange={() => setScope("project")} /> Exact Project</label>
@@ -223,6 +223,7 @@ export function AgentRunDetail() {
         <section aria-labelledby="plan-heading"><h2 id="plan-heading">Plan and Steps</h2>{!plan ? <p>No frozen plan is available.</p> : <ol className="agent-list">{[...plan.steps].sort((a, b) => a.ordinal - b.ordinal).map((step) => <li key={step.ordinal}><h3>Step {step.ordinal + 1}: {step.purpose}</h3><p>{step.tool_name} version {step.tool_version}</p><details><summary>Bounded input and conditions</summary><pre className="evidence">{json(step.normalized_input)}</pre><p>Expected evidence: {step.expected_evidence.join(", ") || "None"}</p><p>Success: {step.success_condition}</p><p>Stop: {step.stop_condition}</p></details></li>)}</ol>}</section>
         <section aria-labelledby="execution-heading"><h2 id="execution-heading">Execution</h2>{!execution || execution.steps.length === 0 ? <p>No execution results.</p> : <ol className="agent-list">{[...execution.steps].sort((a, b) => a.ordinal - b.ordinal).map((step) => <li key={step.ordinal}><h3>Step {step.ordinal + 1}: {step.status}</h3><p>{step.safe_result_summary ?? "No safe result summary."}</p>{step.safe_error_code && <p>Safe status code: {step.safe_error_code}</p>}{step.evidence_references.length > 0 && <><h4>Evidence references</h4><ul>{step.evidence_references.map((evidence, index) => <li key={index}><code>{json(evidence)}</code></li>)}</ul></>}</li>)}</ol>}</section>
         {run.agent_kind === "research" && <section aria-labelledby="research-heading"><h2 id="research-heading">Research result</h2>{!execution?.research_result ? <p>No Research result is available.</p> : <><p><strong>Status: {execution.research_result.status === "answered" ? "Answered" : "Insufficient evidence"}</strong></p>{execution.research_result.insufficiency && <p>{execution.research_result.insufficiency}</p>}{execution.research_result.claims.length > 0 && <ol className="agent-list">{execution.research_result.claims.map((claim, index) => <li key={index}><p>{claim.text}</p><p>Citations: {claim.citation_numbers.map((number) => `[${number}]`).join(" ")}</p></li>)}</ol>}{execution.research_result.citations.length > 0 && <ol>{execution.research_result.citations.map((citation) => <li key={citation.number}><code>{citation.entity_type} {citation.entity_id} · version {citation.version}</code></li>)}</ol>}</>}</section>}
+        {run.agent_kind === "memory_curator" && <section aria-labelledby="curator-heading"><h2 id="curator-heading">Curator advice</h2>{!execution?.curator_result ? <p>No Curator result is available.</p> : <><h3>Advisory findings</h3>{execution.curator_result.findings.length === 0 ? <p>No findings.</p> : <ol className="agent-list">{execution.curator_result.findings.map((finding, index) => <li key={index}><p>{finding.text}</p>{finding.evidence.map((item) => <code key={`${item.entity_type}-${item.entity_id}`}>{item.entity_type} {item.entity_id} · version {item.version}</code>)}</li>)}</ol>}<h3>Proposed actions</h3>{execution.curator_result.proposed_actions.length === 0 ? <p>No proposed actions.</p> : <ol>{execution.curator_result.proposed_actions.map((item) => <li key={item.approval_id}><code>{item.action_type} · Memory {item.target_id} · frozen version {item.target_version}</code></li>)}</ol>}</>}</section>}
         {run.agent_kind !== "research" && <section aria-labelledby="approval-heading"><h2 id="approval-heading">Approval Requests</h2>{approvals.length === 0 ? <p>No Approval Requests.</p> : <ol className="agent-list">{approvals.map((approval) => <li key={approval.id}><h3>{approval.action_type} · <span className="status-label">{approval.status}</span></h3><p>Target: {approval.target_type} {approval.target_id} · frozen version {approval.target_version}</p><p>Risk: {approval.risk_classification} · Created: {stamp(approval.created_at)} · Expires: {stamp(approval.expires_at)} · Reviewed: {stamp(approval.reviewed_at)}</p><p className="evidence"><strong>Safe preview:</strong> {approval.preview}</p><details><summary>Normalized proposed input and evidence</summary><pre className="evidence">{json(approval.proposed_input)}</pre>{approval.evidence_references.map((evidence, index) => <code key={index}>{json(evidence)}</code>)}</details>{approval.status === "pending" && <div className="actions"><button disabled={busy} type="button" onClick={() => review(approval, "approve")}>Approve exact proposal</button><button disabled={busy} type="button" onClick={() => review(approval, "reject")}>Reject exact proposal</button></div>}</li>)}</ol>}</section>}
         <Link className="back-link" to="/agents">Back to Agent Runs</Link>
       </>}
