@@ -30,13 +30,19 @@ from app.curator.provider import (
 )
 from app.db.session import get_engine
 from app.main import create_app
-from app.models.agent_runtime import AgentEvent, AgentRun, ApprovalRequest
+from app.models.agent_runtime import (
+    AgentEvent,
+    AgentRun,
+    ApprovalRequest,
+    ToolInvocation,
+)
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.models.memory_proposal import MemoryProposal
 from app.models.project import Project
 from app.models.source import Source
 from app.models.source_chunk import SourceChunk
+from app.models.source_document import SourceDocument
 from tests.integration.conftest import verify_connected_test_database
 
 
@@ -79,6 +85,7 @@ def test_curator_creates_reviewable_proposal_without_domain_mutation() -> None:
                 Memory,
                 MemoryEmbedding,
                 Source,
+                SourceDocument,
                 SourceChunk,
                 MemoryProposal,
             )
@@ -176,6 +183,7 @@ def test_curator_creates_reviewable_proposal_without_domain_mutation() -> None:
                 Memory,
                 MemoryEmbedding,
                 Source,
+                SourceDocument,
                 SourceChunk,
                 MemoryProposal,
             )
@@ -449,12 +457,15 @@ def test_target_mutation_after_proposal_uses_existing_cp68_superseded_review() -
     [
         (CuratorProviderUnavailableError(), "curator_provider_unavailable"),
         (CuratorProviderTimeoutError(), "curator_provider_timeout"),
-        (CuratorProviderRequestError("private payload"), "curator_provider_failed"),
+        (
+            CuratorProviderRequestError("CP72_CURATOR_SECRET_CANARY"),
+            "curator_provider_failed",
+        ),
         (CuratorOutputInvalidError("raw output"), "curator_result_invalid"),
     ],
 )
 def test_provider_failures_are_safe_and_create_no_proposal(
-    failure: Exception, code: str
+    failure: Exception, code: str, caplog: pytest.LogCaptureFixture
 ) -> None:
     memory_id = uuid.uuid4()
     with Session(get_engine()) as session:
@@ -476,11 +487,26 @@ def test_provider_failures_are_safe_and_create_no_proposal(
     created, executed = _create_plan_execute(client, "Provider failure")
     assert executed.status_code == 200
     assert executed.json()["run"]["safe_error_code"] == code
-    assert "private payload" not in executed.text and "raw output" not in executed.text
+    assert "CP72_CURATOR_SECRET_CANARY" not in executed.text
+    assert "raw output" not in executed.text
     assert client.get(f"/agent-runs/{created['id']}/approval-requests").json() == []
     with Session(get_engine()) as session:
+        run_id = uuid.UUID(str(created["id"]))
+        durable = [
+            {column.name: getattr(row, column.name) for column in row.__table__.columns}
+            for model in (AgentRun, AgentEvent, ToolInvocation, ApprovalRequest)
+            for row in session.scalars(
+                select(model).where(model.run_id == run_id)
+                if model is not AgentRun
+                else select(model).where(model.id == run_id)
+            )
+        ]
+        assert "CP72_CURATOR_SECRET_CANARY" not in str(durable)
+        assert "raw output" not in str(durable)
         session.delete(session.get(Memory, memory_id))
         session.commit()
+    assert "CP72_CURATOR_SECRET_CANARY" not in caplog.text
+    assert "raw output" not in caplog.text
 
 
 @pytest.mark.parametrize(

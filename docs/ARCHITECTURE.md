@@ -91,6 +91,13 @@ Approval Requests through the Checkpoint 68 foundation. Application code
 derives all target, version, identity, risk, expiry, scope, and status fields;
 neither the Run nor Approval review mutates a Memory or executes an action.
 
+Checkpoint 72 adds an executable T01-T24 security traceability gate and a
+PostgreSQL-serialized maximum of 32 nonterminal Agent Runs. Capacity includes
+`created`, `planning`, `ready`, `running`, and `awaiting_approval`; exact
+idempotent replay is resolved first, terminal Runs release capacity, and a full
+system rejects creation with a safe response. No queue, scheduler, worker, new
+authority, migration, or Agent capability is introduced.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

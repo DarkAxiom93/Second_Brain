@@ -34,6 +34,11 @@ explicit unassigned scope never widen each other. Cancellation locks the Run,
 checks its monotonic revision, and atomically appends one event; replay of an
 already cancelled Run is unchanged.
 
+Creation is bounded to 32 nonterminal Runs across the local instance. The
+capacity decision is serialized in PostgreSQL; exact idempotent replay remains
+available at capacity. A distinct new request over capacity returns HTTP 429
+with `active Agent Run capacity reached` and creates no Run or event.
+
 The public projection is limited to Run identity/scope, agent and policy
 versions, bounded goal and budgets, state/deadlines/revision, safe error code,
 and timestamps. Correlation identity, idempotency/fingerprint hashes, events,

@@ -18,6 +18,8 @@ STEP_BUDGET = 12
 TOOL_CALL_BUDGET = 20
 RETRY_BUDGET = 1
 RUN_DURATION = timedelta(minutes=10)
+MAX_ACTIVE_RUNS = 32
+_CAPACITY_LOCK_KEY = 0x534252554E  # Stable PostgreSQL advisory-lock namespace: SBRUN.
 
 LEGAL_TRANSITIONS: dict[AgentRunState, frozenset[AgentRunState]] = {
     AgentRunState.CREATED: frozenset(
@@ -73,6 +75,7 @@ ACTIVE_PROCESSING_STATES = frozenset(
         AgentRunState.AWAITING_APPROVAL,
     }
 )
+CAPACITY_STATES = frozenset({AgentRunState.CREATED, *ACTIVE_PROCESSING_STATES})
 
 
 class AgentRunNotFoundError(Exception):
@@ -92,6 +95,10 @@ class AgentRunTransitionConflictError(Exception):
 
 
 class IdempotencyConflictError(Exception):
+    pass
+
+
+class AgentRunCapacityError(Exception):
     pass
 
 
@@ -143,6 +150,22 @@ def create_run(
     )
     if existing is not None:
         return _replay_or_conflict(existing, fingerprint)
+    repository.lock_agent_run_capacity(session, _CAPACITY_LOCK_KEY)
+    # A creator with this key may have committed while this transaction waited
+    # for the capacity lock. Exact replay/collision semantics still win before
+    # capacity, including when that creator filled the final slot.
+    existing = repository.get_agent_run_by_idempotency_hash_for_update(
+        session, idempotency_key_hash
+    )
+    if existing is not None:
+        return _replay_or_conflict(existing, fingerprint)
+    if (
+        repository.count_agent_runs_in_states(
+            session, frozenset(state.value for state in CAPACITY_STATES)
+        )
+        >= MAX_ACTIVE_RUNS
+    ):
+        raise AgentRunCapacityError
     if request.project_id is not None:
         from app.repositories.projects import get_project
 

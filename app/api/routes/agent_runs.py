@@ -297,6 +297,12 @@ def create_agent_run(
             status.HTTP_409_CONFLICT,
             "idempotency key already used with a different request",
         ) from None
+    except service.AgentRunCapacityError:
+        session.rollback()
+        raise _error(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "active Agent Run capacity reached",
+        ) from None
     except IntegrityError:
         # A concurrent creator may win the unique hash constraint after our
         # initial lookup. Roll back the failed transaction before resolving it.

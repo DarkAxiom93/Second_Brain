@@ -188,13 +188,18 @@ describe("Agent Run detail", () => {
       { ordinal: 1, purpose: "Second", tool_name: "memory.get", tool_version: 1, normalized_input: { id: target }, expected_evidence: ["memory"], success_condition: "found", stop_condition: "missing" },
       { ordinal: 0, purpose: "First", tool_name: "project.get", tool_version: 1, normalized_input: { id: project }, expected_evidence: [], success_condition: "found", stop_condition: "missing" },
     ] };
-    const currentExecution = { run: value, steps: [{ ordinal: 0, purpose: "First", tool_name: "project.get", tool_version: 1, status: "succeeded", invocation_status: "succeeded", safe_result_summary: "<script>Project found</script>", evidence_references: [{ type: "project", id: project }], safe_error_code: null }] };
-    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(response(url.endsWith("/plan") ? plan : url.endsWith("/execution") ? currentExecution : url.includes("approval-requests") ? [] : value))));
+    const unsafeText = "<script>Project found</script> javascript:alert(1) data:text/html,x file:///private \\\\host\\share https://user:pass@example.invalid";
+    const currentExecution = { run: value, steps: [{ ordinal: 0, purpose: "First", tool_name: "project.get", tool_version: 1, status: "succeeded", invocation_status: "succeeded", safe_result_summary: unsafeText, evidence_references: [{ type: "project", id: project }], safe_error_code: null }] };
+    const fetchMock = vi.fn((url: string) => Promise.resolve(response(url.endsWith("/plan") ? plan : url.endsWith("/execution") ? currentExecution : url.includes("approval-requests") ? [] : value)));
+    vi.stubGlobal("fetch", fetchMock);
     renderDetail();
     const headings = await screen.findAllByRole("heading", { level: 3 });
     expect(headings.map((heading) => heading.textContent).slice(0, 2)).toEqual(["Step 1: First", "Step 2: Second"]);
-    expect(screen.getByText("<script>Project found</script>")).toBeInTheDocument();
+    expect(screen.getByText(/<script>Project found<\/script>/)).toBeInTheDocument();
     expect(document.querySelector("script")).toBeNull();
+    const hrefs = [...document.querySelectorAll("a")].map((link) => link.getAttribute("href") ?? "");
+    for (const unsafe of ["javascript:", "data:", "file:", "user:pass@", "\\\\host\\share"]) expect(hrefs.every((href) => !href.includes(unsafe))).toBe(true);
+    expect(fetchMock.mock.calls.every(([url]) => String(url).startsWith("/api/agent-runs/"))).toBe(true);
     expect(screen.getAllByText(new RegExp(project))).toHaveLength(2);
   });
 
@@ -292,11 +297,11 @@ describe("Agent Run detail", () => {
   });
 
   it("rejects malformed projections containing private fields", async () => {
-    const privateRun = { ...run(), correlation_hash: "private-correlation" };
+    const privateRun = { ...run(), correlation_hash: "CP72_SECRET_CANARY_DO_NOT_EXPOSE" };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(privateRun)));
     renderDetail();
     expect(await screen.findByRole("heading", { name: "Run unavailable" })).toBeInTheDocument();
-    expect(document.body).not.toHaveTextContent("private-correlation");
+    expect(document.body).not.toHaveTextContent("CP72_SECRET_CANARY_DO_NOT_EXPOSE");
     cleanup();
     const value = run("awaiting_approval");
     const privateApproval = { ...approval(), proposal_hash: "private-proposal-hash", execution_identity: "private-execution" };

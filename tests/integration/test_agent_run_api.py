@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session
 
 from app.agent_runs import service
@@ -298,6 +298,224 @@ def test_concurrent_exact_create_produces_one_run_and_event() -> None:
         thread.start()
     for thread in threads:
         thread.join()
+    assert sorted(outcomes) == [False, True]
+    with Session(get_engine()) as session:
+        assert session.scalar(select(func.count()).select_from(AgentRun)) == 1
+        assert session.scalar(select(func.count()).select_from(AgentEvent)) == 1
+
+
+def _create_capacity_run(key: str) -> uuid.UUID:
+    request = AgentRunCreate.model_validate(_payload())
+    with Session(get_engine()) as session:
+        result = service.create_run(
+            session,
+            request,
+            idempotency_key_hash=service.hash_idempotency_key(key),
+            fingerprint=service.normalized_request_fingerprint(request),
+        )
+        session.commit()
+        return result.run.id
+
+
+def test_concurrent_creators_at_slots_31_32_33_never_exceed_capacity() -> None:
+    for index in range(service.MAX_ACTIVE_RUNS - 1):
+        _create_capacity_run(f"capacity-seed-{index}")
+    barrier = threading.Barrier(2)
+    outcomes: list[str] = []
+
+    def worker(index: int) -> None:
+        request = AgentRunCreate.model_validate(_payload())
+        with Session(get_engine()) as session:
+            barrier.wait()
+            try:
+                result = service.create_run(
+                    session,
+                    request,
+                    idempotency_key_hash=service.hash_idempotency_key(
+                        f"capacity-concurrent-{index}"
+                    ),
+                    fingerprint=service.normalized_request_fingerprint(request),
+                )
+                session.commit()
+                outcomes.append(f"created:{result.run.id}")
+            except service.AgentRunCapacityError:
+                session.rollback()
+                outcomes.append("capacity")
+
+    threads = [threading.Thread(target=worker, args=(index,)) for index in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert len(outcomes) == 2
+    assert sum(outcome.startswith("created:") for outcome in outcomes) == 1
+    assert outcomes.count("capacity") == 1
+    with Session(get_engine()) as session:
+        assert session.scalar(select(func.count()).select_from(AgentRun)) == 32
+        assert session.scalar(select(func.count()).select_from(AgentEvent)) == 32
+
+
+def test_capacity_boundary_replay_collision_and_rejected_key_recovery(
+    client: TestClient,
+) -> None:
+    first: dict[str, object] | None = None
+    for index in range(service.MAX_ACTIVE_RUNS):
+        response = client.post(
+            "/agent-runs",
+            json=_payload(),
+            headers={"Idempotency-Key": f"capacity-boundary-{index}"},
+        )
+        assert response.status_code == 201
+        if index == 0:
+            first = response.json()
+    assert first is not None
+
+    replay = client.post(
+        "/agent-runs",
+        json=_payload(),
+        headers={"Idempotency-Key": "capacity-boundary-0"},
+    )
+    assert replay.status_code == 200
+    assert replay.json() == first
+
+    changed = _payload()
+    changed["goal_summary"] = "changed collision"
+    collision = client.post(
+        "/agent-runs",
+        json=changed,
+        headers={"Idempotency-Key": "capacity-boundary-0"},
+    )
+    assert collision.status_code == 409
+
+    rejected_key = "capacity-secret-canary"
+    rejected = client.post(
+        "/agent-runs",
+        json=_payload(),
+        headers={"Idempotency-Key": rejected_key},
+    )
+    assert rejected.status_code == 429
+    assert rejected.json() == {"detail": "active Agent Run capacity reached"}
+    assert rejected_key not in rejected.text
+    with Session(get_engine()) as session:
+        assert session.scalar(select(func.count()).select_from(AgentRun)) == 32
+        assert session.scalar(select(func.count()).select_from(AgentEvent)) == 32
+        first_run = session.get(AgentRun, uuid.UUID(str(first["id"])))
+        assert first_run is not None
+        service.transition_run(
+            session,
+            first_run.id,
+            expected_state=AgentRunState.CREATED,
+            expected_revision=0,
+            new_state=AgentRunState.CANCELLED,
+        )
+        session.commit()
+
+    released = client.post(
+        "/agent-runs",
+        json=_payload(),
+        headers={"Idempotency-Key": rejected_key},
+    )
+    assert released.status_code == 201
+
+
+@pytest.mark.parametrize(
+    "terminal_state", sorted(state.value for state in service.TERMINAL_STATES)
+)
+def test_every_terminal_state_releases_capacity(
+    terminal_state: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(service, "MAX_ACTIVE_RUNS", 1)
+    run_id = _create_capacity_run(f"terminal-{terminal_state}")
+    terminal_time = datetime.now(UTC)
+    with Session(get_engine()) as session:
+        session.execute(
+            update(AgentRun)
+            .where(AgentRun.id == run_id)
+            .values(
+                state=terminal_state,
+                started_at=terminal_time,
+                finished_at=terminal_time,
+            )
+        )
+        session.commit()
+    _create_capacity_run(f"after-{terminal_state}")
+
+
+@pytest.mark.parametrize(
+    "nonterminal_state", sorted(state.value for state in service.CAPACITY_STATES)
+)
+def test_every_nonterminal_state_counts_toward_capacity(
+    nonterminal_state: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(service, "MAX_ACTIVE_RUNS", 1)
+    run_id = _create_capacity_run(f"nonterminal-{nonterminal_state}")
+    with Session(get_engine()) as session:
+        session.execute(
+            update(AgentRun)
+            .where(AgentRun.id == run_id)
+            .values(state=nonterminal_state)
+        )
+        session.commit()
+    with pytest.raises(service.AgentRunCapacityError):
+        _create_capacity_run(f"blocked-by-{nonterminal_state}")
+
+
+def test_capacity_advisory_lock_is_transaction_scoped_and_rollback_safe() -> None:
+    engine = get_engine()
+    first = Session(engine)
+    service.repository.lock_agent_run_capacity(first, service._CAPACITY_LOCK_KEY)
+    assert (
+        first.scalar(
+            select(func.count())
+            .select_from(text("pg_locks"))
+            .where(text("locktype = 'advisory' AND pid = pg_backend_pid()"))
+        )
+        == 1
+    )
+    # Closing an interrupted request session performs implicit rollback and
+    # releases the transaction-scoped lock without persistent lease state.
+    first.close()
+
+    with Session(engine) as second:
+        second.execute(text("SET LOCAL lock_timeout = '1s'"))
+        service.repository.lock_agent_run_capacity(second, service._CAPACITY_LOCK_KEY)
+        second.rollback()
+
+    with Session(engine) as third:
+        third.execute(text("SET LOCAL lock_timeout = '1s'"))
+        service.repository.lock_agent_run_capacity(third, service._CAPACITY_LOCK_KEY)
+        third.commit()
+
+
+def test_concurrent_exact_replay_wins_when_creator_fills_last_slot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "MAX_ACTIVE_RUNS", 1)
+    barrier = threading.Barrier(2)
+    outcomes: list[bool] = []
+    request = AgentRunCreate.model_validate(_payload())
+    key_hash = service.hash_idempotency_key("capacity-same-key")
+    fingerprint = service.normalized_request_fingerprint(request)
+
+    def worker() -> None:
+        with Session(get_engine()) as session:
+            barrier.wait()
+            result = service.create_run(
+                session,
+                request,
+                idempotency_key_hash=key_hash,
+                fingerprint=fingerprint,
+            )
+            session.commit()
+            outcomes.append(result.created)
+
+    threads = [threading.Thread(target=worker) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
     assert sorted(outcomes) == [False, True]
     with Session(get_engine()) as session:
         assert session.scalar(select(func.count()).select_from(AgentRun)) == 1

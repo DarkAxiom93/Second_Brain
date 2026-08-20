@@ -53,6 +53,21 @@ def get_agent_run_by_idempotency_hash_for_update(
     )
 
 
+def lock_agent_run_capacity(session: Session, lock_key: int) -> None:
+    """Serialize the transaction-scoped active-Run capacity decision."""
+
+    session.execute(select(func.pg_advisory_xact_lock(lock_key)))
+
+
+def count_agent_runs_in_states(session: Session, states: frozenset[str]) -> int:
+    return (
+        session.scalar(
+            select(func.count()).select_from(AgentRun).where(AgentRun.state.in_(states))
+        )
+        or 0
+    )
+
+
 def list_agent_runs(
     session: Session,
     *,
