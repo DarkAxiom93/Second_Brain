@@ -30,6 +30,18 @@ from app.models.agent_runtime import (
     ToolInvocation,
 )
 from app.repositories import agent_runtime as repository
+from app.research import service as research_service
+from app.research.catalog import RESEARCH_KIND, is_research, research_definition
+from app.research.dependencies import get_research_provider
+from app.research.provider import (
+    ResearchOutputInvalidError,
+    ResearchProvider,
+    ResearchProviderError,
+    ResearchProviderRequestError,
+    ResearchProviderResult,
+    ResearchProviderTimeoutError,
+    ResearchProviderUnavailableError,
+)
 from app.schemas.agent_run import (
     AgentRunCancel,
     AgentRunCreate,
@@ -45,6 +57,7 @@ from app.schemas.agent_run import (
     ApprovalRequestRead,
     ApprovalRequestStatus,
     ApprovalReview,
+    ResearchResultRead,
 )
 
 router = APIRouter(prefix="/agent-runs", tags=["agent-runs"])
@@ -61,6 +74,10 @@ def configured_provider_availability() -> Callable[[], bool]:
 
 def embedding_provider_resolver() -> Callable[[], EmbeddingProvider]:
     return get_embedding_provider
+
+
+def research_provider_resolver() -> Callable[[], ResearchProvider]:
+    return get_research_provider
 
 
 def _error(status_code: int, detail: str) -> HTTPException:
@@ -228,6 +245,13 @@ def create_agent_run(
 ) -> AgentRun:
     """Create one Run and its sequence-zero event atomically."""
 
+    if (
+        request.agent_kind == RESEARCH_KIND
+        and research_definition(request.agent_kind, request.agent_version) is None
+    ):
+        raise _error(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "unsupported Research Agent version"
+        )
     key_hash = service.hash_idempotency_key(_validate_idempotency_key(idempotency_key))
     fingerprint = service.normalized_request_fingerprint(request)
     try:
@@ -353,11 +377,19 @@ def _plan_projection(run: AgentRun, steps: list[AgentStep]) -> AgentRunPlanRead:
 
 
 def _execution_projection(
-    run: AgentRun, steps: list[AgentStep], invocations: list[ToolInvocation]
+    run: AgentRun,
+    steps: list[AgentStep],
+    invocations: list[ToolInvocation],
+    research_result: dict[str, object] | None = None,
 ) -> AgentRunExecutionRead:
     by_step = {item.step_id: item for item in invocations}
     return AgentRunExecutionRead(
         run=AgentRunRead.model_validate(run),
+        research_result=(
+            None
+            if research_result is None
+            else ResearchResultRead.model_validate(research_result)
+        ),
         steps=[
             AgentStepExecutionRead(
                 ordinal=step.ordinal,
@@ -393,7 +425,9 @@ def _load_execution(session: Session, run_id: uuid.UUID) -> AgentRunExecutionRea
         raise service.AgentRunNotFoundError
     steps = repository.list_agent_steps(session, run_id, limit=13)
     invocations = repository.list_step_invocations(session, run_id)
-    return _execution_projection(run, steps, list(invocations))
+    return _execution_projection(
+        run, steps, list(invocations), research_service.get_result(session, run.id)
+    )
 
 
 @router.get("/{run_id}/execution", response_model=AgentRunExecutionRead)
@@ -423,6 +457,9 @@ def execute_agent_run(
     provider_available: Annotated[
         Callable[[], bool], Depends(configured_provider_availability)
     ],
+    resolve_research_provider: Annotated[
+        Callable[[], ResearchProvider], Depends(research_provider_resolver)
+    ],
 ) -> AgentRunExecutionRead:
     """Claim and synchronously execute one complete frozen read-only plan."""
 
@@ -445,6 +482,9 @@ def execute_agent_run(
         raise _error(
             status.HTTP_409_CONFLICT, "agent run registry version unsupported"
         ) from None
+    except executor.ExecutionAgentVersionError:
+        session.rollback()
+        raise _error(status.HTTP_409_CONFLICT, "agent definition unsupported") from None
     except executor.ExecutionPlanInvalidError:
         session.rollback()
         raise _error(status.HTTP_409_CONFLICT, "agent run plan invalid") from None
@@ -459,6 +499,8 @@ def execute_agent_run(
             status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
         ) from None
 
+    collected: list[research_service.CollectedEvidence] = []
+    research_run = is_research(claim.agent_kind, claim.agent_version)
     while True:
         try:
             reserved = executor.reserve_next(
@@ -475,6 +517,15 @@ def execute_agent_run(
         step, invocation, timeout_seconds = reserved
         step_id = step.id
         invocation_id = invocation.id
+        observed: list[research_service.ObservedEvidence] = []
+
+        def capture_research_evidence(
+            entity_type: str,
+            row: object,
+            target: list[research_service.ObservedEvidence] = observed,
+        ) -> None:
+            target.append(research_service.observe_entity(entity_type, row))
+
         output, safe_error = executor.call_reserved_tool(
             session,
             claim,
@@ -482,7 +533,26 @@ def execute_agent_run(
             invocation,
             timeout_seconds,
             resolve_provider,
+            capture_research_evidence if research_run else None,
         )
+        references: list[dict[str, object]] | None = None
+        if research_run and output is not None and safe_error is None:
+            try:
+                evidence_run = repository.get_agent_run(session, claim.run_id)
+                if evidence_run is None:
+                    raise research_service.ResearchValidationError
+                new_evidence = research_service.collect_output(
+                    run=evidence_run,
+                    step=step,
+                    invocation=invocation,
+                    output=output,
+                    offset=len(collected),
+                    observed=observed,
+                )
+                collected.extend(new_evidence)
+                references = research_service.evidence_references(new_evidence)
+            except research_service.ResearchValidationError:
+                safe_error = "research_evidence_invalid"
         # End the read Tool's transaction before entering finalization.
         session.rollback()
         try:
@@ -494,6 +564,7 @@ def execute_agent_run(
                 invocation_id=invocation_id,
                 output=output,
                 safe_error_code=safe_error,
+                evidence_references=references,
             )
             session.commit()
             faults.fire(faults.FaultPoint.AFTER_INVOCATION_FINALIZATION)
@@ -504,6 +575,62 @@ def execute_agent_run(
             ) from None
         if not succeeded:
             break
+
+    if research_run:
+        active = research_service.claim_synthesis(session, claim.run_id)
+        session.commit()
+        if active:
+            try:
+                research_result = (
+                    ResearchProviderResult(
+                        status="insufficient_evidence",
+                        claims=[],
+                        insufficiency=(
+                            "The collected local evidence is insufficient to "
+                            "answer safely."
+                        ),
+                    )
+                    if not collected
+                    else resolve_research_provider().synthesize(
+                        goal=claim.goal_summary,
+                        evidence=[item.provider_value() for item in collected],
+                    )
+                )
+                research_service.persist_result(
+                    session,
+                    run_id=claim.run_id,
+                    evidence=collected,
+                    result=research_result,
+                )
+                session.commit()
+            except ResearchProviderUnavailableError:
+                session.rollback()
+                research_service.fail_result(
+                    session, claim.run_id, "research_provider_unavailable"
+                )
+                session.commit()
+            except ResearchProviderTimeoutError:
+                session.rollback()
+                research_service.fail_result(
+                    session, claim.run_id, "research_provider_timeout"
+                )
+                session.commit()
+            except ResearchProviderRequestError:
+                session.rollback()
+                research_service.fail_result(
+                    session, claim.run_id, "research_provider_failed"
+                )
+                session.commit()
+            except (
+                ResearchOutputInvalidError,
+                ResearchProviderError,
+                research_service.ResearchValidationError,
+            ):
+                session.rollback()
+                research_service.fail_result(
+                    session, claim.run_id, "research_result_invalid"
+                )
+                session.commit()
 
     try:
         completed = executor.complete_run(session, claim)
@@ -570,6 +697,9 @@ def plan_agent_run(
         raise _error(
             status.HTTP_409_CONFLICT, "agent run registry version unsupported"
         ) from None
+    except planning_service.AgentDefinitionUnsupportedError:
+        session.rollback()
+        raise _error(status.HTTP_409_CONFLICT, "agent definition unsupported") from None
     except service.AgentRunTransitionConflictError:
         session.rollback()
         raise _error(

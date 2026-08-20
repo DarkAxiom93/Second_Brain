@@ -11,8 +11,8 @@ Local V1.1 is published as `v1.1.0` from
 `7b6c6bb8c4c67f9e8a5a34c363331bc94dbb094e`; Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Approval remains proposal-only: it cannot execute or
 mutate a target. Checkpoint 69 completed the manual Agent Runs and Approval
-review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 is not
-started.
+review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`; Checkpoint 70 is pending
+human review.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -21,8 +21,9 @@ started.
 - The Agent Run API supports manual create/read/list/cancel and strict frozen
   planning. A private seven-definition `agent-tools-v1` registry and pure policy
   resolver and bounded five-Tool read executor exist. Execution has at most one
-  global classified safe-read retry and explicit synchronous recovery. There is
-  no Agent UI, Approval execution, Research Agent, or Memory Curator Agent.
+  global classified safe-read retry and explicit synchronous recovery. The
+  explicit-refresh Agent UI and fixed read-only Research Agent exist. There is
+  no Approval execution or Memory Curator Agent.
 - There are no scheduled jobs, background workers, autonomous agents, or
   Automations. An Automation is deferred and would be a trigger that creates an
   Agent Run, not the Run itself.

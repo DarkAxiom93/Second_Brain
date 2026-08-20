@@ -250,4 +250,7 @@ def prepare_one(
         project_scope=run.project_id,
         registry_version=run.registry_version,
         tool_call_budget=run.tool_call_budget,
+        agent_kind=run.agent_kind,
+        agent_version=run.agent_version,
+        goal_summary=run.goal_summary,
     )

@@ -13,6 +13,7 @@ from app.models.agent_runtime import ApprovalRequest
 from app.models.memory import Memory
 from app.repositories import agent_runtime as repository
 from app.repositories import memories as memory_repository
+from app.research.catalog import is_research
 from app.schemas.memory import MemoryUpdate
 
 ACTION_TYPE = "memory.update"
@@ -155,6 +156,8 @@ def create_proposal(
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise NotFoundError("agent run not found")
+    if is_research(run.agent_kind, run.agent_version):
+        raise InvalidProposalError("Research Agent cannot create proposals")
     step = repository.get_agent_step_by_ordinal_for_update(
         session, run_id, step_ordinal
     )

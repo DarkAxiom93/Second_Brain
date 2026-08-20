@@ -120,6 +120,26 @@ describe("Agent Runs list and creation", () => {
     init = fetchMock.mock.calls[3][1] as RequestInit;
     expect(JSON.parse(init.body as string).project_id).toBe(project);
   });
+
+  it("selects fixed Research version 1 while preserving editable Manual identity", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(response([])).mockResolvedValueOnce(
+      response(run("created", { agent_kind: "research" }), 201),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderList();
+    await screen.findByText("No Agent Runs found.");
+    expect(screen.getByLabelText("Agent kind")).not.toHaveAttribute("readonly");
+    await userEvent.selectOptions(screen.getByLabelText("Agent choice"), "research");
+    expect(screen.getByLabelText("Agent kind")).toHaveValue("research");
+    expect(screen.getByLabelText("Agent kind")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Agent version")).toHaveValue("1");
+    expect(screen.getByLabelText("Agent version")).toHaveAttribute("readonly");
+    await userEvent.type(screen.getByLabelText("Goal summary"), "Cited local answer");
+    await userEvent.click(screen.getByRole("button", { name: "Create Run" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
+    expect(body).toMatchObject({ agent_kind: "research", agent_version: "1" });
+  });
 });
 
 describe("Agent Run detail", () => {
@@ -289,5 +309,80 @@ describe("Agent Run detail", () => {
     expect(screen.getByText("State: awaiting_approval").closest("section")).toHaveAttribute("aria-live", "polite");
     const buttons = within(document.body).getAllByRole("button");
     expect(buttons.every((button) => button.tabIndex >= 0)).toBe(true);
+  });
+
+  it("renders bounded Research claims and safe ordered citation identities only", async () => {
+    const value = run("completed", { agent_kind: "research", agent_version: "1" });
+    const result = {
+      run: value,
+      steps: [],
+      research_result: {
+        status: "answered",
+        claims: [{ text: "Supported local claim", citation_numbers: [1] }],
+        citations: [{ number: 1, entity_type: "memory", entity_id: target, version: "a".repeat(64) }],
+        insufficiency: null,
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(response(
+      url.includes("approval-requests") ? []
+        : url.endsWith("/execution") ? result
+          : url.endsWith("/plan") ? { run: value, goal_summary: value.goal_summary, steps: [] }
+            : value,
+    ))));
+    renderDetail();
+    expect(await screen.findByRole("heading", { name: "Research result" })).toBeInTheDocument();
+    expect(screen.getByText("Status: Answered")).toBeInTheDocument();
+    expect(screen.getByText("Supported local claim")).toBeInTheDocument();
+    expect(screen.getByText("Citations: [1]")).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`memory ${target}`))).toHaveTextContent(`version ${"a".repeat(64)}`);
+    expect(screen.queryByRole("heading", { name: "Approval Requests" })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("raw provider");
+  });
+
+  it("renders safe Research insufficiency without claims, citations, or raw content", async () => {
+    const value = run("completed", { agent_kind: "research", agent_version: "1" });
+    const result = {
+      run: value,
+      steps: [],
+      research_result: {
+        status: "insufficient_evidence",
+        claims: [],
+        citations: [],
+        insufficiency: "No local evidence supports a safe answer.",
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(response(
+      url.includes("approval-requests") ? []
+        : url.endsWith("/execution") ? result
+          : url.endsWith("/plan") ? { run: value, goal_summary: value.goal_summary, steps: [] }
+            : value,
+    ))));
+    renderDetail();
+    expect(await screen.findByText("Status: Insufficient evidence")).toBeInTheDocument();
+    expect(screen.getByText("No local evidence supports a safe answer.")).toBeInTheDocument();
+    expect(screen.queryByText(/Citations:/)).not.toBeInTheDocument();
+  });
+
+  it("rejects Research projections containing private citation identities", async () => {
+    const value = run("completed", { agent_kind: "research", agent_version: "1" });
+    const privateResult = {
+      run: value,
+      steps: [],
+      research_result: {
+        status: "answered",
+        claims: [{ text: "Claim", citation_numbers: [1] }],
+        citations: [{ number: 1, entity_type: "memory", entity_id: target, version: "a".repeat(64), invocation_id: "private-invocation" }],
+        insufficiency: null,
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(response(
+      url.includes("approval-requests") ? []
+        : url.endsWith("/execution") ? privateResult
+          : url.endsWith("/plan") ? { run: value, goal_summary: value.goal_summary, steps: [] }
+            : value,
+    ))));
+    renderDetail();
+    expect(await screen.findByRole("heading", { name: "Run unavailable" })).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("private-invocation");
   });
 });

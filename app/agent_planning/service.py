@@ -16,6 +16,7 @@ from app.agent_tools.policy import PolicyRejection, resolve_tool_policy
 from app.agent_tools.registry import AGENT_TOOL_REGISTRY, REGISTRY_VERSION
 from app.models.agent_runtime import AgentRun, AgentStep
 from app.repositories import agent_runtime as repository
+from app.research.catalog import RESEARCH_TOOLS, is_research, is_unknown_research
 from app.schemas.agent_run import AgentRunState
 
 _FORBIDDEN_REQUEST = re.compile(
@@ -38,6 +39,10 @@ class AgentRunRegistryVersionError(Exception):
     pass
 
 
+class AgentDefinitionUnsupportedError(Exception):
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class PlanningClaim:
     run_id: uuid.UUID
@@ -49,6 +54,8 @@ class PlanningClaim:
     tool_call_budget: int
     retry_budget: int
     planning_revision: int
+    agent_kind: str = "manual"
+    agent_version: str = "1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +95,8 @@ def claim_planning(
         raise run_service.AgentRunRevisionConflictError
     if run.registry_version != REGISTRY_VERSION:
         raise AgentRunRegistryVersionError
+    if is_unknown_research(run.agent_kind, run.agent_version):
+        raise AgentDefinitionUnsupportedError
     if run.state != AgentRunState.CREATED.value:
         raise run_service.AgentRunTransitionConflictError
     claimed = run_service.transition_run(
@@ -107,12 +116,26 @@ def claim_planning(
         tool_call_budget=claimed.tool_call_budget,
         retry_budget=claimed.retry_budget,
         planning_revision=claimed.revision,
+        agent_kind=claimed.agent_kind,
+        agent_version=claimed.agent_version,
     )
 
 
 def build_context(claim: PlanningClaim) -> PlanningContext:
     permitted_tools: list[dict[str, Any]] = []
-    for definition in AGENT_TOOL_REGISTRY.inventory:
+    allowed = (
+        RESEARCH_TOOLS if is_research(claim.agent_kind, claim.agent_version) else None
+    )
+    definitions = (
+        [
+            definition
+            for identity in RESEARCH_TOOLS
+            if (definition := AGENT_TOOL_REGISTRY.get_exact(*identity)) is not None
+        ]
+        if allowed is not None
+        else list(AGENT_TOOL_REGISTRY.inventory)
+    )
+    for definition in definitions:
         permitted_tools.append(
             {
                 "name": definition.name,
@@ -179,6 +202,11 @@ def validate_plan(
         ):
             raise PlanningPolicyRejectedError
         identity = (step.tool_name, step.tool_version)
+        if (
+            is_research(claim.agent_kind, claim.agent_version)
+            and identity not in RESEARCH_TOOLS
+        ):
+            raise PlanningPolicyRejectedError
         candidate_input: object = step.candidate_input
         definition = AGENT_TOOL_REGISTRY.get_exact(*identity)
         if definition is not None:

@@ -148,9 +148,29 @@ class AgentStepExecutionRead(BaseModel):
     safe_error_code: str | None
 
 
+class ResearchCitationRead(BaseModel):
+    number: Annotated[int, Field(gt=0)]
+    entity_type: Literal["project", "memory", "source", "source_chunk"]
+    entity_id: uuid.UUID
+    version: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+
+
+class ResearchClaimRead(BaseModel):
+    text: Annotated[str, StringConstraints(min_length=1, max_length=500)]
+    citation_numbers: Annotated[list[int], Field(min_length=1, max_length=20)]
+
+
+class ResearchResultRead(BaseModel):
+    status: Literal["answered", "insufficient_evidence"]
+    claims: Annotated[list[ResearchClaimRead], Field(max_length=5)]
+    citations: Annotated[list[ResearchCitationRead], Field(max_length=20)]
+    insufficiency: Annotated[str | None, StringConstraints(max_length=1000)]
+
+
 class AgentRunExecutionRead(BaseModel):
     run: AgentRunRead
     steps: list[AgentStepExecutionRead]
+    research_result: ResearchResultRead | None = None
 
 
 class ApprovalRequestCreate(BaseModel):

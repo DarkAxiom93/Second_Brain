@@ -73,6 +73,16 @@ exact immutable human review, and execute authority is unavailable. Schedulers,
 workers, connectors, external writes, arbitrary execution, and remote or
 multi-user operation remain outside V1.2.
 
+Checkpoint 70 adds the immutable `research` version `1` Agent with `read`
+authority and exactly the first five entity/search Tools. Retrieved content is
+untrusted evidence, never instruction. Synthesis may cite only application-
+supplied evidence IDs; exact Run/Step/Invocation ownership, nullable scope,
+existence, and deterministic current entity version are revalidated before one
+safe result event commits. Memory versions reuse the Checkpoint 68 target-version
+helper. Empty evidence returns explicit insufficiency without provider
+resolution. Research has no proposal, Approval creation, execute authority,
+mutation, operator aggregate, external research, browser, or HTTP capability.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

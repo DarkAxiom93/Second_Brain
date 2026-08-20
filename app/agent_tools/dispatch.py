@@ -43,6 +43,7 @@ class ToolCallContext:
     session: Session
     project_scope: uuid.UUID | None
     embedding_provider: EmbeddingProvider | None = None
+    capture_evidence: Callable[[str, object], None] | None = None
 
 
 Handler = Callable[[ToolCallContext, BaseModel], object]
@@ -65,6 +66,8 @@ def _project_get(context: ToolCallContext, value: BaseModel) -> dict[str, object
     project = projects.get_project(context.session, project_id)
     if project is None:
         raise ToolControlledFailure
+    if context.capture_evidence is not None:
+        context.capture_evidence("project", project)
     return {"id": project.id, "name": project.name, "description": project.description}
 
 
@@ -77,6 +80,8 @@ def _memory_get(context: ToolCallContext, value: BaseModel) -> dict[str, object]
     )
     if memory is None:
         raise ToolControlledFailure
+    if context.capture_evidence is not None:
+        context.capture_evidence("memory", memory)
     return {
         "id": memory.id,
         "project_id": memory.project_id,
@@ -106,6 +111,8 @@ def _source_get(context: ToolCallContext, value: BaseModel) -> dict[str, object]
     )
     if source is None:
         raise ToolControlledFailure
+    if context.capture_evidence is not None:
+        context.capture_evidence("source", source)
     return {
         "id": source.id,
         "source_type": source.source_type,
@@ -129,6 +136,8 @@ def _source_chunk_get(context: ToolCallContext, value: BaseModel) -> dict[str, o
     )
     if chunk is None:
         raise ToolControlledFailure
+    if context.capture_evidence is not None:
+        context.capture_evidence("source_chunk", chunk)
     return {
         "id": chunk.id,
         "document_id": chunk.document_id,
@@ -164,6 +173,8 @@ def _search_explained(context: ToolCallContext, value: BaseModel) -> dict[str, o
     )
     results: list[dict[str, object]] = []
     for row in rows:
+        if context.capture_evidence is not None:
+            context.capture_evidence("memory", row.memory)
         matched_by: list[str] = []
         if row.lexical_rank is not None:
             matched_by.append("lexical")

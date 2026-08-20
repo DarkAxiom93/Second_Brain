@@ -75,6 +75,15 @@ and reconcile unfinished children, and late results are discarded. Recovery is
 an explicit synchronous local operator command for one Run only; no recovery
 worker, scheduler, lease, heartbeat, polling, or startup recovery is available.
 
+Research kind `research` version `1` is code-owned and read-only; unknown
+Research versions are rejected. Its allowlist is exactly `project.get`,
+`memory.get`, `memory.search_explained`, `source.get`, and `source_chunk.get`.
+The execution projection adds nullable `research_result`. Answered results use
+bounded claims and deterministic citation numbers; citations expose only entity
+type, public UUID, and application-owned current version. Insufficient results
+contain no claims or citations. Raw evidence, provider/Tool payloads, prompts,
+and private Run/Step/Invocation identities remain private.
+
 ## Explained Memory search
 
 `POST /memories/search/explained` is the only additive explained-search route.

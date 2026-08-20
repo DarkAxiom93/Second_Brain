@@ -37,6 +37,7 @@ from app.embeddings import (
 )
 from app.models.agent_runtime import AgentRun, AgentStep, ToolInvocation
 from app.repositories import agent_runtime as repository
+from app.research.catalog import RESEARCH_TOOLS, is_research, is_unknown_research
 from app.schemas.agent_run import AgentRunState
 
 
@@ -45,6 +46,10 @@ class ExecutionPlanInvalidError(Exception):
 
 
 class ExecutionRegistryVersionError(Exception):
+    pass
+
+
+class ExecutionAgentVersionError(Exception):
     pass
 
 
@@ -80,6 +85,9 @@ class ExecutionClaim:
     project_scope: uuid.UUID | None
     registry_version: str
     tool_call_budget: int
+    agent_kind: str = "manual"
+    agent_version: str = "1"
+    goal_summary: str = "Manual Agent Run"
 
 
 def _original_claim_revision(session: Session, run_id: uuid.UUID) -> int | None:
@@ -133,6 +141,8 @@ def claim_execution(
         raise service.AgentRunTransitionConflictError
     if run.registry_version != REGISTRY_VERSION:
         raise ExecutionRegistryVersionError
+    if is_unknown_research(run.agent_kind, run.agent_version):
+        raise ExecutionAgentVersionError
     now = service.utc_now()
     if now >= run.run_deadline:
         service.transition_run(
@@ -156,6 +166,10 @@ def claim_execution(
         if (
             step.tool_name is None
             or AGENT_TOOL_REGISTRY.get_exact(step.tool_name, version) is None
+            or (
+                is_research(run.agent_kind, run.agent_version)
+                and (step.tool_name, version) not in RESEARCH_TOOLS
+            )
         ):
             valid_tools = False
             break
@@ -179,6 +193,9 @@ def claim_execution(
         project_scope=run.project_id,
         registry_version=run.registry_version,
         tool_call_budget=run.tool_call_budget,
+        agent_kind=run.agent_kind,
+        agent_version=run.agent_version,
+        goal_summary=run.goal_summary,
     )
 
 
@@ -228,6 +245,11 @@ def reserve_next(
     if not candidates:
         return None
     step = candidates[0]
+    if is_unknown_research(run.agent_kind, run.agent_version):
+        _fail_without_invocation(
+            session, run, step, "agent_definition_unsupported", now
+        )
+        return None
     if any(previous.status != "succeeded" for previous in steps[: step.ordinal]):
         raise ExecutionPlanInvalidError
     assert step.tool_name is not None and step.tool_version is not None
@@ -264,11 +286,20 @@ def reserve_next(
     per_tool = repository.count_tool_invocations(
         session, run.id, tool_name=step.tool_name
     )
+    definition = AGENT_TOOL_REGISTRY.get_exact(step.tool_name, int(step.tool_version))
+    candidate_input: object = step.normalized_input
+    if definition is not None:
+        try:
+            candidate_input = definition.input_schema.model_validate_json(
+                json.dumps(step.normalized_input, separators=(",", ":")), strict=True
+            ).model_dump(mode="python")
+        except (TypeError, ValueError):
+            candidate_input = step.normalized_input
     policy = resolve_tool_policy(
         name=step.tool_name,
         version=int(step.tool_version),
         requested_authority="read",
-        candidate_input=step.normalized_input,
+        candidate_input=candidate_input,
         captured_registry_version=run.registry_version,
         captured_run_project_scope=run.project_id,
         captured_run_tool_call_budget=run.tool_call_budget,
@@ -398,6 +429,7 @@ def finalize_invocation(
     invocation_id: uuid.UUID,
     output: BaseModel | None,
     safe_error_code: str | None,
+    evidence_references: list[dict[str, object]] | None = None,
 ) -> bool:
     run = repository.get_agent_run_for_update(session, claim.run_id)
     if run is None:
@@ -438,7 +470,7 @@ def finalize_invocation(
             summary, evidence = _safe_projection(output, invocation.tool_name)
             invocation.status = "succeeded"
             invocation.safe_result_summary = summary
-            invocation.evidence_references = evidence
+            invocation.evidence_references = evidence_references or evidence
             step.status = "succeeded"
     if safe_error_code is not None:
         invocation.status = (
@@ -496,6 +528,18 @@ def complete_run(session: Session, claim: ExecutionClaim) -> AgentRun | None:
     steps = repository.list_agent_steps_for_update(session, run.id)
     if not steps or any(step.status != "succeeded" for step in steps):
         return None
+    if is_research(run.agent_kind, run.agent_version) and not any(
+        event.event_type == "research.result"
+        for event in repository.list_agent_events(session, run.id, limit=1000)
+    ):
+        return service.transition_run(
+            session,
+            run.id,
+            expected_state=AgentRunState.RUNNING,
+            expected_revision=run.revision,
+            new_state=AgentRunState.FAILED,
+            safe_error_code="research_result_missing",
+        )
     faults.fire(faults.FaultPoint.BEFORE_RUN_COMPLETION)
     return service.transition_run(
         session,
@@ -513,6 +557,7 @@ def call_reserved_tool(
     invocation: ToolInvocation,
     timeout_seconds: int,
     resolve_provider: Callable[[], EmbeddingProvider],
+    capture_evidence: Callable[[str, object], None] | None = None,
 ) -> tuple[BaseModel | None, str | None]:
     started = monotonic()
     provider: EmbeddingProvider | None = None
@@ -523,11 +568,21 @@ def call_reserved_tool(
             and invocation.validated_input.get("mode") in {"semantic", "hybrid"}
         ):
             provider = resolve_provider()
+        definition = AGENT_TOOL_REGISTRY.get_exact(
+            invocation.tool_name, int(invocation.tool_version)
+        )
+        if definition is None:
+            return None, "tool_unavailable"
+        dispatch_input = definition.input_schema.model_validate_json(
+            json.dumps(invocation.validated_input, separators=(",", ":")), strict=True
+        ).model_dump(mode="python")
         output = dispatch_exact(
             name=invocation.tool_name,
             version=int(invocation.tool_version),
-            normalized_input=invocation.validated_input,
-            context=ToolCallContext(session, claim.project_scope, provider),
+            normalized_input=dispatch_input,
+            context=ToolCallContext(
+                session, claim.project_scope, provider, capture_evidence
+            ),
         )
         faults.fire(faults.FaultPoint.AFTER_TOOL_RETURN)
         if monotonic() - started > timeout_seconds:
