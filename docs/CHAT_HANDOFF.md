@@ -82,5 +82,13 @@ CI` push run is `32410053222` (attempt 1, completed/success, zero artifacts). It
 adds immutable `memory_curator` version `1` with `propose` maximum authority,
 exactly `memory.get` and `memory.search_explained`, bounded cited advice, and
 only immutable `memory.update` Approval Requests. No proposal execution or
-domain mutation exists. Checkpoint 72 is not started; do not stage, commit,
-push, open a PR, or begin it.
+domain mutation exists.
+
+Checkpoint 72 is complete at
+`45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`; its exact successful `Second Brain
+CI` push run is `32416546227` (attempt 1, completed/success, zero artifacts).
+Its executable release gate covers T01-T24 with 48 matrix checks, 240 focused
+Agent security tests, 23 focused Agent UI tests, 914 backend tests, and 114
+frontend tests, all with zero skips. T24 adds a PostgreSQL-serialized maximum of
+32 nonterminal Runs while preserving exact replay at capacity and safe rejection
+of new distinct Runs. Checkpoint 73 is not started; do not begin it.

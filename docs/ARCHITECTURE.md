@@ -91,7 +91,9 @@ Approval Requests through the Checkpoint 68 foundation. Application code
 derives all target, version, identity, risk, expiry, scope, and status fields;
 neither the Run nor Approval review mutates a Memory or executes an action.
 
-Checkpoint 72 adds an executable T01-T24 security traceability gate and a
+Checkpoint 72 is complete at
+`45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`. It adds an executable T01-T24
+security traceability gate and a
 PostgreSQL-serialized maximum of 32 nonterminal Agent Runs. Capacity includes
 `created`, `planning`, `ready`, `running`, and `awaiting_approval`; exact
 idempotent replay is resolved first, terminal Runs release capacity, and a full

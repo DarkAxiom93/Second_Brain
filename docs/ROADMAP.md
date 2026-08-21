@@ -40,8 +40,10 @@ review UI at `e6324e52292e108d84666f88aeccf434c92ab39c`. Checkpoint 70 completed
 fixed, cited, read-only Research Agent at
 `12a70f5e367db76cb4f0e05fb350acabc0230c3c`. Checkpoint 71 completed one fixed
 advisory `memory_curator` version `1` at
-`1dd8e83804c724e6790a704faa5ee13aad9dd3fe`; Checkpoint 72 is pending human
-review and Checkpoint 73 is not started. No
+`1dd8e83804c724e6790a704faa5ee13aad9dd3fe`. Checkpoint 72 completed the
+T01-T24 Agent security/evaluation release gate and the 32-nonterminal-Run
+capacity bound at `45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`; Checkpoint 73 is
+not started. No
 approval execution, Automation, connector, or write Tool exists.
 
 The proposed V1.2 capability is manually initiated, bounded, local Agent Runs

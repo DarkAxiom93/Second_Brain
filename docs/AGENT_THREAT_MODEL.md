@@ -1,8 +1,8 @@
 # Local V1.2 agent threat model
 
-Status: proposed by Checkpoint 61 and pending human review. This threat model is
-an implementation gate for Checkpoints 62-74, not evidence that an Agent
-Runtime exists today.
+Status: approved with Checkpoint 61 and implemented through the completed
+Checkpoint 72 release gate. This threat model remains an implementation and
+acceptance gate for Checkpoints 62-74.
 
 ## Scope, assets, and trust boundaries
 
