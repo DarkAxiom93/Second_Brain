@@ -102,8 +102,11 @@ authority, migration, or Agent capability is introduced.
 
 Checkpoint 73 local V1.2 end-to-end acceptance is complete at
 `26c74cced438fd850907d593db5090719f6e861a`. Its accepted evidence is recorded
-in `checkpoint-73-report.md`; Checkpoint 74 release hardening is pending human
-review and V1.2 is not published.
+in `checkpoint-73-report.md`. Checkpoint 74 release hardening is complete at
+`53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
+push CI run `32474664878` with zero artifacts. V1.2 is not published;
+publication requires separate explicit human approval, and no V1.3 work has
+started.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

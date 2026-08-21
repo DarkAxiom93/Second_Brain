@@ -1,7 +1,12 @@
 # Checkpoint 74 report: Local V1.2 release hardening
 
-Status: **Pending human review**. Local V1.2 is not published. No tag or GitHub
-Release was created.
+Status: **Complete** at
+`53d78f30c7e9ff4020179c57e286ad24980df6af`. Human review approved the
+release-hardening evidence, the commit was pushed, and exact `Second Brain CI`
+push run `32474664878` completed successfully on attempt 1 with zero artifacts.
+Local V1.2 is not published: no `v1.2.0` tag or GitHub Release exists, and
+publication requires separate explicit human approval. No V1.3 work has
+started.
 
 ## Base and preflight
 
@@ -144,4 +149,5 @@ checkpoint, runbook, README, and limitation facts. It changes no application,
 runtime, API, schema, migration, dependency, lockfile, CI, Docker, registry,
 export version, or capability. It starts no V1.3 work. Every release claim above
 is backed by the recorded commands, tests, archive inspection, or accepted CP73
-evidence. The repository is ready for human review, not publication.
+evidence. Human review approved this release-hardening checkpoint; the
+repository remains unapproved for publication.

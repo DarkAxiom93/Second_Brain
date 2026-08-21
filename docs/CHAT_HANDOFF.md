@@ -94,7 +94,10 @@ frontend tests, all with zero skips. T24 adds a PostgreSQL-serialized maximum of
 of new distinct Runs. Checkpoint 73 local acceptance is complete at
 `26c74cced438fd850907d593db5090719f6e861a`; its exact successful `Second Brain
 CI` push run is `32461508843` (attempt 1, completed/success, zero artifacts).
-Checkpoint 74 release hardening is pending human review from base
-`5e3ce20495c4bea5f184c552a44524606a416693`. Its documentation-only evidence is
-in `checkpoint-74-report.md`. Local V1.2 is not published: do not create a tag
-or GitHub Release without separate explicit approval, and do not begin V1.3.
+Checkpoint 74 release hardening is complete at
+`53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval. Its exact
+successful `Second Brain CI` push run is `32474664878` (attempt 1,
+completed/success, zero artifacts), and its evidence is in
+`checkpoint-74-report.md`. Local V1.2 is not published; no `v1.2.0` tag or
+GitHub Release exists. Publication requires separate explicit human approval,
+and no V1.3 work has started.

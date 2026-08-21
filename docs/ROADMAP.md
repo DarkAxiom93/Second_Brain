@@ -44,8 +44,12 @@ advisory `memory_curator` version `1` at
 T01-T24 Agent security/evaluation release gate and the 32-nonterminal-Run
 capacity bound at `45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`; Checkpoint 73 local
 acceptance is complete at `26c74cced438fd850907d593db5090719f6e861a`.
-Checkpoint 74 release hardening is pending human review; V1.2 is not published. No
-approval execution, Automation, connector, or write Tool exists.
+Checkpoint 74 release hardening is complete at
+`53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
+push CI run `32474664878` with zero artifacts. V1.2 is not published; no
+`v1.2.0` tag or GitHub Release exists, and publication requires separate
+explicit human approval. No V1.3 work has started. No approval execution,
+Automation, connector, or write Tool exists.
 
 The V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

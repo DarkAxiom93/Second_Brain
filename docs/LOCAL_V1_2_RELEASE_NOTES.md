@@ -1,8 +1,12 @@
 # Local V1.2 candidate release notes
 
-Status: release hardening is pending human review. Local V1.2 has not been
-published, tagged, or released. Local V1.1 `v1.1.0` remains the published
-release and recovery point.
+Status: release hardening is complete at
+`53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval. Exact
+`Second Brain CI` push run `32474664878` completed successfully on attempt 1
+with zero artifacts. Local V1.2 has not been published: no `v1.2.0` tag or
+GitHub Release exists, and publication requires separate explicit human
+approval. Local V1.1 `v1.1.0` remains the published release and recovery point.
+No V1.3 work has started.
 
 ## Candidate inventory
 

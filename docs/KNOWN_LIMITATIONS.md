@@ -18,9 +18,11 @@ advisory Memory Curator Agent at
 `1dd8e83804c724e6790a704faa5ee13aad9dd3fe`. Checkpoint 72 completed the Agent
 security/evaluation release gate at
 `45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`. Checkpoint 73 local acceptance is
-complete at `26c74cced438fd850907d593db5090719f6e861a`; Checkpoint 74 release
-hardening is pending human review. V1.2 is not published; Local V1.1 remains
-the current published release.
+complete at `26c74cced438fd850907d593db5090719f6e861a`. Checkpoint 74 release
+hardening is complete at `53d78f30c7e9ff4020179c57e286ad24980df6af`
+after human approval and successful push CI run `32474664878` with zero
+artifacts. V1.2 is not published; Local V1.1 remains the current published
+release. No V1.3 work has started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

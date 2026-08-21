@@ -11,8 +11,10 @@ the [local runbook](docs/LOCAL_V1_RUNBOOK.md), [Local V1.2 acceptance evidence](
 [Local V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md), and
 [known limitations](docs/KNOWN_LIMITATIONS.md). The Local V1.2 boundary is in
 the [Agent roadmap](docs/V1_2_AGENT_ROADMAP.md) and [Agent threat model](docs/AGENT_THREAT_MODEL.md).
-Checkpoint 74 release hardening is pending human review; V1.2 is not published.
-Reusable Windows commands
+Checkpoint 74 release hardening is complete at
+`53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
+push CI; V1.2 is not published and publication requires separate explicit human
+approval. Reusable Windows commands
 are documented in [scripts/README.md](scripts/README.md).
 
 Second Brain Local V1.1 is published as [`v1.1.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.1.0)
@@ -306,8 +308,10 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 ## Current scope
 
 Local V1.1 is published as `v1.1.0`. Local V1.2 implementation and acceptance
-through Checkpoint 73 are complete; Checkpoint 74 release hardening is pending
-human review and V1.2 is not published. All nine top-level UI routes
+through Checkpoint 73 are complete; Checkpoint 74 release hardening is complete
+at `53d78f30c7e9ff4020179c57e286ad24980df6af`. V1.2 is not published, no
+`v1.2.0` tag or GitHub Release exists, and publication requires separate
+explicit human approval. No V1.3 work has started. All nine top-level UI routes
 (Dashboard, Projects, Sources, Proposals, Memories, Search, Answers, Agent Runs,
 and Settings) are functional. The current Alembic revision is
 `0010_agent_runtime_persistence`. Agent Runs are manually initiated and bounded
