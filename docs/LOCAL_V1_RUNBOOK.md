@@ -1,7 +1,7 @@
-# Local V1 and V1.1 candidate runbook
+# Local V1.2 candidate runbook
 
-This runbook is the supported Windows maintainer path for the stable Local V1
-release and Local V1.1 candidate. Run commands from the repository root in
+This runbook is the supported Windows maintainer path for the Local V1.2
+candidate. Run commands from the repository root in
 PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
@@ -40,7 +40,7 @@ Rolldown native binary open and `npm ci` will fail with `EPERM ... unlink`.
 The parsed and live development identity must both be
 `127.0.0.1:5433/second_brain`; the separate test database must be
 `second_brain_test`. `alembic current` and the sole head must be
-`0009_memory_expiration`, and `alembic check` must report no upgrade operations.
+`0010_agent_runtime_persistence`, and `alembic check` must report no upgrade operations.
 Never downgrade the development database.
 
 ## Start FastAPI and Vite
@@ -63,7 +63,7 @@ Invoke-RestMethod http://127.0.0.1:5173/api/ready
 ```
 
 The top-level screens are Dashboard, Projects, Sources, Proposals, Memories,
-Search, Answers, and Settings. Provider-backed semantic/hybrid search,
+Search, Answers, Agent Runs, and Settings. Provider-backed semantic/hybrid search,
 proposal generation, and successful answered responses require configured
 provider credentials; deterministic automated tests cover those success paths
 when credentials are absent.
@@ -123,6 +123,34 @@ Do not execute an import against a development database that already contains
 any bundle identity. There is no merge, overwrite, remap, repair, or partial
 import. See [PROJECT_EXPORT_FORMAT.md](PROJECT_EXPORT_FORMAT.md).
 
+Format version 1 accepts source bundles produced at
+`0009_memory_expiration` or `0010_agent_runtime_persistence` only. Current
+export and import targets require `0010_agent_runtime_persistence`. Project
+bundles exclude Agent Runs, Steps, Tool invocations, Agent events, Approval
+Requests, provider payloads, hidden reasoning, and other private runtime state.
+
+## Full database backup
+
+Project bundles are not complete backups because Agent and Approval state is
+excluded. For a complete local backup, use PostgreSQL custom format and treat
+the result as sensitive. Create the destination directory first:
+
+```powershell
+docker compose --env-file .env.example exec -T db `
+  pg_dump -U postgres -d second_brain -Fc -f /tmp/second-brain.dump
+docker compose --env-file .env.example cp db:/tmp/second-brain.dump C:\backup\second-brain.dump
+docker compose --env-file .env.example exec -T db `
+  pg_restore --list /tmp/second-brain.dump
+docker compose --env-file .env.example exec -T db `
+  rm -f /tmp/second-brain.dump
+```
+
+Verify the database name in every command. Do not restore over the development
+database, recreate it, or delete its volume during routine verification. A
+restore is destructive and requires separate approval, an isolated target
+database, exact target-identity verification, and `pg_restore --list` before
+execution.
+
 ## Safe shutdown
 
 Stop Vite with `Ctrl+C`, then FastAPI with `Ctrl+C`, then stop PostgreSQL:
@@ -144,12 +172,17 @@ volume. Never use `docker compose down -v`.
 
 ## Recovery
 
-`v1.0.0` remains the stable pre-V1.1 recovery point. Roll back the candidate by
-reverting the isolated V1.1 commits; no database downgrade, recreation, reset,
-or volume deletion is required. Preserve the PostgreSQL container and
-`second-brain_postgres_data` named volume. Version 1 bundles remain supported;
-import is validation-first and atomic, with no merge, overwrite, remap, repair,
-or partial-import behavior.
+Local V1.1 `v1.1.0` at
+`88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce` is the published recovery release.
+Its application expects revision `0009_memory_expiration`; do not point it at
+the current `0010_agent_runtime_persistence` development database and do not
+downgrade that database. Recover in a separate checkout and restore a verified
+pre-V1.2 custom-format backup into a separate, identity-checked database. If no
+compatible revision-0009 backup exists, preserve the current database and use
+the current application rather than forcing a downgrade. Preserve the
+PostgreSQL container and `second-brain_postgres_data` named volume. Version 1
+Project import remains validation-first and atomic, with no merge, overwrite,
+remap, repair, or partial-import behavior.
 
 ## Troubleshooting
 

@@ -17,7 +17,7 @@ and integrated acceptance. It preserves legacy search/Answer contracts, stored
 data, deployment topology, and export/import format. Local Full verification
 remains release-authoritative.
 
-## Local V1.2 proposal
+## Local V1.2 candidate
 
 Checkpoint 61 completed the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
 [threat model](AGENT_THREAT_MODEL.md) at
@@ -44,10 +44,10 @@ advisory `memory_curator` version `1` at
 T01-T24 Agent security/evaluation release gate and the 32-nonterminal-Run
 capacity bound at `45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`; Checkpoint 73 local
 acceptance is complete at `26c74cced438fd850907d593db5090719f6e861a`.
-Checkpoint 74 is not started. No
+Checkpoint 74 release hardening is pending human review; V1.2 is not published. No
 approval execution, Automation, connector, or write Tool exists.
 
-The proposed V1.2 capability is manually initiated, bounded, local Agent Runs
+The V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,
 cancellation/recovery, immutable proposed actions for exact human review, an
 accessible Runs/Approvals UI, a read-only Research Agent, an advisory Memory

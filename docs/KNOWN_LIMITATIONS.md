@@ -1,4 +1,4 @@
-# Published Local V1.1 and proposed V1.2 known limitations
+# Local V1.2 candidate known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -18,8 +18,9 @@ advisory Memory Curator Agent at
 `1dd8e83804c724e6790a704faa5ee13aad9dd3fe`. Checkpoint 72 completed the Agent
 security/evaluation release gate at
 `45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`. Checkpoint 73 local acceptance is
-complete at `26c74cced438fd850907d593db5090719f6e861a`; Checkpoint 74 is not
-started.
+complete at `26c74cced438fd850907d593db5090719f6e861a`; Checkpoint 74 release
+hardening is pending human review. V1.2 is not published; Local V1.1 remains
+the current published release.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

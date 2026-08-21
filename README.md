@@ -7,11 +7,12 @@ Stable project guidance is split into concise references: [architecture](docs/AR
 [safety](docs/SAFETY.md), [API conventions](docs/API_CONVENTIONS.md),
 [checkpoint history](docs/CHECKPOINTS.md), [ADRs](docs/decisions/README.md), and
 the [new-chat handoff](docs/CHAT_HANDOFF.md). New maintainers should start with
-the [local runbook](docs/LOCAL_V1_RUNBOOK.md), [Local V1.1 acceptance evidence](docs/LOCAL_V1_1_ACCEPTANCE.md),
-[Local V1.1 release notes](docs/LOCAL_V1_1_RELEASE_NOTES.md), and
-[known limitations](docs/KNOWN_LIMITATIONS.md). The proposed, not-yet-implemented
-Local V1.2 boundary is in the [Agent roadmap](docs/V1_2_AGENT_ROADMAP.md) and
-[Agent threat model](docs/AGENT_THREAT_MODEL.md). Reusable Windows commands
+the [local runbook](docs/LOCAL_V1_RUNBOOK.md), [Local V1.2 acceptance evidence](docs/checkpoint-73-report.md),
+[Local V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md), and
+[known limitations](docs/KNOWN_LIMITATIONS.md). The Local V1.2 boundary is in
+the [Agent roadmap](docs/V1_2_AGENT_ROADMAP.md) and [Agent threat model](docs/AGENT_THREAT_MODEL.md).
+Checkpoint 74 release hardening is pending human review; V1.2 is not published.
+Reusable Windows commands
 are documented in [scripts/README.md](scripts/README.md).
 
 Second Brain Local V1.1 is published as [`v1.1.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.1.0)
@@ -304,16 +305,16 @@ An unknown Memory UUID returns HTTP 404. Database failures return a generic HTTP
 
 ## Current scope
 
-Local V1.1 is published as `v1.1.0`. Checkpoint 60 is complete at the exact
-release commit. Checkpoint 61 is documentation-only and pending human review;
-Checkpoint 62 is not started, and no V1.2 Agent functionality exists.
-All eight top-level UI routes (Dashboard,
-Projects, Sources, Proposals, Memories, Search, Answers, and Settings) are
-functional, and Search includes additive explained lexical, semantic, and
-hybrid results. The current Alembic revision is
-`0009_memory_expiration`. Authentication, cloud synchronization, background
-Agent Runtime, Automations, automatic maintenance, encrypted bundles, import merge/overwrite/remap,
-and persistent Answer history remain unavailable. See
+Local V1.1 is published as `v1.1.0`. Local V1.2 implementation and acceptance
+through Checkpoint 73 are complete; Checkpoint 74 release hardening is pending
+human review and V1.2 is not published. All nine top-level UI routes
+(Dashboard, Projects, Sources, Proposals, Memories, Search, Answers, Agent Runs,
+and Settings) are functional. The current Alembic revision is
+`0010_agent_runtime_persistence`. Agent Runs are manually initiated and bounded
+to application-owned reads; Approvals are immutable proposals only and cannot
+execute or mutate targets. Authentication, cloud synchronization, Automations,
+background workers, connectors, automatic maintenance, encrypted bundles,
+import merge/overwrite/remap, and persistent Answer history remain unavailable. See
 `docs/KNOWN_LIMITATIONS.md` for the complete list.
 
 ## Checkpoint 10: Source creation and linking API
