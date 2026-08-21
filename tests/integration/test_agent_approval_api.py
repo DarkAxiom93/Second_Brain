@@ -216,7 +216,9 @@ def test_create_replay_projection_and_review_never_mutate_target() -> None:
         assert approvals.target_version(memory) == body["target_version"]
         assert session.scalar(select(func.count()).select_from(ApprovalRequest)) == 1
         events = session.scalars(
-            select(AgentEvent).where(AgentEvent.run_id == run_id)
+            select(AgentEvent)
+            .where(AgentEvent.run_id == run_id)
+            .order_by(AgentEvent.sequence)
         ).all()
         assert [event.sequence for event in events] == [0, 1]
         assert all(

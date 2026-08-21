@@ -17,7 +17,8 @@ the fixed read-only Research Agent at
 advisory Memory Curator Agent at
 `1dd8e83804c724e6790a704faa5ee13aad9dd3fe`. Checkpoint 72 completed the Agent
 security/evaluation release gate at
-`45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`. Checkpoint 73 is not started.
+`45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`. Checkpoint 73 local acceptance is
+pending human review; Checkpoint 74 is not started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
