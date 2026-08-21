@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_engine
 from app.models import Memory, Project
+from app.project_export.models import CURRENT_DATABASE_REVISION
 from app.project_export.service import export_project
 from tests.integration.conftest import verify_connected_test_database
 
@@ -92,7 +93,7 @@ def test_project_export_preserves_fields_and_excludes_other_scopes(
             session,
             target_id,
             output,
-            source_alembic_revision="0009_memory_expiration",
+            source_alembic_revision=CURRENT_DATABASE_REVISION,
         )
         session.rollback()
 
@@ -103,6 +104,8 @@ def test_project_export_preserves_fields_and_excludes_other_scopes(
             for line in archive.read("memories.jsonl").decode().splitlines()
         ]
         manifest = json.loads(archive.read("manifest.json"))
+        assert manifest["format_version"] == 1
+        assert manifest["source_alembic_revision"] == CURRENT_DATABASE_REVISION
         assert project["id"] == str(target_id)
         assert project["description"] == "target"
         assert {row["id"] for row in memories} == {str(first_id), str(second_id)}

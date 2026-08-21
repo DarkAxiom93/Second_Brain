@@ -26,7 +26,7 @@ from app.models import (
     SourceChunk,
     SourceDocument,
 )
-from app.project_export.models import ExportManifest
+from app.project_export.models import SUPPORTED_SOURCE_REVISIONS, ExportManifest
 from app.project_export.service import DATA_FILES
 from app.project_import.models import (
     ImportBundleError,
@@ -34,7 +34,6 @@ from app.project_import.models import (
     ImportResult,
 )
 
-SUPPORTED_REVISION = "0009_memory_expiration"
 MAX_ARCHIVE_ENTRIES = 32
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 MAX_ENTRY_BYTES = 64 * 1024 * 1024
@@ -435,7 +434,7 @@ def load_bundle(
             manifest = ExportManifest.model_validate(
                 _json(archive.read("manifest.json"), "manifest.json")
             )
-            if manifest.source_alembic_revision != SUPPORTED_REVISION:
+            if manifest.source_alembic_revision not in SUPPORTED_SOURCE_REVISIONS:
                 raise ImportBundleError("unsupported source Alembic revision")
             indexed = {entry.path: entry for entry in manifest.files}
             if set(indexed) != set(DATA_FILES) or len(indexed) != len(manifest.files):

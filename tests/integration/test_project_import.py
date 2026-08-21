@@ -1,9 +1,11 @@
 """PostgreSQL transaction and round-trip proof for Project import."""
 
+import json
 import shutil
 import uuid
 import zipfile
 from collections.abc import Generator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -11,7 +13,8 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_engine
-from app.models import Memory, MemoryEmbedding, Project
+from app.models import AgentRun, Memory, MemoryEmbedding, Project
+from app.project_export.models import CURRENT_DATABASE_REVISION
 from app.project_export.service import DATA_FILES, export_project
 from app.project_import.models import ImportConflictError
 from app.project_import.service import import_project
@@ -34,6 +37,7 @@ def clean_import_database(
 ) -> Generator[None, None, None]:
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
+        session.execute(delete(AgentRun))
         session.execute(delete(MemoryEmbedding))
         session.execute(delete(Memory))
         session.execute(delete(Project))
@@ -41,6 +45,7 @@ def clean_import_database(
     yield
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
+        session.execute(delete(AgentRun))
         session.execute(delete(MemoryEmbedding))
         session.execute(delete(Memory))
         session.execute(delete(Project))
@@ -52,13 +57,18 @@ def _data_files(path: Path) -> dict[str, bytes]:
         return {name: archive.read(name) for name in DATA_FILES}
 
 
+@pytest.mark.parametrize(
+    "source_revision", ["0009_memory_expiration", CURRENT_DATABASE_REVISION]
+)
 def test_import_preserves_fields_vector_search_and_round_trip(
     clean_import_database: None,
     test_database_url: str,
     import_tmp_path: Path,
+    source_revision: str,
 ) -> None:
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
+        now = datetime.now(UTC)
         project = Project(name=f"restore-{uuid.uuid4()}", description="round trip")
         session.add(project)
         session.flush()
@@ -81,11 +91,29 @@ def test_import_preserves_fields_vector_search_and_round_trip(
             embedding=[0.25] * 1536,
             input_hash="a" * 64,
         )
-        session.add(embedding)
+        agent_run = AgentRun(
+            project_id=None,
+            agent_kind="manual",
+            agent_version="1",
+            goal_summary="private runtime state",
+            registry_version="agent-tools-v1",
+            policy_version="agent-policy-v1",
+            step_budget=1,
+            tool_call_budget=1,
+            retry_budget=0,
+            planning_deadline=now + timedelta(minutes=1),
+            run_deadline=now + timedelta(minutes=2),
+            correlation_id=uuid.uuid4(),
+            idempotency_key_hash="a" * 64,
+            normalized_request_fingerprint="b" * 64,
+        )
+        session.add_all((embedding, agent_run))
         session.commit()
         project_id = project.id
         memory_id = memory.id
         created_at = memory.created_at
+        agent_run_id = agent_run.id
+        agent_run_updated_at = agent_run.updated_at
 
     first = import_tmp_path / "first.sbexport"
     with Session(get_engine(), autoflush=False) as session:
@@ -93,10 +121,19 @@ def test_import_preserves_fields_vector_search_and_round_trip(
             session,
             project_id,
             first,
-            source_alembic_revision="0009_memory_expiration",
+            source_alembic_revision=source_revision,
         )
         session.rollback()
     before = _data_files(first)
+    with zipfile.ZipFile(first) as archive:
+        assert all(
+            "agent" not in name and "approval" not in name
+            for name in archive.namelist()
+        )
+        assert (
+            json.loads(archive.read("manifest.json"))["source_alembic_revision"]
+            == source_revision
+        )
     with Session(get_engine()) as session:
         session.execute(
             delete(MemoryEmbedding).where(MemoryEmbedding.memory_id == memory_id)
@@ -136,6 +173,10 @@ def test_import_preserves_fields_vector_search_and_round_trip(
             )
             == 1
         )
+        preserved_run = session.get(AgentRun, agent_run_id)
+        assert preserved_run is not None
+        assert preserved_run.goal_summary == "private runtime state"
+        assert preserved_run.updated_at == agent_run_updated_at
 
     second = import_tmp_path / "second.sbexport"
     with Session(get_engine(), autoflush=False) as session:
@@ -143,7 +184,7 @@ def test_import_preserves_fields_vector_search_and_round_trip(
             session,
             project_id,
             second,
-            source_alembic_revision="0009_memory_expiration",
+            source_alembic_revision=source_revision,
         )
         session.rollback()
     assert _data_files(second) == before

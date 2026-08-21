@@ -33,7 +33,11 @@ from app.diagnostics.service import (
     validate_database_target,
 )
 from app.memory_maintenance.service import run_memory_maintenance_audit
-from app.project_export.models import ExportError, ProjectNotFoundError
+from app.project_export.models import (
+    CURRENT_DATABASE_REVISION,
+    ExportError,
+    ProjectNotFoundError,
+)
 from app.project_export.service import export_project
 from app.project_import.models import ImportBundleError, ImportConflictError
 from app.project_import.service import MAX_ARCHIVE_BYTES, import_project, load_bundle
@@ -71,6 +75,13 @@ def _validate_development_target(settings: Settings) -> None:
     _, checks = validate_database_target(settings.database_url, "development")
     if any(item.status == "failed" for item in checks):
         raise _database_unavailable()
+
+
+def _require_current_database_revision(session: Session) -> str:
+    revision = session.scalar(text("SELECT version_num FROM alembic_version"))
+    if revision != CURRENT_DATABASE_REVISION:
+        raise _database_unavailable()
+    return CURRENT_DATABASE_REVISION
 
 
 def _protect_local_operation(
@@ -285,11 +296,12 @@ def project_export(
         _make_read_only(session)
         if session.scalar(text("SELECT current_database()")) != "second_brain":
             raise _database_unavailable()
+        revision = _require_current_database_revision(session)
         export_project(
             session,
             project_id,
             output,
-            source_alembic_revision="0009_memory_expiration",
+            source_alembic_revision=revision,
         )
         session.rollback()
     except ProjectNotFoundError:
@@ -332,6 +344,7 @@ async def project_import_validate(
         _make_read_only(session)
         if session.scalar(text("SELECT current_database()")) != "second_brain":
             raise _database_unavailable()
+        _require_current_database_revision(session)
         return _import_plan(path, session)
     except ImportBundleError:
         raise HTTPException(
@@ -378,6 +391,7 @@ async def project_import_execute(
             )
         if session.scalar(text("SELECT current_database()")) != "second_brain":
             raise _database_unavailable()
+        _require_current_database_revision(session)
         result = import_project(
             session, path, execute=True, expected_project_id=expected_project_id
         )

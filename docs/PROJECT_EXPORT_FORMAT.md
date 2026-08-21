@@ -1,8 +1,12 @@
 # Project export bundle
 
 `second-brain-project-export` version 1 is a private, application-level backup
-of one Project. It is not `pg_dump`. Controlled import accepts exactly this
-format and requires both source and target revision `0009_memory_expiration`.
+of one Project. It is not `pg_dump`. The format version is unchanged across the
+additive Agent Runtime migration: controlled import accepts source bundles made
+at exactly `0009_memory_expiration` or `0010_agent_runtime_persistence`, while
+the current export and import target database must be exactly
+`0010_agent_runtime_persistence`. Every other source or target revision fails
+closed.
 
 The `.sbexport` file is a ZIP-compatible container owned by this application.
 It contains `manifest.json`, `project.json`, and the always-present JSONL files
@@ -44,6 +48,11 @@ embedding vectors. Version 1 is not encrypted and must not be published or sent
 unprotected. It contains no database URLs, credentials, environment variables,
 provider responses, prompts, reasoning, generated search vectors, logs, or
 temporary paths.
+
+Agent Runs, Agent Steps, Tool Invocations, Approval Requests, Agent Events, raw
+provider or Tool payloads, private execution identities, and other Agent runtime
+state are not version-1 data files and are never exported or imported. Importing
+a version-1 bundle neither creates nor mutates that state.
 
 ## Controlled import
 

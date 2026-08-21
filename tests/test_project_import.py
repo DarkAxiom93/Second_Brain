@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.models import Memory, Project
+from app.project_export.models import CURRENT_DATABASE_REVISION
 from app.project_export.service import export_project
 from app.project_import.models import ImportBundleError
 from app.project_import.service import (
@@ -37,6 +38,7 @@ def _bundle(
     monkeypatch: pytest.MonkeyPatch,
     memories: tuple[Memory, ...] = (),
     project_id: UUID | None = None,
+    source_revision: str = "0009_memory_expiration",
 ) -> UUID:
     project_id = project_id or uuid4()
     monkeypatch.setattr(
@@ -62,7 +64,7 @@ def _bundle(
         object(),  # type: ignore[arg-type]
         project_id,
         path,
-        source_alembic_revision="0009_memory_expiration",
+        source_alembic_revision=source_revision,
         exported_at=datetime(2025, 1, 1, tzinfo=UTC),
     )
     return project_id
@@ -93,6 +95,29 @@ def test_supported_bundle_and_validation_only_do_not_write(
     session.execute.assert_not_called()
     session.flush.assert_not_called()
     session.commit.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "source_revision", ["0009_memory_expiration", CURRENT_DATABASE_REVISION]
+)
+def test_only_proven_compatible_source_revisions_are_accepted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    source_revision: str,
+) -> None:
+    path = tmp_path / f"{source_revision}.sbexport"
+    _bundle(path, monkeypatch, source_revision=source_revision)
+    manifest, _, _ = load_bundle(path)
+    assert manifest.source_alembic_revision == source_revision
+
+
+def test_unsupported_source_revision_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "unsupported.sbexport"
+    _bundle(path, monkeypatch, source_revision="0008_memory_proposals")
+    with pytest.raises(ImportBundleError, match="unsupported source"):
+        load_bundle(path)
 
 
 def test_checksum_count_and_unexpected_entry_rejection(

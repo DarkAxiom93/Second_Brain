@@ -192,11 +192,14 @@ def test_project_export_streams_safe_attachment_and_cleans_exact_file(
     monkeypatch,
 ) -> None:
     session = Mock()
-    session.scalar.return_value = "second_brain"
+    session.scalar.side_effect = ["second_brain", "0010_agent_runtime_persistence"]
     created: list[Path] = []
 
-    def fake_export(_session, project_id, output, **_kwargs):
+    captured: dict[str, str] = {}
+
+    def fake_export(_session, project_id, output, **kwargs):
         created.append(output)
+        captured.update(kwargs)
         output.write_bytes(b"bundle")
 
     monkeypatch.setattr("app.api.routes.operations.export_project", fake_export)
@@ -214,14 +217,44 @@ def test_project_export_streams_safe_attachment_and_cleans_exact_file(
         == f'attachment; filename="project-{project_id}.sbexport"'
     )
     assert created and not created[0].exists()
+    assert captured == {"source_alembic_revision": "0010_agent_runtime_persistence"}
     session.commit.assert_not_called()
+
+
+def test_project_export_rejects_legacy_target_revision(monkeypatch) -> None:
+    session = Mock()
+    session.scalar.side_effect = ["second_brain", "0009_memory_expiration"]
+    exporter = Mock()
+    monkeypatch.setattr("app.api.routes.operations.export_project", exporter)
+    response = _local_client(session).post(
+        f"/operations/project-exports/{uuid4()}",
+        headers={"X-Second-Brain-Operation": "project-export-v1"},
+    )
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+    exporter.assert_not_called()
+
+
+def test_project_import_rejects_legacy_target_revision() -> None:
+    session = Mock()
+    session.scalar.side_effect = ["second_brain", "0009_memory_expiration"]
+    response = _local_client(session).post(
+        "/operations/project-imports/validate",
+        content=b"not-read",
+        headers={
+            "Content-Type": "application/octet-stream",
+            "X-Second-Brain-Operation": "project-import-validate-v1",
+        },
+    )
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
 
 
 def test_import_validation_returns_safe_conflict_plan_and_cleans_upload(
     monkeypatch,
 ) -> None:
     session = Mock()
-    session.scalar.return_value = "second_brain"
+    session.scalar.side_effect = ["second_brain", "0010_agent_runtime_persistence"]
     project_id = uuid4()
     manifest = ExportManifest(
         exported_at=datetime(2026, 8, 2, tzinfo=UTC),
@@ -261,7 +294,7 @@ def test_import_execute_requires_exact_confirmations_and_commits_once(
     monkeypatch,
 ) -> None:
     session = Mock()
-    session.scalar.return_value = "second_brain"
+    session.scalar.side_effect = ["second_brain", "0010_agent_runtime_persistence"]
     project_id = uuid4()
     manifest = ExportManifest(
         exported_at=datetime(2026, 8, 2, tzinfo=UTC),

@@ -8,6 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 FORMAT_NAME = "second-brain-project-export"
 FORMAT_VERSION = 1
+CURRENT_DATABASE_REVISION = "0010_agent_runtime_persistence"
+SUPPORTED_SOURCE_REVISIONS = frozenset(
+    {"0009_memory_expiration", CURRENT_DATABASE_REVISION}
+)
 
 
 class ExportError(Exception):

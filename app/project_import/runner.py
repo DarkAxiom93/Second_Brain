@@ -9,7 +9,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from app.project_import.service import SUPPORTED_REVISION, import_project
+from app.project_export.models import CURRENT_DATABASE_REVISION
+from app.project_import.service import import_project
 
 
 def _arguments() -> argparse.Namespace:
@@ -54,7 +55,7 @@ def main() -> int:
                 revision = connection.scalar(
                     text("SELECT version_num FROM alembic_version")
                 )
-                if revision != SUPPORTED_REVISION:
+                if revision != CURRENT_DATABASE_REVISION:
                     raise ValueError("unexpected Alembic revision")
                 with Session(bind=connection, autoflush=False) as session:
                     result = import_project(
