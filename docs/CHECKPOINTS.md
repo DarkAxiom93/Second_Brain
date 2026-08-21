@@ -77,7 +77,7 @@ history. A dash means Alembic had not yet been introduced.
 | 70 | Read-only Research Agent | Complete | `0010_agent_runtime_persistence` | `12a70f5` |
 | 71 | Advisory Memory Curator Agent | Complete | `0010_agent_runtime_persistence` | `1dd8e83` |
 | 72 | Agent security and evaluation harness | Complete | `0010_agent_runtime_persistence` | `45e940e` |
-| 73 | Local V1.2 end-to-end acceptance | Pending human review | `0010_agent_runtime_persistence` | - |
+| 73 | Local V1.2 end-to-end acceptance | Complete | `0010_agent_runtime_persistence` | `26c74cc` |
 | 74 | Local V1.2 release hardening | Not started | TBD | - |
 
 ## Standard lifecycle

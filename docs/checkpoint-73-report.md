@@ -1,7 +1,13 @@
 # Checkpoint 73 report
 
-Checkpoint: 73 — Local V1.2 end-to-end acceptance. Pending human review.
+Checkpoint: 73 — Local V1.2 end-to-end acceptance. Complete.
 Checkpoint 74 is not started.
+
+Human review approved the acceptance evidence. The exact implementation and
+acceptance commit is `26c74cced438fd850907d593db5090719f6e861a`; it was pushed
+to `origin/main`. Its exact `Second Brain CI` push run is
+`32461508843`: branch `main`, event `push`, exact acceptance SHA, attempt 1,
+completed/success, with zero artifacts.
 
 ## Preflight and environment
 
@@ -146,8 +152,10 @@ and event-count assertions intact.
 The final audit found no implementation, schema, security, lifecycle, or API
 defect. It corrected only the report's evidence precision by recording the nine
 routes actually exercised and the exact process lifecycle above. The changed
-scope remains exactly the approved eight paths. CP72 remains Complete, CP73
-remains Pending human review, and CP74 remains Not started.
+scope remained exactly the approved eight paths. Human review subsequently
+approved that evidence, and the implementation/acceptance commit was pushed and
+confirmed CI-green. CP72 remains Complete, CP73 is Complete at
+`26c74cced438fd850907d593db5090719f6e861a`, and CP74 remains Not started.
 
 ## Verification
 
@@ -155,6 +163,8 @@ remains Pending human review, and CP74 remains Not started.
   failure; Agent/App frontend acceptance: 37 passed.
 - Fixed ordering case: three consecutive passes. Approval plus T01–T24 focused
   gate: 57 passed.
+- Final focused backend acceptance: 187 passed. Final focused frontend
+  Agent/App acceptance: 37 passed. The CP72 T01–T24 gate passed 48/48.
 - Authoritative `scripts/verify.ps1 -Mode Full`: dependency integrity, Ruff
   lint and format, mypy over 131 source files, all 914 backend tests, Alembic
   current/heads/check, frontend ESLint and TypeScript, all 114 frontend tests,
@@ -163,8 +173,10 @@ remains Pending human review, and CP74 remains Not started.
 
 ## Status and limitations
 
-CP73 is `Pending human review`; it is not Complete. V1.2 remains a trusted,
-single-maintainer, loopback-only application without authentication, remote or
-multi-user operation, connectors, external research, write/execute Tools,
-proposal execution, automatic Approval/promotion, Automation, or background
-work. CP74 is `Not started` and no CP74 work was begun.
+CP73 is `Complete` at `26c74cced438fd850907d593db5090719f6e861a` after human
+review, push to `origin/main`, and successful CI run `32461508843` with zero
+artifacts. V1.2 remains a trusted, single-maintainer, loopback-only application
+without authentication, remote or multi-user operation, connectors, external
+research, write/execute Tools, proposal execution, automatic
+Approval/promotion, Automation, or background work. CP74 is `Not started` and
+no CP74 work was begun.

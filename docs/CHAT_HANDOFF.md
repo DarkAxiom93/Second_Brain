@@ -91,5 +91,7 @@ Its executable release gate covers T01-T24 with 48 matrix checks, 240 focused
 Agent security tests, 23 focused Agent UI tests, 914 backend tests, and 114
 frontend tests, all with zero skips. T24 adds a PostgreSQL-serialized maximum of
 32 nonterminal Runs while preserving exact replay at capacity and safe rejection
-of new distinct Runs. Checkpoint 73 local acceptance is pending human review;
+of new distinct Runs. Checkpoint 73 local acceptance is complete at
+`26c74cced438fd850907d593db5090719f6e861a`; its exact successful `Second Brain
+CI` push run is `32461508843` (attempt 1, completed/success, zero artifacts).
 Checkpoint 74 is not started and must not begin.
