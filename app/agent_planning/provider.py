@@ -51,6 +51,30 @@ class PlanningResult(BaseModel):
     steps: Annotated[list[ProposedPlanningStep], Field(min_length=1, max_length=12)]
 
 
+class ProviderPlanningStep(BaseModel):
+    """Strict-schema-safe provider representation of one proposed step."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    purpose: BoundedText
+    tool_name: Annotated[
+        str, StringConstraints(min_length=1, max_length=200, pattern=r"^[a-z0-9._]+$")
+    ]
+    tool_version: Annotated[int, Field(gt=0)]
+    candidate_input: dict[str, Any]
+    expected_evidence: Annotated[list[EvidenceText], Field(min_length=1, max_length=10)]
+    success_condition: BoundedText
+    stop_condition: BoundedText
+
+
+class ProviderPlanningResult(BaseModel):
+    """Provider-facing plan constrained by a registry-derived submitted schema."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    steps: Annotated[list[ProviderPlanningStep], Field(min_length=1, max_length=12)]
+
+
 class PlanningContext(BaseModel):
     """Application-owned allowlist sent to the provider."""
 

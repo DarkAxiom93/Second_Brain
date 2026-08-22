@@ -38,6 +38,18 @@ class ResearchProviderResult(BaseModel):
         return self
 
 
+class StrictResearchProviderResult(BaseModel):
+    """Provider-only DTO with every strict-schema property required."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    status: Literal["answered", "insufficient_evidence"]
+    claims: Annotated[list[ResearchClaim], Field(max_length=5)]
+    insufficiency: Annotated[
+        str | None,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=1000),
+    ]
+
+
 class ResearchProvider(Protocol):
     def synthesize(
         self, *, goal: str, evidence: list[dict[str, object]]

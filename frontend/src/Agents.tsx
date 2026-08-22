@@ -190,7 +190,41 @@ export function AgentRunDetail() {
       setMessage(`${kind === "plan" ? "Planning" : kind === "execute" ? "Read-only execution" : "Cancellation"} completed.`);
       window.setTimeout(() => statusRef.current?.focus(), 0);
     } catch (error) {
-      if (error instanceof ApiConflictError) conflict(); else setMessage("The action could not be completed safely.");
+      if (error instanceof ApiConflictError) conflict();
+      else if (kind === "plan") {
+        try {
+          const current = await getAgentRun(run.id);
+          setRun(current);
+          if (current.state === "planning") {
+            setMessage("Planning is still in progress on the server. Use Refresh Run to check again.");
+          } else if (current.state === "ready") {
+            const frozen = await getAgentPlan(run.id);
+            setPlan(frozen); setRun(frozen.run); setMessage("Planning completed.");
+          } else if (["failed", "cancelled", "expired"].includes(current.state)) {
+            setMessage(`Planning ended safely with state ${current.state}.`);
+          } else {
+            setMessage("The planning request could not be completed safely.");
+          }
+        } catch {
+          setMessage("The planning request was interrupted. Refresh Run to check its current state.");
+        }
+      } else if (kind === "execute") {
+        try {
+          const current = await getAgentExecution(run.id);
+          setExecution(current); setRun(current.run);
+          if (current.run.state === "running") {
+            setMessage("Read-only execution is still in progress on the server. Use Refresh Run to check again.");
+          } else if (current.run.state === "completed") {
+            setMessage("Read-only execution completed.");
+          } else if (["failed", "cancelled", "expired"].includes(current.run.state)) {
+            setMessage(`Read-only execution ended safely with state ${current.run.state}.`);
+          } else {
+            setMessage("The execution request was interrupted. Refresh Run to check its current state.");
+          }
+        } catch {
+          setMessage("The execution request was interrupted. Refresh Run to check its current state.");
+        }
+      } else setMessage("The action could not be completed safely.");
     } finally { setBusy(false); }
   }
 

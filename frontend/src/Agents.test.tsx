@@ -239,6 +239,152 @@ describe("Agent Run detail", () => {
     expect(fetchMock.mock.calls.filter(([, init]) => (init as RequestInit)?.method === "POST")).toHaveLength(1);
   });
 
+  it("reconciles an interrupted planning request without reporting a false failure", async () => {
+    let runReads = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new DOMException("aborted", "AbortError"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/execution")) return Promise.resolve(response(execution(run("created"))));
+      runReads += 1;
+      return Promise.resolve(response(run(runReads === 1 ? "created" : "planning", { revision: runReads === 1 ? 0 : 1 })));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: created");
+    await userEvent.click(screen.getByRole("button", { name: "Start planning" }));
+    expect(await screen.findByText(/still in progress on the server/)).toBeInTheDocument();
+    expect(screen.getByText("State: planning")).toBeInTheDocument();
+    expect(screen.queryByText("The action could not be completed safely.")).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([, init]) => (init as RequestInit)?.method === "POST")).toHaveLength(1);
+  });
+
+  it("renders a ready frozen plan when reconciliation finds completed planning", async () => {
+    let runReads = 0;
+    const ready = run("ready", { revision: 2 });
+    const frozen = { run: ready, goal_summary: ready.goal_summary, steps: [] };
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new TypeError("disconnected"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/execution")) return Promise.resolve(response(execution(run("created"))));
+      if (url.endsWith("/plan")) return Promise.resolve(response(frozen));
+      runReads += 1;
+      return Promise.resolve(response(runReads === 1 ? run("created") : ready));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: created");
+    await userEvent.click(screen.getByRole("button", { name: "Start planning" }));
+    expect(await screen.findByText("Planning completed.")).toBeInTheDocument();
+    expect(screen.getByText("State: ready")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Plan and Steps" })).toBeInTheDocument();
+    expect(screen.queryByText("No frozen plan is available.")).not.toBeInTheDocument();
+  });
+
+  it("surfaces a reconciled terminal planning failure without claiming success", async () => {
+    let runReads = 0;
+    const failed = run("failed", { revision: 2, safe_error_code: "planning_output_invalid" });
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new TypeError("disconnected"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/execution")) return Promise.resolve(response(execution(run("created"))));
+      runReads += 1;
+      return Promise.resolve(response(runReads === 1 ? run("created") : failed));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: created");
+    await userEvent.click(screen.getByRole("button", { name: "Start planning" }));
+    expect(await screen.findByText("Planning ended safely with state failed.")).toBeInTheDocument();
+    expect(screen.getByText("State: failed")).toBeInTheDocument();
+    expect(screen.getByText("planning_output_invalid")).toBeInTheDocument();
+    expect(screen.queryByText("Planning completed.")).not.toBeInTheDocument();
+  });
+
+  it("reconciles interrupted execution to running without retrying execution", async () => {
+    const ready = run("ready", { revision: 2 });
+    const running = run("running", { revision: 3 });
+    let executionReads = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new DOMException("aborted", "AbortError"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/plan")) return Promise.resolve(response({ run: ready, goal_summary: ready.goal_summary, steps: [] }));
+      if (url.endsWith("/execution")) return Promise.resolve(response(execution(++executionReads === 1 ? ready : running)));
+      return Promise.resolve(response(ready));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: ready");
+    await userEvent.click(screen.getByRole("button", { name: "Start read-only execution" }));
+    expect(await screen.findByText(/execution is still in progress on the server/)).toBeInTheDocument();
+    expect(screen.getByText("State: running")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/execute"))).toHaveLength(1);
+  });
+
+  it("renders persisted completed execution after an interrupted request", async () => {
+    const ready = run("ready", { revision: 2, agent_kind: "research" });
+    const completed = run("completed", { revision: 4, agent_kind: "research" });
+    const completedExecution = {
+      ...execution(completed),
+      research_result: { status: "answered", claims: [{ text: "A cited result", citation_numbers: [1] }], citations: [{ number: 1, entity_type: "memory", entity_id: target, version: "7".repeat(64) }], insufficiency: null },
+    };
+    let executionReads = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new TypeError("disconnected"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/plan")) return Promise.resolve(response({ run: ready, goal_summary: ready.goal_summary, steps: [] }));
+      if (url.endsWith("/execution")) return Promise.resolve(response(++executionReads === 1 ? execution(ready) : completedExecution));
+      return Promise.resolve(response(ready));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: ready");
+    await userEvent.click(screen.getByRole("button", { name: "Start read-only execution" }));
+    expect(await screen.findByText("Read-only execution completed.")).toBeInTheDocument();
+    expect(screen.getByText("State: completed")).toBeInTheDocument();
+    expect(screen.getByText("A cited result")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/execute"))).toHaveLength(1);
+  });
+
+  it("renders a persisted terminal execution failure safely after interruption", async () => {
+    const ready = run("ready", { revision: 2 });
+    const failed = run("failed", { revision: 4, safe_error_code: "research_result_invalid" });
+    let executionReads = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new TypeError("disconnected"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/plan")) return Promise.resolve(response({ run: ready, goal_summary: ready.goal_summary, steps: [] }));
+      if (url.endsWith("/execution")) return Promise.resolve(response(execution(++executionReads === 1 ? ready : failed)));
+      return Promise.resolve(response(ready));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: ready");
+    await userEvent.click(screen.getByRole("button", { name: "Start read-only execution" }));
+    expect(await screen.findByText("Read-only execution ended safely with state failed.")).toBeInTheDocument();
+    expect(screen.getByText("research_result_invalid")).toBeInTheDocument();
+    expect(screen.queryByText("Read-only execution completed.")).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/execute"))).toHaveLength(1);
+  });
+
+  it("asks for Refresh when execution reconciliation is unavailable", async () => {
+    const ready = run("ready", { revision: 2 });
+    let executionReads = 0;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.reject(new TypeError("disconnected"));
+      if (url.includes("approval-requests")) return Promise.resolve(response([]));
+      if (url.endsWith("/plan")) return Promise.resolve(response({ run: ready, goal_summary: ready.goal_summary, steps: [] }));
+      if (url.endsWith("/execution") && ++executionReads > 1) return Promise.reject(new TypeError("still disconnected"));
+      return Promise.resolve(response(url.endsWith("/execution") ? execution(ready) : ready));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderDetail();
+    await screen.findByText("State: ready");
+    await userEvent.click(screen.getByRole("button", { name: "Start read-only execution" }));
+    expect(await screen.findByText("The execution request was interrupted. Refresh Run to check its current state.")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/execute"))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/execution"))).toHaveLength(2);
+  });
+
   it("confirms and approves one exact pending proposal without executing", async () => {
     const value = run("awaiting_approval");
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);

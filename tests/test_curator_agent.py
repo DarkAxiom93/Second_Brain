@@ -1,5 +1,6 @@
 """Focused contracts for the fixed Advisory Memory Curator Agent."""
 
+import json
 import uuid
 from types import SimpleNamespace
 
@@ -21,7 +22,12 @@ from app.curator.catalog import (
     is_unknown_curator,
 )
 from app.curator.openai_provider import OpenAICuratorProvider
-from app.curator.provider import CuratorOutputInvalidError, CuratorProviderResult
+from app.curator.provider import (
+    CuratorOutputInvalidError,
+    CuratorProviderRequestError,
+    CuratorProviderResult,
+    StrictCuratorProviderResult,
+)
 
 
 def _claim() -> PlanningClaim:
@@ -117,3 +123,110 @@ def test_openai_curator_adapter_rejects_malformed_unknown_and_oversized_output(
     )
     with pytest.raises(CuratorOutputInvalidError):
         provider.synthesize(goal="Goal", evidence=[])
+
+
+def _complete_update(**changes: object) -> dict[str, object]:
+    value: dict[str, object] = {
+        "content": None,
+        "source": None,
+        "title": None,
+        "summary": None,
+        "memory_type": None,
+        "importance": None,
+        "confidence": None,
+        "status": None,
+        "event_time": None,
+        "expires_at": None,
+        "supersedes_id": None,
+    }
+    value.update(changes)
+    return value
+
+
+def _assert_strict_objects(schema: object) -> None:
+    if isinstance(schema, dict):
+        if schema.get("type") == "object":
+            assert schema.get("additionalProperties") is False
+            assert set(schema.get("required", [])) == set(schema.get("properties", {}))
+        for item in schema.values():
+            _assert_strict_objects(item)
+    elif isinstance(schema, list):
+        for item in schema:
+            _assert_strict_objects(item)
+
+
+def test_openai_curator_provider_uses_closed_schema_and_translates_partial_update() -> (
+    None
+):
+    captured: dict[str, object] = {}
+    raw = json.dumps(
+        {
+            "findings": [{"text": "The title can be clearer.", "evidence": ["e1"]}],
+            "proposals": [
+                {
+                    "action_type": "memory.update",
+                    "target_evidence": "e1",
+                    "updated_fields": ["title"],
+                    "proposed_input": _complete_update(title="Clearer title"),
+                    "evidence": ["e1"],
+                }
+            ],
+        }
+    )
+
+    def create(**kwargs: object) -> SimpleNamespace:
+        captured.update(kwargs)
+        return SimpleNamespace(output_text=raw)
+
+    provider = object.__new__(OpenAICuratorProvider)
+    provider._model = "fake"  # type: ignore[attr-defined]
+    provider._max_output_tokens = 100  # type: ignore[attr-defined]
+    provider._client = SimpleNamespace(  # type: ignore[attr-defined]
+        responses=SimpleNamespace(create=create)
+    )
+    result = provider.synthesize(goal="Goal", evidence=[{"evidence_id": "e1"}])
+    schema = captured["text"]["format"]["schema"]  # type: ignore[index]
+    assert schema == StrictCuratorProviderResult.model_json_schema()
+    _assert_strict_objects(schema)
+    assert result.proposals[0].proposed_input == {"title": "Clearer title"}
+
+
+def test_curator_provider_translation_rejects_duplicate_update_selection() -> None:
+    raw = json.dumps(
+        {
+            "findings": [],
+            "proposals": [
+                {
+                    "action_type": "memory.update",
+                    "target_evidence": "e1",
+                    "updated_fields": ["title", "title"],
+                    "proposed_input": _complete_update(title="Clearer title"),
+                    "evidence": ["e1"],
+                }
+            ],
+        }
+    )
+    provider = object.__new__(OpenAICuratorProvider)
+    provider._model = "fake"  # type: ignore[attr-defined]
+    provider._max_output_tokens = 100  # type: ignore[attr-defined]
+    provider._client = SimpleNamespace(  # type: ignore[attr-defined]
+        responses=SimpleNamespace(create=lambda **_: SimpleNamespace(output_text=raw))
+    )
+    with pytest.raises(CuratorOutputInvalidError):
+        provider.synthesize(goal="Goal", evidence=[{"evidence_id": "e1"}])
+
+
+def test_curator_provider_maps_request_failure_without_payload_leakage() -> None:
+    provider = object.__new__(OpenAICuratorProvider)
+    provider._model = "fake"  # type: ignore[attr-defined]
+    provider._max_output_tokens = 100  # type: ignore[attr-defined]
+
+    def failed(**_: object) -> object:
+        raise RuntimeError("private curator request payload")
+
+    provider._client = SimpleNamespace(  # type: ignore[attr-defined]
+        responses=SimpleNamespace(create=failed)
+    )
+    with pytest.raises(CuratorProviderRequestError) as caught:
+        provider.synthesize(goal="Goal", evidence=[])
+    assert "private curator request payload" not in str(caught.value)

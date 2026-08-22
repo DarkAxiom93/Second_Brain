@@ -11,6 +11,7 @@ from app.research.provider import (
     ResearchProviderRequestError,
     ResearchProviderResult,
     ResearchProviderTimeoutError,
+    StrictResearchProviderResult,
 )
 
 MAX_RESPONSE_BYTES = 65_536
@@ -46,7 +47,7 @@ class OpenAIResearchProvider:
                         "type": "json_schema",
                         "name": "research_result",
                         "strict": True,
-                        "schema": ResearchProviderResult.model_json_schema(),
+                        "schema": StrictResearchProviderResult.model_json_schema(),
                     }
                 },
                 max_output_tokens=self._max_output_tokens,
@@ -58,7 +59,12 @@ class OpenAIResearchProvider:
             value, end = decoder.raw_decode(raw)
             if raw[end:].strip() or not isinstance(value, dict):
                 raise ResearchOutputInvalidError
-            return ResearchProviderResult.model_validate(value, strict=True)
+            provider_result = StrictResearchProviderResult.model_validate(
+                value, strict=True
+            )
+            return ResearchProviderResult.model_validate(
+                provider_result.model_dump(mode="python"), strict=True
+            )
         except ResearchOutputInvalidError:
             raise
         except (json.JSONDecodeError, ValidationError, TypeError, ValueError):

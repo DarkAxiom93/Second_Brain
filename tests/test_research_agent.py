@@ -1,5 +1,6 @@
 """Focused deterministic Research Agent contract tests."""
 
+import json
 import uuid
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -28,8 +29,10 @@ from app.research.openai_provider import INSTRUCTIONS, OpenAIResearchProvider
 from app.research.provider import (
     ResearchClaim,
     ResearchOutputInvalidError,
+    ResearchProviderRequestError,
     ResearchProviderResult,
     ResearchProviderTimeoutError,
+    StrictResearchProviderResult,
 )
 from app.research.service import (
     CollectedEvidence,
@@ -257,6 +260,57 @@ def test_evidence_instructions_are_explicitly_inert() -> None:
     }
 
 
+def _assert_strict_objects(schema: object) -> None:
+    if isinstance(schema, dict):
+        if schema.get("type") == "object":
+            assert schema.get("additionalProperties") is False
+            assert set(schema.get("required", [])) == set(schema.get("properties", {}))
+        for item in schema.values():
+            _assert_strict_objects(item)
+    elif isinstance(schema, list):
+        for item in schema:
+            _assert_strict_objects(item)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "status": "answered",
+            "claims": [{"text": "Supported claim", "citations": ["e1"]}],
+            "insufficiency": None,
+        },
+        {
+            "status": "insufficient_evidence",
+            "claims": [],
+            "insufficiency": "The supplied evidence is insufficient.",
+        },
+    ],
+)
+def test_openai_research_provider_uses_closed_required_schema_and_translates(
+    payload: dict[str, object],
+) -> None:
+    captured: dict[str, object] = {}
+
+    def create(**kwargs: object) -> SimpleNamespace:
+        captured.update(kwargs)
+        return SimpleNamespace(output_text=json.dumps(payload))
+
+    provider = object.__new__(OpenAIResearchProvider)
+    provider._model = "fake"  # type: ignore[attr-defined]
+    provider._max_output_tokens = 100  # type: ignore[attr-defined]
+    provider._client = SimpleNamespace(  # type: ignore[attr-defined]
+        responses=SimpleNamespace(create=create)
+    )
+    result = provider.synthesize(goal="Goal", evidence=[{"evidence_id": "e1"}])
+    schema = captured["text"]["format"]["schema"]  # type: ignore[index]
+    assert schema == StrictResearchProviderResult.model_json_schema()
+    _assert_strict_objects(schema)
+    assert set(schema["required"]) == {"status", "claims", "insufficiency"}  # type: ignore[index]
+    assert result.status == payload["status"]
+    assert result.insufficiency == payload["insufficiency"]
+
+
 @pytest.mark.parametrize(
     "instruction",
     [
@@ -431,6 +485,22 @@ def test_openai_provider_classifies_timeout_without_payload_leakage() -> None:
     with pytest.raises(ResearchProviderTimeoutError) as caught:
         provider.synthesize(goal="goal", evidence=[{"evidence_id": "e1"}])
     assert "private timeout payload" not in str(caught.value)
+
+
+def test_openai_provider_maps_request_failure_without_payload_leakage() -> None:
+    provider = object.__new__(OpenAIResearchProvider)
+    provider._model = "fake"  # type: ignore[attr-defined]
+    provider._max_output_tokens = 100  # type: ignore[attr-defined]
+
+    def failed(**_: object) -> object:
+        raise RuntimeError("private request payload")
+
+    provider._client = SimpleNamespace(  # type: ignore[attr-defined]
+        responses=SimpleNamespace(create=failed)
+    )
+    with pytest.raises(ResearchProviderRequestError) as caught:
+        provider.synthesize(goal="goal", evidence=[])
+    assert "private request payload" not in str(caught.value)
 
 
 def test_research_completion_without_durable_result_fails_closed(

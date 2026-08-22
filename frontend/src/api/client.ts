@@ -1,5 +1,7 @@
 const DEFAULT_API_BASE = "/api";
 const REQUEST_TIMEOUT_MS = 5_000;
+const PLANNING_REQUEST_TIMEOUT_MS = 35_000;
+const EXECUTION_REQUEST_TIMEOUT_MS = 665_000;
 
 export type HealthResponse = { status: "ok" };
 export type ReadinessResponse = { status: "ready" };
@@ -188,9 +190,10 @@ async function request<T>(
   notFoundError?: "project" | "source" | "document" | "proposal" | "memory" | "agent-run",
   searchErrors = false,
   answerErrors = false,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const abort = () => controller.abort();
   externalSignal?.addEventListener("abort", abort, { once: true });
 
@@ -292,9 +295,9 @@ export function listAgentRuns(signal?: AbortSignal) { return request("/agent-run
 export function createAgentRun(body: { project_id: string | null; agent_kind: string; agent_version: string; goal_summary: string }, signal?: AbortSignal) { return request("/agent-runs", isAgentRun, signal, { method: "POST", body, headers: { "Idempotency-Key": crypto.randomUUID() } }); }
 export function getAgentRun(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}`, isAgentRun, signal, undefined, "agent-run"); }
 export function getAgentPlan(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}/plan`, isAgentPlan, signal); }
-export function planAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/plan`, isAgentPlan, signal, { method: "POST", body: { expected_revision: revision } }); }
+export function planAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/plan`, isAgentPlan, signal, { method: "POST", body: { expected_revision: revision } }, undefined, false, false, PLANNING_REQUEST_TIMEOUT_MS); }
 export function getAgentExecution(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}/execution`, isAgentExecution, signal); }
-export function executeAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/execute`, isAgentExecution, signal, { method: "POST", body: { expected_revision: revision } }); }
+export function executeAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/execute`, isAgentExecution, signal, { method: "POST", body: { expected_revision: revision } }, undefined, false, false, EXECUTION_REQUEST_TIMEOUT_MS); }
 export function cancelAgentRun(id: string, revision: number, signal?: AbortSignal) { return request(`/agent-runs/${id}/cancel`, isAgentRun, signal, { method: "POST", body: { expected_revision: revision } }); }
 export function listApprovalRequests(id: string, signal?: AbortSignal) { return request(`/agent-runs/${id}/approval-requests?limit=50&offset=0`, (v): v is ApprovalRequest[] => Array.isArray(v) && v.every(isApproval), signal); }
 export function reviewApproval(id: string, decision: "approve" | "reject", signal?: AbortSignal) { return request(`/approval-requests/${id}/review`, isApproval, signal, { method: "POST", body: { decision } }); }
