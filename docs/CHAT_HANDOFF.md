@@ -1,12 +1,12 @@
 # Second Brain chat handoff
 
-Second Brain Local V1.2 is published as `v1.2.0` from exact commit
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. The completed V1.2.1
-live-provider hotfix is implemented at
-`a8530adc5f97b75927fa1f61e2383cf27bdcc925`; its exact `Second Brain CI` push
-run `32557073033` on `main`, attempt 1, completed successfully. V1.2.1 is not
-published and remains pending explicit human approval. `v1.1.0` and `v1.0.0`
-remain unchanged earlier recovery releases.
+Second Brain Local V1.2.1 is the current published release, tagged `v1.2.1`
+with title `Second Brain Local V1.2.1` from exact commit
+`04e9db33dc0de7529b1599871c58cace6ed9f9e2`. Final pre-release `Second Brain
+CI` run `32559057246`, attempt 1, completed successfully. V1.2.0 remains intact
+as the preceding published release from
+`67e790f2f2c34b346773cddba385fa3f2db04a26`; `v1.1.0` and `v1.0.0` remain
+unchanged earlier recovery releases. No V1.3 work has started.
 
 The sole live/current Alembic head is `0010_agent_runtime_persistence`, and Project
 export remains `second-brain-project-export` format version 1. The V1.1 change
@@ -97,7 +97,8 @@ Checkpoint 74 release hardening is complete at
 `53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval. Its exact
 successful `Second Brain CI` push run is `32474664878` (attempt 1,
 completed/success, zero artifacts), and its evidence is in
-`checkpoint-74-report.md`. Local V1.2 is published as `v1.2.0`. The V1.2.1
-hotfix root causes, verification, and live acceptance are recorded in
-`V1_2_1_HOTFIX_REPORT.md`; no `v1.2.1` tag or GitHub Release exists. Publication
-requires separate explicit human approval, and no V1.3 work has started.
+`checkpoint-74-report.md`. The V1.2.1 live-provider and Agent reliability
+hardening is published as `v1.2.1`; its root causes, verification, live
+acceptance, publication commit, and final CI are recorded in
+`V1_2_1_HOTFIX_REPORT.md`. Safety and authority boundaries remain unchanged,
+and no V1.3 work has started.

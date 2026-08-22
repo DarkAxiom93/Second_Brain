@@ -104,13 +104,13 @@ Checkpoint 73 local V1.2 end-to-end acceptance is complete at
 `26c74cced438fd850907d593db5090719f6e861a`. Its accepted evidence is recorded
 in `checkpoint-73-report.md`. Checkpoint 74 release hardening is complete at
 `53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
-push CI run `32474664878` with zero artifacts. V1.2 is published as `v1.2.0`
-from `67e790f2f2c34b346773cddba385fa3f2db04a26`. The completed V1.2.1
-live-provider hotfix is at `a8530adc5f97b75927fa1f61e2383cf27bdcc925`
-with successful CI run `32557073033`; its strict provider DTO and frontend
-reconciliation corrections preserve the existing authority boundary. V1.2.1
-publication remains pending explicit human approval, and no V1.3 work has
-started.
+push CI run `32474664878` with zero artifacts. V1.2.0 remains intact as the
+preceding published release from
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. V1.2.1 is the current published
+patch release from `04e9db33dc0de7529b1599871c58cace6ed9f9e2`, with final
+successful pre-release CI run `32559057246`. Its live-provider planning,
+Research and Curator synthesis, and long-running frontend reliability hardening
+preserve the existing authority boundary. No V1.3 work has started.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

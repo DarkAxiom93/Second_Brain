@@ -1,9 +1,8 @@
 # Local V1.2 runbook
 
-This runbook is the supported Windows maintainer path for the Local V1.2
-release. Published `v1.2.0` remains the recovery release while V1.2.1 awaits
-separate explicit publication approval. Run commands from the repository root in
-PowerShell. The backend is
+This runbook is the supported Windows maintainer path for the current Local
+V1.2.1 release. Published `v1.2.0` remains intact as the preceding release.
+Run commands from the repository root in PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
 
@@ -173,16 +172,13 @@ volume. Never use `docker compose down -v`.
 
 ## Recovery
 
-Local V1.1 `v1.1.0` at
-`88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce` is the published recovery release.
-Its application expects revision `0009_memory_expiration`; do not point it at
-the current `0010_agent_runtime_persistence` development database and do not
-downgrade that database. Recover in a separate checkout and restore a verified
-pre-V1.2 custom-format backup into a separate, identity-checked database. If no
-compatible revision-0009 backup exists, preserve the current database and use
-the current application rather than forcing a downgrade. Preserve the
-PostgreSQL container and `second-brain_postgres_data` named volume. Version 1
-Project import remains validation-first and atomic, with no merge, overwrite,
+Local V1.2.0 `v1.2.0` at
+`67e790f2f2c34b346773cddba385fa3f2db04a26` is the preceding published release
+for patch rollback. It uses the same `0010_agent_runtime_persistence` revision,
+but recovery still belongs in a separate checkout with a verified backup and an
+identity-checked database. Never downgrade the development database. Preserve
+the PostgreSQL container and `second-brain_postgres_data` named volume. Version
+1 Project import remains validation-first and atomic, with no merge, overwrite,
 remap, repair, or partial-import behavior.
 
 ## Troubleshooting

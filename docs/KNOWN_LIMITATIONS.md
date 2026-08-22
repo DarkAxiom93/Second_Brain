@@ -21,10 +21,11 @@ security/evaluation release gate at
 complete at `26c74cced438fd850907d593db5090719f6e861a`. Checkpoint 74 release
 hardening is complete at `53d78f30c7e9ff4020179c57e286ad24980df6af`
 after human approval and successful push CI run `32474664878` with zero
-artifacts. V1.2 is published as `v1.2.0` from
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. The completed V1.2.1 hotfix is
-documented in [V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md) and remains
-pending explicit publication approval. No V1.3 work has started.
+artifacts. V1.2.1 is the current published patch release from
+`04e9db33dc0de7529b1599871c58cace6ed9f9e2`; V1.2.0 remains intact as the
+preceding release from `67e790f2f2c34b346773cddba385fa3f2db04a26`. The
+live-provider and Agent reliability hardening is documented in
+[V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). No V1.3 work has started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

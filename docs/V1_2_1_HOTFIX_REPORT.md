@@ -1,12 +1,17 @@
 # Local V1.2.1 Agent live-provider hotfix report
 
-Publication status: **Pending explicit human approval**.
+Publication status: **Published and complete**.
 
 The complete V1.2.1 hotfix is implemented at
 `a8530adc5f97b75927fa1f61e2383cf27bdcc925` (`fix: harden agent live provider
 workflows`). Its exact `Second Brain CI` push run `32557073033` on `main`,
-attempt 1, completed successfully. This report prepares a patch release; no
-`v1.2.1` tag or GitHub Release exists yet.
+attempt 1, completed successfully.
+
+Local V1.2.1 is published with tag `v1.2.1`, title
+`Second Brain Local V1.2.1`, and exact release commit
+`04e9db33dc0de7529b1599871c58cace6ed9f9e2`. The final pre-release
+`Second Brain CI` run `32559057246`, attempt 1, completed successfully. See the
+[GitHub Release](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.2.1).
 
 ## Confirmed defects and corrections
 
@@ -66,6 +71,8 @@ remained.
 - Project export: `second-brain-project-export` version `1`.
 - CI: `Second Brain CI` run `32557073033`, push to `main`, attempt 1,
   completed/success.
+- Final pre-release CI: `Second Brain CI` run `32559057246`, attempt 1,
+  completed/success.
 
 There was no migration, dependency, registry-version, export-version, CI,
 Docker, or Agent-authority change.
@@ -79,7 +86,6 @@ autonomous Approval, Automation, worker, scheduler, connector, external
 research, or arbitrary shell, Python, SQL, filesystem, browser, or network
 authority.
 
-Published `v1.2.0` remains unchanged and is the recovery release until V1.2.1
-is separately approved and published. Recovery must follow
+Published `v1.2.0` remains unchanged as the preceding release. Recovery must follow
 [LOCAL_V1_RUNBOOK.md](LOCAL_V1_RUNBOOK.md); never downgrade the development
 database or delete its named volume.
