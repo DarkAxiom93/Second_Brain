@@ -13,6 +13,10 @@ Second Brain is a local-first personal knowledge management application. It comb
 
 [**V1.2 release**](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.2.0) · [**Local runbook**](docs/LOCAL_V1_RUNBOOK.md) · [**Architecture**](docs/ARCHITECTURE.md) · [**Known limitations**](docs/KNOWN_LIMITATIONS.md)
 
+<p align="center">
+  <img src="docs/assets/screenshots/dashboard.png" alt="Second Brain local dashboard showing healthy API and PostgreSQL readiness" width="1200">
+</p>
+
 ## What you can do
 
 The core workflow keeps source material, model suggestions, reviewed knowledge, and agent activity visibly separate.
@@ -28,6 +32,24 @@ The core workflow keeps source material, model suggestions, reviewed knowledge, 
 | Use Agents | Manually run bounded plans, use a read-only Research Agent, review advisory Memory Curator proposals, and inspect explicit Approvals. |
 
 Second Brain also includes explicit Memory supersession, expiration, quality refinement, embedding maintenance, local diagnostics, and maintenance audits. Provider-backed features require locally configured credentials; lexical search and the rest of the deterministic application remain available without them.
+
+## See it in action
+
+### Explained hybrid search
+
+Lexical and semantic retrieval can be combined through hybrid search. Per-channel ranks, signals, and Reciprocal Rank Fusion contributions show why the backend ordered each result.
+
+<p align="center">
+  <img src="docs/assets/screenshots/hybrid-search.png" alt="Hybrid Memory search results with lexical and semantic ranking signals and RRF contributions" width="1200">
+</p>
+
+### Evidence-backed answers
+
+Answers retrieve a bounded set of Memory evidence and render supporting citations alongside the generated response. The workflow is stateless: questions, answers, citations, and retrieval history are not persisted.
+
+<p align="center">
+  <img src="docs/assets/screenshots/evidence-backed-answer.png" alt="Stateless generated Answer with cited supporting Memory evidence and retrieval ranks" width="1200">
+</p>
 
 ## Agents: safety by design
 
