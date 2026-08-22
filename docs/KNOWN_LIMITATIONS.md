@@ -25,7 +25,9 @@ artifacts. V1.2.1 is the current published patch release from
 `04e9db33dc0de7529b1599871c58cace6ed9f9e2`; V1.2.0 remains intact as the
 preceding release from `67e790f2f2c34b346773cddba385fa3f2db04a26`. The
 live-provider and Agent reliability hardening is documented in
-[V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). No V1.3 work has started.
+[V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). Checkpoint 75 completed the
+approved documentation-only V1.3 Automation architecture; no V1.3
+implementation has started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -40,7 +42,8 @@ live-provider and Agent reliability hardening is documented in
   `memory.update` Approval Requests; there is no Approval execution.
 - There are no scheduled jobs, background workers, autonomous agents, or
   Automations. An Automation is deferred and would be a trigger that creates an
-  Agent Run, not the Run itself.
+  Agent Run, not the Run itself. The proposed V1.3 plan authorizes no current
+  behavior.
 - Maintenance and diagnostics are read-only. There is no automatic
   maintenance, repair, expiration processing, or re-embedding.
 - Version 1 `.sbexport` bundles are private but not encrypted. Protect them as

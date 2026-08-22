@@ -6,7 +6,9 @@ with title `Second Brain Local V1.2.1` from exact commit
 CI` run `32559057246`, attempt 1, completed successfully. V1.2.0 remains intact
 as the preceding published release from
 `67e790f2f2c34b346773cddba385fa3f2db04a26`; `v1.1.0` and `v1.0.0` remain
-unchanged earlier recovery releases. No V1.3 work has started.
+unchanged earlier recovery releases. Checkpoint 75 completed the approved
+documentation-only Local V1.3 Automation architecture; no
+V1.3 implementation has started.
 
 The sole live/current Alembic head is `0010_agent_runtime_persistence`, and Project
 export remains `second-brain-project-export` format version 1. The V1.1 change
@@ -14,6 +16,14 @@ set is additive: patched direct `react-router` 8.3.0 with no
 `react-router-dom`; least-privilege non-authoritative CI; read-only explained
 Memory search and its accessible UI; and local acceptance. Legacy search and
 Answer behavior and stored data remain compatible.
+
+Checkpoint 75 planning is in
+[V1_3_AUTOMATION_ROADMAP.md](V1_3_AUTOMATION_ROADMAP.md) and
+[V1_3_AUTOMATION_THREAT_MODEL.md](V1_3_AUTOMATION_THREAT_MODEL.md). It proposes
+Checkpoints 76-86 but authorizes none of them. The V1.2.1 hotfix remains an
+unnumbered post-74 published patch; this resolves the historical checkpoint-table
+label in favor of the explicit current Checkpoint 75 instruction without
+changing any release or commit identity.
 
 Checkpoint 61 is complete at `850cfd0a749b5de072b910203ba9906ab5270b40`. Its
 proposed architecture is in [V1_2_AGENT_ROADMAP.md](V1_2_AGENT_ROADMAP.md), and
@@ -101,4 +111,4 @@ completed/success, zero artifacts), and its evidence is in
 hardening is published as `v1.2.1`; its root causes, verification, live
 acceptance, publication commit, and final CI are recorded in
 `V1_2_1_HOTFIX_REPORT.md`. Safety and authority boundaries remain unchanged,
-and no V1.3 work has started.
+and no V1.3 implementation has started.

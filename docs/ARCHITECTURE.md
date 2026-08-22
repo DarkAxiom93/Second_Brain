@@ -110,7 +110,17 @@ preceding published release from
 patch release from `04e9db33dc0de7529b1599871c58cace6ed9f9e2`, with final
 successful pre-release CI run `32559057246`. Its live-provider planning,
 Research and Curator synthesis, and long-running frontend reliability hardening
-preserve the existing authority boundary. No V1.3 work has started.
+preserve the existing authority boundary. No V1.3 implementation has started.
+
+Checkpoint 75 completed, but does not implement, the approved Local V1.3 architecture in
+[V1_3_AUTOMATION_ROADMAP.md](V1_3_AUTOMATION_ROADMAP.md) and
+[V1_3_AUTOMATION_THREAT_MODEL.md](V1_3_AUTOMATION_THREAT_MODEL.md). The minimal
+planned model separates durable Automation definitions from immutable trigger
+occurrences, local notification records, and existing bounded Agent Runs. It
+uses typed schedules, unique occurrence identities, fenced leases, deterministic
+UTC/IANA-timezone handling, and fixed read-only Daily Brief and Project Watch
+Agents. Checkpoint 75 is complete and authorizes no schema,
+scheduler, API, UI, Agent, registry, or authority change.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

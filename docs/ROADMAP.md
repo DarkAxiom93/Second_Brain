@@ -51,9 +51,9 @@ acceptance is complete at `26c74cced438fd850907d593db5090719f6e861a`.
 Checkpoint 74 release hardening is complete at
 `53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
 push CI run `32474664878` with zero artifacts. V1.2.0 remains the preceding
-published release. The V1.2.1 live-provider and Agent reliability hardening is
+published release. The unnumbered V1.2.1 live-provider and Agent reliability hardening is
 published from `04e9db33dc0de7529b1599871c58cace6ed9f9e2` after successful
-final pre-release CI run `32559057246`, attempt 1. No V1.3 work has started. No
+final pre-release CI run `32559057246`, attempt 1. No V1.3 implementation has started. No
 approval execution, Automation, connector, or write Tool exists.
 
 The V1.2 capability is manually initiated, bounded, local Agent Runs
@@ -94,13 +94,29 @@ evidence-backed answers; batch embedding/re-embedding; read-only maintenance
 and diagnostics; versioned Project export and controlled import; all eight
 top-level local UI routes; non-authoritative CI; and V1/V1.1 acceptance.
 
-## Deferred Local V1.3 and later
+## Proposed Local V1.3
 
-V1.3 may plan a local scheduler, one-time/recurring Automation definitions,
-leases and duplicate prevention, pause/resume/retry/missed-run policy,
-notifications, Daily Brief and Project Watch agents, local credentials,
-read-only Calendar/Gmail/GitHub connectors, draft-only external actions, and
-exact approval-gated external writes. Authentication, multi-user isolation,
-remote/cloud/mobile operation, import merge/overwrite/remap, encrypted bundles,
-and other expanded boundaries require their own later roadmaps. Checkpoint 61
-authorizes none of this implementation.
+Checkpoint 75 completed the approved documentation-only
+[Local Automations & Scheduled Agents](V1_3_AUTOMATION_ROADMAP.md) architecture
+and its [V1.3 threat model](V1_3_AUTOMATION_THREAT_MODEL.md). No V1.3
+implementation has started.
+
+The proposed scope is a local scheduler; typed one-time, daily, and weekly
+Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger
+occurrences; fenced leases and duplicate prevention; deterministic restart,
+retry, and missed-run behavior; bounded history; safe local notifications; and
+fixed read-only Daily Brief and Project Watch Agents. An Automation is a durable
+trigger that may create one bounded Agent Run per occurrence; it is never the
+Run and grants no additional authority.
+
+Automatic planning/execution is proposed only for explicit opt-in fixed
+read-only Agents after a trigger-only scheduler and recovery foundation pass
+independent review. The initial/default mode creates a Run for explicit human
+execution. The independently reviewable implementation sequence is Checkpoints
+76-86; Checkpoint 75 authorizes none of them.
+
+Connectors, arbitrary/external research or network access, external writes,
+proposal execution, automatic Approval, credentials, authentication/multi-user,
+remote/cloud/mobile operation, arbitrary execution, import merge/overwrite/
+remap, and encrypted export redesign are deferred beyond V1.3 to separate
+roadmaps and threat models.
