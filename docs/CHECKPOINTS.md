@@ -79,6 +79,7 @@ history. A dash means Alembic had not yet been introduced.
 | 72 | Agent security and evaluation harness | Complete | `0010_agent_runtime_persistence` | `45e940e` |
 | 73 | Local V1.2 end-to-end acceptance | Complete | `0010_agent_runtime_persistence` | `26c74cc` |
 | 74 | Local V1.2 release hardening | Complete | `0010_agent_runtime_persistence` | `53d78f3` |
+| 75 | Local V1.2.1 Agent live-provider hotfix | Complete | `0010_agent_runtime_persistence` | `a8530ad` |
 
 ## Standard lifecycle
 

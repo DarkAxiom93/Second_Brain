@@ -104,8 +104,12 @@ Checkpoint 73 local V1.2 end-to-end acceptance is complete at
 `26c74cced438fd850907d593db5090719f6e861a`. Its accepted evidence is recorded
 in `checkpoint-73-report.md`. Checkpoint 74 release hardening is complete at
 `53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
-push CI run `32474664878` with zero artifacts. V1.2 is not published;
-publication requires separate explicit human approval, and no V1.3 work has
+push CI run `32474664878` with zero artifacts. V1.2 is published as `v1.2.0`
+from `67e790f2f2c34b346773cddba385fa3f2db04a26`. The completed V1.2.1
+live-provider hotfix is at `a8530adc5f97b75927fa1f61e2383cf27bdcc925`
+with successful CI run `32557073033`; its strict provider DTO and frontend
+reconciliation corrections preserve the existing authority boundary. V1.2.1
+publication remains pending explicit human approval, and no V1.3 work has
 started.
 
 Checkpoint 68 is complete at

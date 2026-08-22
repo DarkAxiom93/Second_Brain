@@ -8,8 +8,10 @@ Local V1 is published as `v1.0.0` from
 `a1bf40c0a27e9ee508e9bf1ab151b4665fbdba32` and remains the pre-V1.1 recovery
 point. Local V1.1 is published as `v1.1.0` from exact commit
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 60 is complete at that
-commit. The sole current Alembic head is `0010_agent_runtime_persistence`, and Project
-export remains `second-brain-project-export` version 1.
+commit. Local V1.2 is published as `v1.2.0` from exact commit
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. The sole current Alembic head is
+`0010_agent_runtime_persistence`, and Project export remains
+`second-brain-project-export` version 1.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
 non-authoritative CI, deterministic explained Memory search, its accessible UI,
@@ -17,7 +19,7 @@ and integrated acceptance. It preserves legacy search/Answer contracts, stored
 data, deployment topology, and export/import format. Local Full verification
 remains release-authoritative.
 
-## Local V1.2 candidate
+## Local V1.2
 
 Checkpoint 61 completed the [Local V1.2 Agent roadmap](V1_2_AGENT_ROADMAP.md) and
 [threat model](AGENT_THREAT_MODEL.md) at
@@ -46,10 +48,12 @@ capacity bound at `45e940ec89b6cf3783ab2dc7cdfa837b6cbc3597`; Checkpoint 73 loca
 acceptance is complete at `26c74cced438fd850907d593db5090719f6e861a`.
 Checkpoint 74 release hardening is complete at
 `53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval and successful
-push CI run `32474664878` with zero artifacts. V1.2 is not published; no
-`v1.2.0` tag or GitHub Release exists, and publication requires separate
-explicit human approval. No V1.3 work has started. No approval execution,
-Automation, connector, or write Tool exists.
+push CI run `32474664878` with zero artifacts. V1.2 is published as `v1.2.0`.
+The completed V1.2.1 live-provider hotfix is implemented at
+`a8530adc5f97b75927fa1f61e2383cf27bdcc925` with successful CI run
+`32557073033`; publication remains pending explicit human approval. No V1.3
+work has started. No approval execution, Automation, connector, or write Tool
+exists.
 
 The V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,

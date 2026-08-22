@@ -1,14 +1,13 @@
-# Local V1.2 candidate release notes
+# Local V1.2 release notes
 
-Status: release hardening is complete at
-`53d78f30c7e9ff4020179c57e286ad24980df6af` after human approval. Exact
-`Second Brain CI` push run `32474664878` completed successfully on attempt 1
-with zero artifacts. Local V1.2 has not been published: no `v1.2.0` tag or
-GitHub Release exists, and publication requires separate explicit human
-approval. Local V1.1 `v1.1.0` remains the published release and recovery point.
+Status: Local V1.2 is published as `v1.2.0` from exact commit
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. The V1.2.1 Agent live-provider
+hotfix is implemented at `a8530adc5f97b75927fa1f61e2383cf27bdcc925`,
+with successful `Second Brain CI` push run `32557073033`, but V1.2.1 publication
+is **pending explicit human approval**. No `v1.2.1` tag or GitHub Release exists.
 No V1.3 work has started.
 
-## Candidate inventory
+## V1.2 inventory
 
 Local V1.2 preserves the loopback-only FastAPI, React/Vite, and PostgreSQL
 topology for one trusted maintainer. It adds manually initiated Agent Runs,
@@ -43,10 +42,19 @@ process cleanup, and recovery procedure. Project bundles are sensitive,
 unencrypted, and incomplete as database backups because Agent and Approval
 state is intentionally excluded.
 
-Rollback uses a separate checkout of published V1.1 `v1.1.0` and a verified
-revision-0009 backup restored only into a separate identity-checked database.
+Rollback uses a separate checkout of published V1.2 `v1.2.0` and a verified
+revision-0010 backup restored only into a separate identity-checked database.
 Never downgrade the revision-0010 development database or delete its named
 volume to perform rollback.
+
+## Pending V1.2.1 patch
+
+V1.2.1 hardens strict provider schemas, restores the application-owned planning
+goal during provider translation, and gives long-running planning/execution
+requests bounded timeouts plus one read-only reconciliation. It adds no
+authority and preserves fail-closed validation. Root causes, verification, and
+live human acceptance are recorded in
+[V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). V1.2.1 is not published.
 
 ## Remaining limitations
 

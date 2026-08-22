@@ -1,7 +1,8 @@
-# Local V1.2 candidate runbook
+# Local V1.2 runbook
 
 This runbook is the supported Windows maintainer path for the Local V1.2
-candidate. Run commands from the repository root in
+release. Published `v1.2.0` remains the recovery release while V1.2.1 awaits
+separate explicit publication approval. Run commands from the repository root in
 PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.

@@ -19,8 +19,11 @@ synchronous operator recovery at
 complete at `26c74cced438fd850907d593db5090719f6e861a`; Checkpoint 74 release
 hardening is complete at `53d78f30c7e9ff4020179c57e286ad24980df6af`
 after human approval and successful push CI run `32474664878` with zero
-artifacts. V1.2 is not published, publication requires separate explicit human
-approval, and no V1.3 work has started.
+artifacts. V1.2 is published as `v1.2.0` from
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. The completed V1.2.1 hotfix is at
+`a8530adc5f97b75927fa1f61e2383cf27bdcc925` with successful CI run
+`32557073033`; V1.2.1 publication remains pending explicit human approval. No
+V1.3 work has started.
 The security remediation base is
 `ad3c143a568be7c09a73b170f2b5be6347a27a40` with successful CI run
 `31950242783`.
@@ -348,8 +351,10 @@ mutation, write Tool, or execute authority. Checkpoint 69 is complete at
 complete at `26c74cced438fd850907d593db5090719f6e861a`; Checkpoint 74 release
 hardening is complete at `53d78f30c7e9ff4020179c57e286ad24980df6af`
 after human approval and successful push CI run `32474664878` with zero
-artifacts. V1.2 is not published, publication requires separate explicit human
-approval, and no V1.3 work has started.
+artifacts. V1.2 is published as `v1.2.0`. The completed V1.2.1 hotfix is at
+`a8530adc5f97b75927fa1f61e2383cf27bdcc925` with successful CI run
+`32557073033`; V1.2.1 publication remains pending explicit human approval. No
+V1.3 work has started.
 
 - **Goal/why:** Persist exact immutable proposals and human decisions without
   enabling execution.

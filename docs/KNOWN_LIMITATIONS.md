@@ -1,4 +1,4 @@
-# Local V1.2 candidate known limitations
+# Local V1.2 known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -21,8 +21,10 @@ security/evaluation release gate at
 complete at `26c74cced438fd850907d593db5090719f6e861a`. Checkpoint 74 release
 hardening is complete at `53d78f30c7e9ff4020179c57e286ad24980df6af`
 after human approval and successful push CI run `32474664878` with zero
-artifacts. V1.2 is not published; Local V1.1 remains the current published
-release. No V1.3 work has started.
+artifacts. V1.2 is published as `v1.2.0` from
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. The completed V1.2.1 hotfix is
+documented in [V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md) and remains
+pending explicit publication approval. No V1.3 work has started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
