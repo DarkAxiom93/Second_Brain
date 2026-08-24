@@ -39,7 +39,7 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0010_agent_runtime_persistence"
+    assert revision == "0011_automation_persistence"
     assert tables == {
         "alembic_version",
         "projects",
@@ -56,6 +56,9 @@ def test_head_and_tables_match_approved_schema(migrated_test_database: None) -> 
         "tool_invocations",
         "approval_requests",
         "agent_events",
+        "automations",
+        "automation_occurrences",
+        "automation_notifications",
     }
 
 

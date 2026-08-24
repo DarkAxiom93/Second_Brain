@@ -6,6 +6,7 @@ import shutil
 import uuid
 import zipfile
 from collections.abc import Generator
+from datetime import time
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,11 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_engine
 from app.models import Memory, Project
+from app.models.automation import (
+    Automation,
+    AutomationNotification,
+    AutomationOccurrence,
+)
 from app.project_export.models import CURRENT_DATABASE_REVISION
 from app.project_export.service import export_project
 from tests.integration.conftest import verify_connected_test_database
@@ -35,12 +41,18 @@ def clean_export_database(
 ) -> Generator[None, None, None]:
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
+        session.execute(delete(AutomationNotification))
+        session.execute(delete(AutomationOccurrence))
+        session.execute(delete(Automation))
         session.execute(delete(Memory))
         session.execute(delete(Project))
         session.commit()
     yield
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
+        session.execute(delete(AutomationNotification))
+        session.execute(delete(AutomationOccurrence))
+        session.execute(delete(Automation))
         session.execute(delete(Memory))
         session.execute(delete(Project))
         session.commit()
@@ -57,6 +69,16 @@ def test_project_export_preserves_fields_and_excludes_other_scopes(
         unrelated = Project(name=f"other-{uuid.uuid4()}")
         session.add_all((target, unrelated))
         session.flush()
+        session.add(
+            Automation(
+                label="must remain excluded",
+                agent_kind="daily_brief",
+                project_id=target.id,
+                schedule_kind="daily",
+                timezone_name="UTC",
+                local_time=time(8, 0),
+            )
+        )
         first = Memory(
             project_id=target.id,
             content="first content",
@@ -98,6 +120,7 @@ def test_project_export_preserves_fields_and_excludes_other_scopes(
         session.rollback()
 
     with zipfile.ZipFile(output) as archive:
+        assert not any("automation" in name for name in archive.namelist())
         project = json.loads(archive.read("project.json"))
         memories = [
             json.loads(line)

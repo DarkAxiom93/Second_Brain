@@ -7,6 +7,11 @@ from app.models.agent_runtime import (
     ApprovalRequest,
     ToolInvocation,
 )
+from app.models.automation import (
+    Automation,
+    AutomationNotification,
+    AutomationOccurrence,
+)
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.models.memory_extraction_run import MemoryExtractionRun
@@ -22,6 +27,9 @@ __all__ = [
     "AgentRun",
     "AgentStep",
     "ApprovalRequest",
+    "Automation",
+    "AutomationNotification",
+    "AutomationOccurrence",
     "Memory",
     "MemoryEmbedding",
     "MemoryExtractionRun",

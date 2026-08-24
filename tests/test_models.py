@@ -39,6 +39,9 @@ def test_metadata_contains_only_approved_tables() -> None:
         "tool_invocations",
         "approval_requests",
         "agent_events",
+        "automations",
+        "automation_occurrences",
+        "automation_notifications",
     }
 
 

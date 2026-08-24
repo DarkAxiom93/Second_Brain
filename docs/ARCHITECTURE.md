@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0010_agent_runtime_persistence`.
+`0011_automation_persistence`.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
@@ -112,15 +112,17 @@ successful pre-release CI run `32559057246`. Its live-provider planning,
 Research and Curator synthesis, and long-running frontend reliability hardening
 preserve the existing authority boundary. No V1.3 implementation has started.
 
-Checkpoint 75 completed, but does not implement, the approved Local V1.3 architecture in
+Checkpoint 75 completed the approved Local V1.3 architecture in
 [V1_3_AUTOMATION_ROADMAP.md](V1_3_AUTOMATION_ROADMAP.md) and
 [V1_3_AUTOMATION_THREAT_MODEL.md](V1_3_AUTOMATION_THREAT_MODEL.md). The minimal
 planned model separates durable Automation definitions from immutable trigger
 occurrences, local notification records, and existing bounded Agent Runs. It
 uses typed schedules, unique occurrence identities, fenced leases, deterministic
 UTC/IANA-timezone handling, and fixed read-only Daily Brief and Project Watch
-Agents. Checkpoint 75 is complete and authorizes no schema,
-scheduler, API, UI, Agent, registry, or authority change.
+Agents. Checkpoint 76 now adds only the inert three-table Automation persistence
+foundation and caller-transaction-owned repository primitives. It adds no
+scheduler, API, UI, Agent, registry, or authority change. Checkpoint 76 is
+approved and complete after human review.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

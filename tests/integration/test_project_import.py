@@ -58,7 +58,12 @@ def _data_files(path: Path) -> dict[str, bytes]:
 
 
 @pytest.mark.parametrize(
-    "source_revision", ["0009_memory_expiration", CURRENT_DATABASE_REVISION]
+    "source_revision",
+    [
+        "0009_memory_expiration",
+        "0010_agent_runtime_persistence",
+        CURRENT_DATABASE_REVISION,
+    ],
 )
 def test_import_preserves_fields_vector_search_and_round_trip(
     clean_import_database: None,

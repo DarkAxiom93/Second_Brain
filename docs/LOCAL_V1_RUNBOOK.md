@@ -40,7 +40,7 @@ Rolldown native binary open and `npm ci` will fail with `EPERM ... unlink`.
 The parsed and live development identity must both be
 `127.0.0.1:5433/second_brain`; the separate test database must be
 `second_brain_test`. `alembic current` and the sole head must be
-`0010_agent_runtime_persistence`, and `alembic check` must report no upgrade operations.
+`0011_automation_persistence`, and `alembic check` must report no upgrade operations.
 Never downgrade the development database.
 
 ## Start FastAPI and Vite
@@ -124,8 +124,9 @@ any bundle identity. There is no merge, overwrite, remap, repair, or partial
 import. See [PROJECT_EXPORT_FORMAT.md](PROJECT_EXPORT_FORMAT.md).
 
 Format version 1 accepts source bundles produced at
-`0009_memory_expiration` or `0010_agent_runtime_persistence` only. Current
-export and import targets require `0010_agent_runtime_persistence`. Project
+`0009_memory_expiration`, `0010_agent_runtime_persistence`, or
+`0011_automation_persistence` only. Current export and import targets require
+`0011_automation_persistence`. Project
 bundles exclude Agent Runs, Steps, Tool invocations, Agent events, Approval
 Requests, provider payloads, hidden reasoning, and other private runtime state.
 

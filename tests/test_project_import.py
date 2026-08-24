@@ -98,7 +98,12 @@ def test_supported_bundle_and_validation_only_do_not_write(
 
 
 @pytest.mark.parametrize(
-    "source_revision", ["0009_memory_expiration", CURRENT_DATABASE_REVISION]
+    "source_revision",
+    [
+        "0009_memory_expiration",
+        "0010_agent_runtime_persistence",
+        CURRENT_DATABASE_REVISION,
+    ],
 )
 def test_only_proven_compatible_source_revisions_are_accepted(
     tmp_path: Path,

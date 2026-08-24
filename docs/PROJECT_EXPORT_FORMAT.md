@@ -3,9 +3,10 @@
 `second-brain-project-export` version 1 is a private, application-level backup
 of one Project. It is not `pg_dump`. The format version is unchanged across the
 additive Agent Runtime migration: controlled import accepts source bundles made
-at exactly `0009_memory_expiration` or `0010_agent_runtime_persistence`, while
+at exactly `0009_memory_expiration`, `0010_agent_runtime_persistence`, or
+`0011_automation_persistence`, while
 the current export and import target database must be exactly
-`0010_agent_runtime_persistence`. Every other source or target revision fails
+`0011_automation_persistence`. Every other source or target revision fails
 closed.
 
 The `.sbexport` file is a ZIP-compatible container owned by this application.

@@ -12,7 +12,7 @@ commit. Local V1.2.1 is the current published V1.2 patch release, tagged
 `v1.2.1` from exact commit `04e9db33dc0de7529b1599871c58cace6ed9f9e2`.
 Local V1.2.0 remains intact as the preceding release from
 `67e790f2f2c34b346773cddba385fa3f2db04a26`. The sole current Alembic head is
-`0010_agent_runtime_persistence`, and Project export remains
+`0011_automation_persistence`, and Project export remains
 `second-brain-project-export` version 1.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
@@ -53,8 +53,9 @@ Checkpoint 74 release hardening is complete at
 push CI run `32474664878` with zero artifacts. V1.2.0 remains the preceding
 published release. The unnumbered V1.2.1 live-provider and Agent reliability hardening is
 published from `04e9db33dc0de7529b1599871c58cace6ed9f9e2` after successful
-final pre-release CI run `32559057246`, attempt 1. No V1.3 implementation has started. No
-approval execution, Automation, connector, or write Tool exists.
+final pre-release CI run `32559057246`, attempt 1. Checkpoint 76 adds inert V1.3
+Automation persistence only. No scheduling, approval execution, connector, or
+write Tool exists.
 
 The V1.2 capability is manually initiated, bounded, local Agent Runs
 with structured planning, application-owned read-only tools, durable safe state,
@@ -98,8 +99,9 @@ top-level local UI routes; non-authoritative CI; and V1/V1.1 acceptance.
 
 Checkpoint 75 completed the approved documentation-only
 [Local Automations & Scheduled Agents](V1_3_AUTOMATION_ROADMAP.md) architecture
-and its [V1.3 threat model](V1_3_AUTOMATION_THREAT_MODEL.md). No V1.3
-implementation has started.
+and its [V1.3 threat model](V1_3_AUTOMATION_THREAT_MODEL.md). Checkpoint 76 now
+implements only the persistence foundation and is approved and complete after
+human review.
 
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger
@@ -113,7 +115,8 @@ Automatic planning/execution is proposed only for explicit opt-in fixed
 read-only Agents after a trigger-only scheduler and recovery foundation pass
 independent review. The initial/default mode creates a Run for explicit human
 execution. The independently reviewable implementation sequence is Checkpoints
-76-86; Checkpoint 75 authorizes none of them.
+76-86. Checkpoint 76 implements only the three-table persistence foundation and
+is complete after human review; Checkpoint 77 has not started.
 
 Connectors, arbitrary/external research or network access, external writes,
 proposal execution, automatic Approval, credentials, authentication/multi-user,

@@ -1,17 +1,19 @@
 """Integration tests for the pgvector baseline migration."""
 
+from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from sqlalchemy import inspect, text
 
 from app.db.session import get_engine
+from tests.integration.conftest import verify_connected_test_database
 
 
 def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0010_agent_runtime_persistence"
+    assert revision == "0011_automation_persistence"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -48,6 +50,9 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "tool_invocations",
         "approval_requests",
         "agent_events",
+        "automations",
+        "automation_occurrences",
+        "automation_notifications",
     }
 
 
@@ -56,7 +61,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0010_agent_runtime_persistence"]
+    assert script.get_heads() == ["0011_automation_persistence"]
+    assert script.get_revision("0011_automation_persistence").down_revision == (
+        "0010_agent_runtime_persistence"
+    )
     assert script.get_revision("0010_agent_runtime_persistence").down_revision == (
         "0009_memory_expiration"
     )
@@ -73,3 +81,22 @@ def test_migration_graph_has_expected_single_head(
     assert script.get_revision("0002_projects_memories").down_revision == (
         "0001_enable_pgvector"
     )
+
+
+def test_automation_migration_test_database_downgrade_upgrade_lifecycle(
+    migrated_test_database: None,
+    test_database_url: str,
+    alembic_config: Config,
+) -> None:
+    verify_connected_test_database(test_database_url)
+    try:
+        command.downgrade(alembic_config, "0010_agent_runtime_persistence")
+        assert not inspect(get_engine()).has_table("automations")
+        with get_engine().connect() as connection:
+            assert (
+                connection.scalar(text("SELECT version_num FROM alembic_version"))
+                == "0010_agent_runtime_persistence"
+            )
+    finally:
+        command.upgrade(alembic_config, "0011_automation_persistence")
+    assert inspect(get_engine()).has_table("automations")
