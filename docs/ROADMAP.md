@@ -116,7 +116,10 @@ read-only Agents after a trigger-only scheduler and recovery foundation pass
 independent review. The initial/default mode creates a Run for explicit human
 execution. The independently reviewable implementation sequence is Checkpoints
 76-86. Checkpoint 76 implements only the three-table persistence foundation and
-is complete after human review; Checkpoint 77 has not started.
+is complete after human review. Checkpoint 77 implements the additive typed
+Automation API, revision-aware lifecycle, and deterministic schedule preview;
+it is approved and complete after human review, and Checkpoint 78 has not
+started.
 
 Connectors, arbitrary/external research or network access, external writes,
 proposal execution, automatic Approval, credentials, authentication/multi-user,

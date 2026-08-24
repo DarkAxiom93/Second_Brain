@@ -27,6 +27,31 @@ def get_automation(session: Session, automation_id: uuid.UUID) -> Automation | N
     return session.scalar(select(Automation).where(Automation.id == automation_id))
 
 
+def lock_automation(session: Session, automation_id: uuid.UUID) -> Automation | None:
+    """Lock one Automation for a caller-owned lifecycle transaction."""
+
+    return session.scalar(
+        select(Automation)
+        .where(Automation.id == automation_id)
+        .with_for_update(of=Automation)
+    )
+
+
+def list_automations(
+    session: Session, *, limit: int, offset: int = 0
+) -> list[Automation]:
+    """Return a bounded newest-first page with a stable UUID tie-breaker."""
+
+    return list(
+        session.scalars(
+            select(Automation)
+            .order_by(Automation.created_at.desc(), Automation.id.desc())
+            .limit(limit)
+            .offset(offset)
+        ).all()
+    )
+
+
 def insert_automation_occurrence(
     session: Session, occurrence: AutomationOccurrence
 ) -> AutomationOccurrence:

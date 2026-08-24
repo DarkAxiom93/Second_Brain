@@ -110,7 +110,8 @@ preceding published release from
 patch release from `04e9db33dc0de7529b1599871c58cace6ed9f9e2`, with final
 successful pre-release CI run `32559057246`. Its live-provider planning,
 Research and Curator synthesis, and long-running frontend reliability hardening
-preserve the existing authority boundary. No V1.3 implementation has started.
+preserve the existing authority boundary. V1.3 work remains additive and does
+not alter the published V1.2.1 recovery boundary.
 
 Checkpoint 75 completed the approved Local V1.3 architecture in
 [V1_3_AUTOMATION_ROADMAP.md](V1_3_AUTOMATION_ROADMAP.md) and
@@ -123,6 +124,14 @@ Agents. Checkpoint 76 now adds only the inert three-table Automation persistence
 foundation and caller-transaction-owned repository primitives. It adds no
 scheduler, API, UI, Agent, registry, or authority change. Checkpoint 76 is
 approved and complete after human review.
+
+Checkpoint 77 adds the typed loopback Automation definition and lifecycle API,
+closed code-owned schedulable catalog boundary, deterministic one-time/daily/
+weekly UTC and IANA-timezone calculator, and calculation-only bounded preview.
+Automation row locks and revision compare-and-set serialize edits and lifecycle
+transitions. This checkpoint adds no migration, occurrence materialization,
+scheduler, worker, Agent Run creation, provider/Tool call, UI, or execution
+authority. Checkpoint 77 is approved and complete after human review.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
