@@ -8,6 +8,7 @@ from datetime import UTC, datetime, time, timedelta
 
 import pytest
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.agent_runs import service as run_service
@@ -72,7 +73,7 @@ def _automation(
         interval_count=1,
         nonexistent_time_policy="first_valid_after_gap",
         ambiguous_time_policy="earlier_fold",
-        missed_run_policy="skip",
+        missed_run_policy="run_once",
         retry_limit=3,
         capacity_limit=1,
         schedule_revision=0,
@@ -444,3 +445,178 @@ def test_app_creation_has_no_scheduler_side_effect() -> None:
             session.scalar(select(func.count()).select_from(AutomationOccurrence)) == 0
         )
         assert session.scalar(select(func.count()).select_from(AgentRun)) == 0
+
+
+def test_expired_claim_reclaims_and_fences_old_generation() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    old = _materialized_claim(now)
+    new_owner = uuid.uuid4()
+    with Session(get_engine()) as session:
+        assert (
+            scheduler.reclaim_expired(
+                session,
+                now=now + timedelta(seconds=59),
+                owner_token=new_owner,
+                lease_duration=timedelta(seconds=60),
+            )
+            == []
+        )
+        session.commit()
+        reclaimed = scheduler.reclaim_expired(
+            session,
+            now=now + timedelta(seconds=60),
+            owner_token=new_owner,
+            lease_duration=timedelta(seconds=60),
+        )
+        session.commit()
+        assert len(reclaimed) == 1
+        assert reclaimed[0].lease_generation == old.lease_generation + 1
+        with pytest.raises(scheduler.ClaimFenceError):
+            scheduler.create_and_link_run(session, old, now=now + timedelta(seconds=60))
+        session.rollback()
+
+
+@pytest.mark.parametrize(
+    "policy,expected_state", [("skip", "missed"), ("run_once", "due")]
+)
+def test_missed_policy_materializes_only_latest_slot(
+    policy: str, expected_state: str
+) -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    with Session(get_engine()) as session:
+        automation = _automation(session, due_at=now - timedelta(days=30))
+        automation.missed_run_policy = policy
+        session.commit()
+        rows = scheduler.materialize_due(session, now=now)
+        session.commit()
+        assert len(rows) == 1
+        assert rows[0].state == expected_state
+        assert rows[0].scheduled_at == now
+        assert automation.next_occurrence_at == now + timedelta(days=1)
+        assert (
+            session.scalar(select(func.count()).select_from(AutomationOccurrence)) == 1
+        )
+        if policy == "skip":
+            assert rows[0].safe_disposition_code == "missed_lookback_bounded"
+
+
+def test_repeated_restart_reconciles_exact_link_without_replacement() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    claim = _materialized_claim(now)
+    with Session(get_engine()) as session:
+        run_id, created = scheduler.create_and_link_run(session, claim, now=now)
+        session.commit()
+        assert created
+        for _ in range(2):
+            assert scheduler.reconcile_linked(session, now=now) == [claim.occurrence_id]
+            session.commit()
+        occurrence = session.get(AutomationOccurrence, claim.occurrence_id)
+        assert occurrence is not None and occurrence.agent_run_id == run_id
+        assert session.scalar(select(func.count()).select_from(AgentRun)) == 1
+
+
+def test_linked_terminal_run_reconciliation_is_idempotent() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    claim = _materialized_claim(now)
+    with Session(get_engine()) as session:
+        run_id, _ = scheduler.create_and_link_run(session, claim, now=now)
+        session.commit()
+        run = session.get(AgentRun, run_id)
+        assert run is not None
+        run.state = "cancelled"
+        run.started_at = run.created_at
+        run.finished_at = run.created_at
+        session.commit()
+        assert scheduler.reconcile_linked(session, now=now) == [claim.occurrence_id]
+        session.commit()
+        occurrence = session.get(AutomationOccurrence, claim.occurrence_id)
+        assert occurrence is not None and occurrence.state == "failed"
+        assert scheduler.reconcile_linked(session, now=now) == []
+        assert session.scalar(select(func.count()).select_from(AgentRun)) == 1
+
+
+def test_retry_budget_timing_and_capacity_deferral() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    claim = _materialized_claim(now)
+    with Session(get_engine()) as session:
+        assert scheduler.defer_setup(
+            session, claim.occurrence_id, now=now, capacity=True
+        )
+        session.commit()
+        occurrence = session.get(AutomationOccurrence, claim.occurrence_id)
+        assert occurrence is not None
+        assert occurrence.attempt_count == 0 and occurrence.state == "due"
+        assert occurrence.retry_not_before == now + scheduler.retry_delay(
+            occurrence.id, 1
+        )
+        claims = scheduler.claim_due(
+            session,
+            now=now,
+            owner_token=uuid.uuid4(),
+            lease_duration=timedelta(seconds=60),
+        )
+        assert claims == []
+        session.rollback()
+
+
+def test_retry_exhaustion_is_terminal_and_operator_visible() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    claim = _materialized_claim(now)
+    with Session(get_engine()) as session:
+        occurrence = session.get(AutomationOccurrence, claim.occurrence_id)
+        assert occurrence is not None
+        occurrence.attempt_count = 2
+        session.commit()
+        assert not scheduler.defer_setup(
+            session, claim.occurrence_id, now=now, capacity=False
+        )
+        session.commit()
+        assert occurrence.state == "failed"
+        assert occurrence.safe_error_code == "setup_retry_exhausted"
+        assert (
+            session.scalar(select(func.count()).select_from(AutomationNotification))
+            == 1
+        )
+
+
+def test_concurrent_recovery_workers_reclaim_once() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    _materialized_claim(now)
+    barrier = threading.Barrier(2)
+
+    def work() -> int:
+        with Session(get_engine()) as session:
+            barrier.wait(timeout=10)
+            rows = scheduler.reclaim_expired(
+                session,
+                now=now + timedelta(seconds=60),
+                owner_token=uuid.uuid4(),
+                lease_duration=timedelta(seconds=60),
+            )
+            session.commit()
+            return len(rows)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(lambda _: work(), range(2))) == [0, 1]
+
+
+def test_backward_clock_does_not_reopen_terminal_slot() -> None:
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    with Session(get_engine()) as session:
+        automation = _automation(session, due_at=now - timedelta(days=2))
+        automation.missed_run_policy = "skip"
+        session.commit()
+        rows = scheduler.materialize_due(session, now=now)
+        session.commit()
+        assert len(rows) == 1 and rows[0].state == "missed"
+        assert scheduler.materialize_due(session, now=now - timedelta(days=1)) == []
+        assert (
+            session.scalar(select(func.count()).select_from(AutomationOccurrence)) == 1
+        )
+
+
+def test_retry_classifier_is_closed() -> None:
+    transient = OperationalError("statement", {}, ConnectionError("offline"))
+    assert scheduler.is_retryable_setup_error(transient)
+    assert not scheduler.is_retryable_setup_error(scheduler.SchedulerValidationError())
+    assert not scheduler.is_retryable_setup_error(IntegrityError("statement", {}, None))

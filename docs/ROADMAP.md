@@ -102,7 +102,8 @@ Checkpoint 75 completed the approved documentation-only
 and its [V1.3 threat model](V1_3_AUTOMATION_THREAT_MODEL.md). Checkpoints 76 and
 77 are approved and complete. Checkpoint 78 implements the explicit trigger-only
 scheduler foundation and is approved and complete after human review;
-Checkpoint 79 has not started.
+Checkpoint 79 is approved and complete after human review. Checkpoint 80 has
+not started.
 
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger

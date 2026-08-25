@@ -1,6 +1,7 @@
 """Focused unit coverage for explicit semantic Memory search."""
 
 from collections.abc import Generator
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -202,9 +203,10 @@ def test_provider_and_database_failures_are_generic(
 
 
 def test_missing_provider_configuration_is_exact_503(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
     from app.core.config import get_settings
 
     get_settings.cache_clear()

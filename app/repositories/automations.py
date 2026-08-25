@@ -168,6 +168,60 @@ def lock_claimable_occurrences(
     )
 
 
+def database_utc_now(session: Session) -> datetime:
+    """Return PostgreSQL's transaction timestamp as the ownership clock."""
+
+    value = session.scalar(select(func.now()))
+    if value is None:
+        raise RuntimeError("database time unavailable")
+    return value
+
+
+def lock_expired_claims(
+    session: Session, *, now: datetime, limit: int
+) -> list[AutomationOccurrence]:
+    """Lock a bounded deterministic batch of leases proven expired by DB time."""
+
+    return list(
+        session.scalars(
+            select(AutomationOccurrence)
+            .where(
+                AutomationOccurrence.state == "claimed",
+                AutomationOccurrence.lease_expires_at.is_not(None),
+                AutomationOccurrence.lease_expires_at <= now,
+            )
+            .order_by(
+                AutomationOccurrence.lease_expires_at.asc(),
+                AutomationOccurrence.id.asc(),
+            )
+            .limit(limit)
+            .with_for_update(of=AutomationOccurrence, skip_locked=True)
+        ).all()
+    )
+
+
+def lock_linked_occurrences(
+    session: Session, *, limit: int
+) -> list[AutomationOccurrence]:
+    """Lock linked nonterminal summaries for bounded Run reconciliation."""
+
+    return list(
+        session.scalars(
+            select(AutomationOccurrence)
+            .where(
+                AutomationOccurrence.agent_run_id.is_not(None),
+                AutomationOccurrence.state.in_(("claimed", "run_created")),
+            )
+            .order_by(
+                AutomationOccurrence.scheduled_at.asc(),
+                AutomationOccurrence.id.asc(),
+            )
+            .limit(limit)
+            .with_for_update(of=AutomationOccurrence, skip_locked=True)
+        ).all()
+    )
+
+
 def lock_claim_capacity(session: Session, lock_key: int) -> None:
     """Serialize the instance-wide claimed/run-created occurrence bound."""
 

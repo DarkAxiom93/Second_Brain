@@ -150,7 +150,17 @@ occurrences with opaque 60-second generation-fenced leases, and atomically
 creates/links one capacity-checked Agent Run per occurrence. Runs remain
 `created`; the reserved Agent gates prevent planning, execution, recovery,
 provider, and Tool work. The scheduler is absent from FastAPI startup and does
-not implement missed-run reconciliation, restart recovery, or Checkpoint 79.
+not perform Agent planning or execution.
+
+Checkpoint 79 is approved and complete after human review. Each explicit bounded
+scheduler tick now uses PostgreSQL UTC time, reconciles exact linked Runs,
+generation-fences only expired claims, and applies closed `skip`/`run_once`
+catch-up without replay-all. Safe pre-link database setup failures reuse the
+same occurrence with at most three attempts and deterministic capped backoff;
+capacity deferral consumes no failure attempt. Ambiguous outcomes and exhausted
+retries become content-free durable operator-visible failures. Linked Runs are
+never replaced and the scheduler still performs no Agent planning, execution,
+provider, Tool, or manual Agent recovery operation.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

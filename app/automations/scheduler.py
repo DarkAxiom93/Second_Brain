@@ -4,14 +4,19 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.agent_runs import service as run_service
 from app.automations import faults
 from app.automations.catalog import get_schedulable_agent
 from app.automations.schedule import ScheduleDefinition, SchedulePoint, next_point
-from app.models.automation import Automation, AutomationOccurrence
+from app.models.agent_runtime import AgentRun
+from app.models.automation import (
+    Automation,
+    AutomationNotification,
+    AutomationOccurrence,
+)
 from app.repositories import automations as repository
 from app.repositories.projects import get_project
 from app.schemas.agent_run import AgentRunCreate
@@ -20,6 +25,9 @@ MAX_BATCH_SIZE = 16
 MAX_ACTIVE_OCCURRENCES = 32
 MIN_LEASE = timedelta(seconds=10)
 MAX_LEASE = timedelta(minutes=5)
+MAX_LOOKBACK = timedelta(days=7)
+MAX_SETUP_ATTEMPTS = 3
+MAX_RETRY_DELAY = timedelta(minutes=5)
 _CLAIM_CAPACITY_LOCK_KEY = 0x53424F4343  # Stable namespace: SBOCC.
 
 
@@ -33,6 +41,10 @@ class ClaimFenceError(Exception):
 
 class ExecutionModeUnsupportedError(Exception):
     """Checkpoint 78 cannot progress automatic execution mode."""
+
+
+class AmbiguousSchedulerOutcomeError(Exception):
+    """Durable state cannot prove whether a scheduler mutation committed."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +61,11 @@ class TickResult:
     claimed_ids: tuple[uuid.UUID, ...]
     linked_run_ids: tuple[uuid.UUID, ...]
     capacity_deferred_ids: tuple[uuid.UUID, ...]
+    reclaimed_ids: tuple[uuid.UUID, ...] = ()
+    reconciled_ids: tuple[uuid.UUID, ...] = ()
+    missed_ids: tuple[uuid.UUID, ...] = ()
+    retry_deferred_ids: tuple[uuid.UUID, ...] = ()
+    failed_ids: tuple[uuid.UUID, ...] = ()
 
 
 def _aware_utc(value: datetime) -> datetime:
@@ -104,6 +121,88 @@ def _occurrence_key(automation: Automation, scheduled_at: datetime) -> str:
     )
 
 
+def _notification(
+    session: Session,
+    occurrence: AutomationOccurrence,
+    *,
+    event_kind: str,
+    severity: str,
+    code: str,
+    now: datetime,
+) -> None:
+    notification = AutomationNotification(
+        automation_id=occurrence.automation_id,
+        occurrence_id=occurrence.id,
+        agent_run_id=occurrence.agent_run_id,
+        event_kind=event_kind,
+        severity=severity,
+        title="Automation scheduler outcome",
+        body=f"Automation occurrence recorded safe outcome: {code}.",
+        created_at=now,
+        deduplication_key=f"checkpoint79:{occurrence.id}:{event_kind}:{code}",
+    )
+    try:
+        with session.begin_nested():
+            repository.insert_automation_notification(session, notification)
+    except IntegrityError:
+        pass
+
+
+def _new_occurrence(
+    automation: Automation,
+    point: SchedulePoint,
+    *,
+    now: datetime,
+    state: str,
+    disposition: str | None = None,
+) -> AutomationOccurrence:
+    terminal = state in {"completed", "missed", "failed", "cancelled"}
+    return AutomationOccurrence(
+        automation_id=automation.id,
+        schedule_revision=automation.schedule_revision,
+        scheduled_at=point.utc_instant,
+        scheduled_local_date=point.local_date,
+        scheduled_local_time=point.local_time,
+        scheduled_utc_offset_minutes=point.utc_offset_minutes,
+        timezone_name=point.timezone_name,
+        occurrence_key=_occurrence_key(automation, point.utc_instant),
+        state=state,
+        revision=0,
+        automation_revision=automation.revision,
+        automation_kind=automation.automation_kind,
+        automation_label=automation.label,
+        agent_kind=automation.agent_kind,
+        agent_version=automation.agent_version,
+        execution_mode=automation.execution_mode,
+        project_id=automation.project_id,
+        safe_disposition_code=disposition,
+        created_at=now,
+        completed_at=now if terminal else None,
+    )
+
+
+def _latest_due_and_future(
+    automation: Automation, *, now: datetime
+) -> tuple[SchedulePoint, SchedulePoint | None, bool]:
+    """Return latest canonical due slot, first future slot, and old-window flag."""
+
+    scheduled_at = automation.next_occurrence_at
+    if scheduled_at is None:
+        raise SchedulerValidationError
+    point = _scheduled_point(automation, _aware_utc(scheduled_at))
+    latest = point
+    older_than_lookback = point.utc_instant < now - MAX_LOOKBACK
+    definition = _definition(automation)
+    # Recurrences are at least daily. The persistence work remains constant even
+    # across long downtime; this loop only calculates canonical calendar slots.
+    for _ in range(1_000_000):
+        following = next_point(definition, after_utc=latest.utc_instant, prior=latest)
+        if following is None or following.utc_instant > now:
+            return latest, following, older_than_lookback
+        latest = following
+    raise SchedulerValidationError
+
+
 def materialize_due(
     session: Session, *, now: datetime, limit: int = MAX_BATCH_SIZE
 ) -> list[AutomationOccurrence]:
@@ -115,11 +214,17 @@ def materialize_due(
     )
     occurrences: list[AutomationOccurrence] = []
     for automation in locked:
-        scheduled_at = automation.next_occurrence_at
-        if scheduled_at is None:
-            raise SchedulerValidationError
-        scheduled_at = _aware_utc(scheduled_at)
-        point = _scheduled_point(automation, scheduled_at)
+        point, following, older_than_lookback = _latest_due_and_future(
+            automation, now=operation_time
+        )
+        missed = automation.missed_run_policy == "skip"
+        state = "missed" if missed else "due"
+        disposition = None
+        if missed:
+            disposition = (
+                "missed_lookback_bounded" if older_than_lookback else "missed_skipped"
+            )
+        scheduled_at = point.utc_instant
         occurrence = repository.get_occurrence_by_slot(
             session,
             automation_id=automation.id,
@@ -127,25 +232,12 @@ def materialize_due(
             scheduled_at=scheduled_at,
         )
         if occurrence is None:
-            occurrence = AutomationOccurrence(
-                automation_id=automation.id,
-                schedule_revision=automation.schedule_revision,
-                scheduled_at=scheduled_at,
-                scheduled_local_date=point.local_date,
-                scheduled_local_time=point.local_time,
-                scheduled_utc_offset_minutes=point.utc_offset_minutes,
-                timezone_name=point.timezone_name,
-                occurrence_key=_occurrence_key(automation, scheduled_at),
-                state="due",
-                revision=0,
-                automation_revision=automation.revision,
-                automation_kind=automation.automation_kind,
-                automation_label=automation.label,
-                agent_kind=automation.agent_kind,
-                agent_version=automation.agent_version,
-                execution_mode=automation.execution_mode,
-                project_id=automation.project_id,
-                created_at=operation_time,
+            occurrence = _new_occurrence(
+                automation,
+                point,
+                now=operation_time,
+                state=state,
+                disposition=disposition,
             )
             try:
                 with session.begin_nested():
@@ -160,12 +252,18 @@ def materialize_due(
                 )
                 if occurrence is None:
                     raise
-        following = next_point(
-            _definition(automation), after_utc=scheduled_at, prior=point
-        )
         automation.next_occurrence_at = (
             None if following is None else following.utc_instant
         )
+        if missed:
+            _notification(
+                session,
+                occurrence,
+                event_kind="occurrence_missed",
+                severity="warning",
+                code=disposition or "missed_skipped",
+                now=operation_time,
+            )
         session.flush()
         faults.fire(faults.FaultPoint.AFTER_NEXT_OCCURRENCE_ADVANCE)
         occurrences.append(occurrence)
@@ -213,6 +311,187 @@ def claim_due(
             )
         )
     return claims
+
+
+def reclaim_expired(
+    session: Session,
+    *,
+    now: datetime,
+    owner_token: uuid.UUID,
+    lease_duration: timedelta,
+    limit: int = MAX_BATCH_SIZE,
+) -> list[OccurrenceClaim]:
+    """Reclaim only DB-time-expired unlinked claims and fence their old owner."""
+
+    operation_time = _aware_utc(now)
+    duration = _lease_duration(lease_duration)
+    rows = repository.lock_expired_claims(
+        session, now=operation_time, limit=_batch_limit(limit)
+    )
+    claims: list[OccurrenceClaim] = []
+    for occurrence in rows:
+        if occurrence.agent_run_id is not None:
+            continue
+        occurrence.lease_owner_token = owner_token
+        occurrence.lease_generation += 1
+        occurrence.lease_expires_at = operation_time + duration
+        occurrence.last_renewed_at = operation_time
+        occurrence.revision += 1
+        session.flush()
+        claims.append(
+            OccurrenceClaim(
+                occurrence.id,
+                occurrence.automation_id,
+                owner_token,
+                occurrence.lease_generation,
+            )
+        )
+    return claims
+
+
+def reconcile_linked(
+    session: Session, *, now: datetime, limit: int = MAX_BATCH_SIZE
+) -> list[uuid.UUID]:
+    """Project exact durable linked Run state into safe occurrence summaries."""
+
+    operation_time = _aware_utc(now)
+    reconciled: list[uuid.UUID] = []
+    for occurrence in repository.lock_linked_occurrences(
+        session, limit=_batch_limit(limit)
+    ):
+        run = session.get(AgentRun, occurrence.agent_run_id)
+        if run is None:
+            occurrence.state = "failed"
+            occurrence.safe_error_code = "linked_run_missing"
+            occurrence.safe_disposition_code = "operator_review_required"
+            occurrence.completed_at = operation_time
+            occurrence.revision += 1
+            _notification(
+                session,
+                occurrence,
+                event_kind="occurrence_failed",
+                severity="error",
+                code="linked_run_missing",
+                now=operation_time,
+            )
+        elif run.state in {"completed", "failed", "cancelled", "expired"}:
+            occurrence.state = "completed" if run.state == "completed" else "failed"
+            occurrence.safe_disposition_code = f"run_{run.state}"
+            occurrence.safe_error_code = (
+                None if run.state == "completed" else f"run_{run.state}"
+            )
+            occurrence.completed_at = operation_time
+            occurrence.revision += 1
+        elif occurrence.state == "claimed":
+            occurrence.state = "run_created"
+            occurrence.safe_disposition_code = "run_created"
+            occurrence.revision += 1
+        session.flush()
+        reconciled.append(occurrence.id)
+    return reconciled
+
+
+def retry_delay(occurrence_id: uuid.UUID, attempt: int) -> timedelta:
+    """Return capped exponential delay with stable occurrence-derived jitter."""
+
+    base = min(5 * (2 ** max(0, attempt - 1)), int(MAX_RETRY_DELAY.total_seconds()))
+    jitter = (occurrence_id.int + attempt) % 5
+    return timedelta(seconds=min(base + jitter, int(MAX_RETRY_DELAY.total_seconds())))
+
+
+def is_retryable_setup_error(exc: BaseException) -> bool:
+    """Closed classifier for approved pre-link database failures."""
+
+    if not isinstance(exc, (OperationalError, DBAPIError)):
+        return False
+    code = getattr(getattr(exc, "orig", None), "sqlstate", None)
+    return code in {"40001", "40P01"} or isinstance(exc, OperationalError)
+
+
+def defer_setup(
+    session: Session,
+    occurrence_id: uuid.UUID,
+    *,
+    now: datetime,
+    capacity: bool,
+) -> bool:
+    """Durably defer the same occurrence; return False after exhaustion."""
+
+    operation_time = _aware_utc(now)
+    occurrence = repository.lock_occurrence(session, occurrence_id)
+    if occurrence is None or occurrence.agent_run_id is not None:
+        raise AmbiguousSchedulerOutcomeError
+    automation = repository.lock_automation(session, occurrence.automation_id)
+    if automation is None or occurrence.state != "claimed":
+        raise AmbiguousSchedulerOutcomeError
+    if capacity:
+        occurrence.state = "due"
+        occurrence.retry_not_before = operation_time + retry_delay(occurrence.id, 1)
+        occurrence.lease_owner_token = None
+        occurrence.lease_expires_at = None
+        occurrence.last_renewed_at = None
+        occurrence.safe_disposition_code = "capacity_deferred"
+        occurrence.revision += 1
+        session.flush()
+        return True
+    occurrence.attempt_count += 1
+    limit = min(automation.retry_limit, MAX_SETUP_ATTEMPTS)
+    if occurrence.attempt_count >= limit:
+        occurrence.state = "failed"
+        occurrence.safe_error_code = "setup_retry_exhausted"
+        occurrence.safe_disposition_code = "operator_review_required"
+        occurrence.retry_not_before = None
+        occurrence.completed_at = operation_time
+        occurrence.revision += 1
+        _notification(
+            session,
+            occurrence,
+            event_kind="retry_exhausted",
+            severity="error",
+            code="setup_retry_exhausted",
+            now=operation_time,
+        )
+        session.flush()
+        return False
+    occurrence.state = "due"
+    occurrence.retry_not_before = operation_time + retry_delay(
+        occurrence.id, occurrence.attempt_count
+    )
+    occurrence.lease_owner_token = None
+    occurrence.lease_expires_at = None
+    occurrence.last_renewed_at = None
+    occurrence.safe_disposition_code = "setup_retry_deferred"
+    occurrence.revision += 1
+    session.flush()
+    return True
+
+
+def fail_closed(
+    session: Session, occurrence_id: uuid.UUID, *, now: datetime, code: str
+) -> None:
+    """Persist one content-free terminal outcome for a proven unlinked occurrence."""
+
+    operation_time = _aware_utc(now)
+    occurrence = repository.lock_occurrence(session, occurrence_id)
+    if occurrence is None or occurrence.agent_run_id is not None:
+        raise AmbiguousSchedulerOutcomeError
+    if occurrence.state in {"completed", "missed", "failed", "cancelled"}:
+        return
+    occurrence.state = "failed"
+    occurrence.safe_error_code = code
+    occurrence.safe_disposition_code = "operator_review_required"
+    occurrence.retry_not_before = None
+    occurrence.completed_at = operation_time
+    occurrence.revision += 1
+    _notification(
+        session,
+        occurrence,
+        event_kind="occurrence_failed",
+        severity="error",
+        code=code,
+        now=operation_time,
+    )
+    session.flush()
 
 
 def _validate_claim(
