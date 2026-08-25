@@ -29,6 +29,7 @@ from app.agent_tools.registry import (
     Authority,
     IdempotencyClass,
 )
+from app.automations.catalog import is_reserved_automation_agent_identity
 from app.curator.catalog import CURATOR_TOOLS, is_curator, is_unknown_curator
 from app.embeddings import (
     EmbeddingProvider,
@@ -128,6 +129,8 @@ def claim_execution(
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise service.AgentRunNotFoundError
+    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+        raise ExecutionAgentVersionError
     if run.state in {state.value for state in service.TERMINAL_STATES}:
         if _original_claim_revision(session, run.id) == expected_revision:
             return None
@@ -243,6 +246,8 @@ def reserve_next(
     run = repository.get_agent_run_for_update(session, claim.run_id)
     if run is None or run.state != AgentRunState.RUNNING.value:
         return None
+    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+        raise ExecutionAgentVersionError
     steps = repository.list_agent_steps_for_update(session, run.id)
     now = service.utc_now()
     if now >= run.run_deadline:

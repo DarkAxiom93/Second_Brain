@@ -14,6 +14,7 @@ from app.agent_planning.provider import PlanningContext, PlanningResult
 from app.agent_runs import service as run_service
 from app.agent_tools.policy import PolicyRejection, resolve_tool_policy
 from app.agent_tools.registry import AGENT_TOOL_REGISTRY, REGISTRY_VERSION
+from app.automations.catalog import is_reserved_automation_agent_identity
 from app.curator.catalog import CURATOR_TOOLS, is_curator, is_unknown_curator
 from app.models.agent_runtime import AgentRun, AgentStep
 from app.repositories import agent_runtime as repository
@@ -87,6 +88,8 @@ def claim_planning(
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise run_service.AgentRunNotFoundError
+    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+        raise AgentDefinitionUnsupportedError
     if run.state == AgentRunState.READY.value:
         steps = repository.list_agent_steps(session, run.id, limit=13)
         if _is_complete_plan(run, steps):

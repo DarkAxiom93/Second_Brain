@@ -133,6 +133,15 @@ transitions. This checkpoint adds no migration, occurrence materialization,
 scheduler, worker, Agent Run creation, provider/Tool call, UI, or execution
 authority. Checkpoint 77 is approved and complete after human review.
 
+The pre-Checkpoint 78 architecture remediation reserves every version of the
+`daily_brief` and `project_watch` Agent-kind families until an exact version has
+an explicitly installed fixed definition and dedicated Tool allowlist. Public
+manual Run creation rejects reserved identities, while planning, execution, and
+explicit recovery reject persisted reserved Runs before granting work. Internal
+transaction-neutral Run creation remains available for future atomic scheduler
+linking, but such Runs stay inert. Checkpoint 78 remains unimplemented pending
+separate approval and work.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

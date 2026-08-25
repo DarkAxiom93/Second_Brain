@@ -12,6 +12,7 @@ from app.agent_tools.registry import (
     REGISTRY_VERSION,
     ToolDefinition,
 )
+from app.automations.catalog import is_reserved_automation_agent_identity
 from app.models.agent_runtime import AgentRun, AgentStep, ToolInvocation
 from app.repositories import agent_runtime as repository
 from app.schemas.agent_run import AgentRunState
@@ -128,6 +129,8 @@ def prepare_one(
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise service.AgentRunNotFoundError
+    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+        raise executor.ExecutionAgentVersionError
     if AgentRunState(run.state) in service.TERMINAL_STATES:
         return None
     steps = repository.list_agent_steps_for_update(session, run.id)

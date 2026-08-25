@@ -21,6 +21,7 @@ from app.agent_planning.provider import (
     PlanningProviderUnavailableError,
 )
 from app.agent_runs import approvals, executor, faults, service
+from app.automations.catalog import is_reserved_automation_agent_identity
 from app.curator import service as curator_service
 from app.curator.catalog import CURATOR_KIND, curator_definition, is_curator
 from app.curator.dependencies import get_curator_provider
@@ -262,6 +263,10 @@ def create_agent_run(
 ) -> AgentRun:
     """Create one Run and its sequence-zero event atomically."""
 
+    if is_reserved_automation_agent_identity(request.agent_kind, request.agent_version):
+        raise _error(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "agent definition unsupported"
+        )
     if (
         request.agent_kind == RESEARCH_KIND
         and research_definition(request.agent_kind, request.agent_version) is None
