@@ -83,6 +83,7 @@ history. A dash means Alembic had not yet been introduced.
 | 75 | Local V1.3 Architecture, Roadmap, and Threat Model | Complete | `0010_agent_runtime_persistence` | This commit |
 | 76 | Automation persistence foundation | Complete | `0011_automation_persistence` | This commit |
 | 77 | Automation API and lifecycle | Complete | `0011_automation_persistence` | This commit |
+| 78 | Scheduler materialization and claiming | Complete | `0011_automation_persistence` | This commit |
 
 ## Standard lifecycle
 

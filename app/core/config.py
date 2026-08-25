@@ -16,6 +16,8 @@ ExtractionPromptVersion = Annotated[
 ExtractionTimeout = Annotated[float, Field(gt=0, le=300)]
 ExtractionMaxOutputTokens = Annotated[int, Field(ge=1, le=32000)]
 AnswerMaxOutputTokens = Annotated[int, Field(ge=1, le=4000)]
+AutomationBatchSize = Annotated[int, Field(ge=1, le=16)]
+AutomationLeaseSeconds = Annotated[int, Field(ge=10, le=300)]
 
 
 class Settings(BaseSettings):
@@ -60,6 +62,8 @@ class Settings(BaseSettings):
     answer_model: NonBlankString = "gpt-5.6-terra"
     answer_timeout_seconds: ExtractionTimeout = 60
     answer_max_output_tokens: AnswerMaxOutputTokens = 1200
+    automation_scheduler_batch_size: AutomationBatchSize = 16
+    automation_lease_seconds: AutomationLeaseSeconds = 60
 
     @field_validator("postgres_password", mode="before")
     @classmethod

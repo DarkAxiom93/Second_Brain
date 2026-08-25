@@ -103,9 +103,17 @@ configuration is inspected without provider resolution or network calls.
 `recover-agent-run.ps1` with no arguments performs a bounded read-only stale
 scan and prints only safe Run IDs, states, classifications, ordinals/attempts,
 and timestamps. Supply exactly one `-RunId <uuid>` to synchronously reconcile
-that Run. There is no bulk mutation, automatic startup invocation, worker,
-scheduler, lease, or background recovery. The command accepts only the live
+that Run. This recovery path has no bulk mutation, automatic startup invocation,
+worker, lease, or background recovery. The command accepts only the live
 verified `second_brain` database on `127.0.0.1`.
+
+## Automation scheduler
+
+`run-automation-scheduler.ps1` runs exactly one operator-started bounded
+trigger-only tick against the verified live `second_brain` database. It
+materializes and claims eligible `create_only` occurrences and atomically links
+inert `created` Agent Runs. It does not plan or execute Agents, call providers
+or Tools, reconcile missed work, recover expired leases, or start with FastAPI.
 
 ## Retrieval evaluation
 

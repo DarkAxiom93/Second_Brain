@@ -103,7 +103,7 @@ Set-Location Second_Brain
 & '.\.venv\Scripts\python.exe' -m alembic check
 ```
 
-The development database must resolve both in configuration and live as `127.0.0.1:5433/second_brain`; the separate test database must be `second_brain_test`. The sole migration head is `0010_agent_runtime_persistence`. Never downgrade the development database or delete its named volume.
+The development database must resolve both in configuration and live as `127.0.0.1:5433/second_brain`; the separate test database must be `second_brain_test`. The sole migration head is `0011_automation_persistence`. Never downgrade the development database or delete its named volume.
 
 Then open two additional PowerShell terminals at the repository root:
 
@@ -119,6 +119,16 @@ Then open two additional PowerShell terminals at the repository root:
 
 Open <http://127.0.0.1:5173>. The complete safe setup, migration verification, backup, shutdown, troubleshooting, and recovery procedures are in the [Local V1.2 runbook](docs/LOCAL_V1_RUNBOOK.md).
 
+To run one explicit bounded trigger-only Automation scheduler tick:
+
+```powershell
+.\scripts\run-automation-scheduler.ps1
+```
+
+The command materializes and claims bounded due `create_only` work and creates
+at most one inert `created` Agent Run per occurrence. It does not plan or execute
+Agents, call providers or Tools, reconcile missed work, or run from API startup.
+
 ## Current release
 
 ### [v1.2.1 — Second Brain Local V1.2.1](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.2.1)
@@ -133,7 +143,7 @@ Read the [V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md) and [V1.2.1 hotf
 
 - Second Brain is a trusted, single-maintainer local application with no authentication, remote access, synchronization, or multi-user isolation.
 - Provider-backed proposal generation, embeddings, semantic/hybrid retrieval, and successful generated Answers require local provider credentials.
-- Agents are manual and bounded: there are no Automations, background jobs, connectors, autonomous approvals, external writes, or proposal execution.
+- Agents remain bounded. Typed Automations and an explicit trigger-only scheduler can create inert Runs, but there is no automatic planning/execution, recovery loop, background startup worker, connector, autonomous approval, external write, or proposal execution.
 - Answers are stateless; questions, answers, citations, and conversation history are not persisted.
 - Project bundles are sensitive and unencrypted, exclude Agent and Approval state, and support validation-first, conflict-free import only—never merge or overwrite.
 - Maintenance is explicit and advisory; there is no automatic repair, expiration processing, or re-embedding.

@@ -139,8 +139,18 @@ an explicitly installed fixed definition and dedicated Tool allowlist. Public
 manual Run creation rejects reserved identities, while planning, execution, and
 explicit recovery reject persisted reserved Runs before granting work. Internal
 transaction-neutral Run creation remains available for future atomic scheduler
-linking, but such Runs stay inert. Checkpoint 78 remains unimplemented pending
-separate approval and work.
+linking, but such Runs stay inert until a later fixed Agent-definition
+checkpoint explicitly activates them.
+
+Checkpoint 78 is approved and complete after human review. An explicit
+operator-started one-tick command materializes at most 16 enabled due
+Automations using deterministic `FOR UPDATE SKIP LOCKED`, advances each schedule
+from its prior slot in the same transaction, claims bounded `create_only`
+occurrences with opaque 60-second generation-fenced leases, and atomically
+creates/links one capacity-checked Agent Run per occurrence. Runs remain
+`created`; the reserved Agent gates prevent planning, execution, recovery,
+provider, and Tool work. The scheduler is absent from FastAPI startup and does
+not implement missed-run reconciliation, restart recovery, or Checkpoint 79.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

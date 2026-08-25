@@ -99,9 +99,10 @@ top-level local UI routes; non-authoritative CI; and V1/V1.1 acceptance.
 
 Checkpoint 75 completed the approved documentation-only
 [Local Automations & Scheduled Agents](V1_3_AUTOMATION_ROADMAP.md) architecture
-and its [V1.3 threat model](V1_3_AUTOMATION_THREAT_MODEL.md). Checkpoint 76 now
-implements only the persistence foundation and is approved and complete after
-human review.
+and its [V1.3 threat model](V1_3_AUTOMATION_THREAT_MODEL.md). Checkpoints 76 and
+77 are approved and complete. Checkpoint 78 implements the explicit trigger-only
+scheduler foundation and is approved and complete after human review;
+Checkpoint 79 has not started.
 
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger
@@ -118,8 +119,8 @@ execution. The independently reviewable implementation sequence is Checkpoints
 76-86. Checkpoint 76 implements only the three-table persistence foundation and
 is complete after human review. Checkpoint 77 implements the additive typed
 Automation API, revision-aware lifecycle, and deterministic schedule preview;
-it is approved and complete after human review, and Checkpoint 78 has not
-started.
+it is approved and complete after human review. Checkpoint 78 implements the
+approved trigger-only scheduler foundation and is complete after human review.
 
 Connectors, arbitrary/external research or network access, external writes,
 proposal execution, automatic Approval, credentials, authentication/multi-user,
