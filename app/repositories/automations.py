@@ -307,3 +307,44 @@ def list_automation_notifications(
             .offset(offset)
         ).all()
     )
+
+
+def list_notifications(
+    session: Session,
+    *,
+    limit: int,
+    offset: int = 0,
+    unread_only: bool = False,
+    automation_id: uuid.UUID | None = None,
+) -> list[AutomationNotification]:
+    """Return a bounded deterministic local-inbox page."""
+
+    statement = select(AutomationNotification)
+    if unread_only:
+        statement = statement.where(AutomationNotification.read_at.is_(None))
+    if automation_id is not None:
+        statement = statement.where(
+            AutomationNotification.automation_id == automation_id
+        )
+    return list(
+        session.scalars(
+            statement.order_by(
+                AutomationNotification.created_at.desc(),
+                AutomationNotification.id.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        ).all()
+    )
+
+
+def lock_notification(
+    session: Session, notification_id: uuid.UUID
+) -> AutomationNotification | None:
+    """Lock one inbox item for an atomic idempotent read transition."""
+
+    return session.scalar(
+        select(AutomationNotification)
+        .where(AutomationNotification.id == notification_id)
+        .with_for_update(of=AutomationNotification)
+    )

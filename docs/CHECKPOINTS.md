@@ -86,6 +86,7 @@ history. A dash means Alembic had not yet been introduced.
 | 78 | Scheduler materialization and claiming | Complete | `0011_automation_persistence` | This commit |
 | 79 | Restart, recovery, idempotency, and missed-run policy | Complete | `0011_automation_persistence` | This commit |
 | 80 | Automatic read-only scheduled Agent execution | Complete | `0011_automation_persistence` | This commit |
+| 81 | Automations UI and local notification inbox | Complete | `0011_automation_persistence` | This commit |
 
 ## Standard lifecycle
 

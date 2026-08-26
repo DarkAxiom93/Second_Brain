@@ -106,6 +106,10 @@ Checkpoint 79 is approved and complete after human review. Checkpoint 80 is
 approved and complete after human review; production automatic eligibility
 remains empty until the dedicated fixed-Agent checkpoints.
 
+Checkpoint 81 is approved and complete after human review. Its additive safe
+history/inbox APIs and explicit-refresh Automations UI do not install either
+reserved fixed Agent, enable automatic execution, or begin Checkpoint 82.
+
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger
 occurrences; fenced leases and duplicate prevention; deterministic restart,

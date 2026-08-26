@@ -44,6 +44,19 @@ nav a {
   text-decoration: none;
 }
 nav a:hover, nav a.active { color: #fff; background: #275c4b; }
+
+.automation-form { display: grid; gap: .75rem; }
+.automation-form fieldset { display: grid; gap: .65rem; border: 1px solid #adc4bb; border-radius: .5rem; padding: 1rem; }
+.weekday-group label { display: flex; align-items: center; gap: .6rem; min-height: 2.75rem; }
+.automation-list, .history-list, .notification-list { display: grid; gap: 1rem; padding-left: 1.4rem; }
+.automation-list li, .history-list li, .notification-list li { overflow-wrap: anywhere; }
+.button-link { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 .9rem; border-radius: .4rem; background: #275c4b; color: white; text-decoration: none; }
+.button-link.secondary { background: #425b54; }
+.error-summary { border: 2px solid #a42c2c; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+.help-text { color: #425b54; }
+.danger { border-color: #8c2525; color: #8c2525; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
 .sidebar__note { margin-top: auto; color: #b9cec4; font-size: .8rem; }
 .main-content { min-width: 0; padding: clamp(2rem, 6vw, 5rem); }
 .page-header { max-width: 42rem; }

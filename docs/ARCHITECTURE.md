@@ -171,6 +171,16 @@ reconciliation transactions bracket all provider and Tool latency. Production
 eligibility remains deliberately empty, so `daily_brief` and `project_watch`
 remain reserved and ordinary ticks perform no automatic provider or Tool work.
 
+Checkpoint 81 is approved and complete after human review. It adds bounded safe
+occurrence-history and local notification-inbox APIs plus the accessible
+Automations list, draft creation, detail/edit, lifecycle, schedule preview,
+history, linked-Run navigation, and notification inbox UI. Mutations remain
+revision-aware with explicit authoritative refresh after conflict. Notifications
+are content-free local records with atomic idempotent mark-read; there is no
+polling, browser persistence, service worker, OS notification, or external
+delivery. Production automatic eligibility remains empty and no fixed Agent is
+installed.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

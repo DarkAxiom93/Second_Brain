@@ -11,6 +11,7 @@ import { Search } from "./Search";
 import { Answers } from "./Answers";
 import { Settings } from "./Settings";
 import { AgentRunDetail, AgentRuns } from "./Agents";
+import { AutomationCreate, AutomationDetail, Automations, NotificationInbox } from "./Automations";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -21,6 +22,7 @@ const navigation = [
   ["/search", "Search"],
   ["/answers", "Answers"],
   ["/agents", "Agent"],
+  ["/automations", "Automations"],
   ["/settings", "Settings"],
 ] as const;
 
@@ -136,6 +138,10 @@ export function App() {
           <Route path="/answers" element={<Answers />} />
           <Route path="/agents" element={<AgentRuns />} />
           <Route path="/agents/:runId" element={<AgentRunDetail />} />
+          <Route path="/automations" element={<Automations />} />
+          <Route path="/automations/new" element={<AutomationCreate />} />
+          <Route path="/automations/:automationId" element={<AutomationDetail />} />
+          <Route path="/notifications" element={<NotificationInbox />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

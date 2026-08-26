@@ -135,16 +135,18 @@ def _notification(
     code: str,
     now: datetime,
 ) -> None:
+    if not code:
+        raise SchedulerValidationError
     notification = AutomationNotification(
         automation_id=occurrence.automation_id,
         occurrence_id=occurrence.id,
         agent_run_id=occurrence.agent_run_id,
         event_kind=event_kind,
         severity=severity,
-        title="Automation scheduler outcome",
-        body=f"Automation occurrence recorded safe outcome: {code}.",
+        title="Automation needs operator attention",
+        body="Open the Automation history to review its safe status and links.",
         created_at=now,
-        deduplication_key=f"checkpoint79:{occurrence.id}:{event_kind}:{code}",
+        deduplication_key=f"automation-notice:{occurrence.id}:{event_kind}",
     )
     try:
         with session.begin_nested():
@@ -390,6 +392,15 @@ def reconcile_linked(
             )
             occurrence.completed_at = operation_time
             occurrence.revision += 1
+            if run.state != "completed":
+                _notification(
+                    session,
+                    occurrence,
+                    event_kind="occurrence_failed",
+                    severity="error",
+                    code=f"run_{run.state}",
+                    now=operation_time,
+                )
         elif occurrence.state == "claimed":
             occurrence.state = "run_created"
             occurrence.safe_disposition_code = "run_created"
@@ -433,6 +444,7 @@ def defer_setup(
     if automation is None or occurrence.state != "claimed":
         raise AmbiguousSchedulerOutcomeError
     if capacity:
+        repeatedly_delayed = occurrence.safe_disposition_code == "capacity_deferred"
         occurrence.state = "due"
         occurrence.retry_not_before = operation_time + retry_delay(occurrence.id, 1)
         occurrence.lease_owner_token = None
@@ -440,6 +452,15 @@ def defer_setup(
         occurrence.last_renewed_at = None
         occurrence.safe_disposition_code = "capacity_deferred"
         occurrence.revision += 1
+        if repeatedly_delayed:
+            _notification(
+                session,
+                occurrence,
+                event_kind="capacity_delayed",
+                severity="warning",
+                code="capacity_deferred",
+                now=operation_time,
+            )
         session.flush()
         return True
     occurrence.attempt_count += 1

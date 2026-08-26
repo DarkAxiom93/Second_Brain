@@ -11,11 +11,12 @@ from sqlalchemy.orm import Session
 from app.automations import service
 from app.automations.schedule import ScheduleCalculationError, preview
 from app.db.dependencies import get_db_session
-from app.models.automation import Automation
+from app.models.automation import Automation, AutomationOccurrence
 from app.repositories import automations as repository
 from app.schemas.automation import (
     AutomationCreate,
     AutomationExecutionModeRequest,
+    AutomationOccurrenceRead,
     AutomationRead,
     AutomationRevisionRequest,
     AutomationUpdate,
@@ -122,6 +123,27 @@ def get_automation(
     if automation is None:
         raise _error(status.HTTP_404_NOT_FOUND, "automation not found")
     return automation
+
+
+@router.get(
+    "/{automation_id}/occurrences", response_model=list[AutomationOccurrenceRead]
+)
+def list_automation_occurrences(
+    automation_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[AutomationOccurrence]:
+    try:
+        return repository.list_automation_occurrences(
+            session, automation_id, limit=limit, offset=offset
+        )
+    except repository.AutomationOwnershipError:
+        raise _error(status.HTTP_404_NOT_FOUND, "automation not found") from None
+    except SQLAlchemyError:
+        raise _error(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable"
+        ) from None
 
 
 @router.patch("/{automation_id}", response_model=AutomationRead)

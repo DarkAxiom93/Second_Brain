@@ -165,3 +165,67 @@ class AutomationRead(ClosedModel):
         if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("timestamp must be timezone-aware")
         return value
+
+
+class AutomationOccurrenceRead(ClosedModel):
+    """Allowlisted operator history without lease or execution content."""
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+    id: uuid.UUID
+    scheduled_at: datetime
+    scheduled_local_date: date
+    scheduled_local_time: time
+    scheduled_utc_offset_minutes: int
+    timezone_name: str
+    state: Literal[
+        "due", "claimed", "run_created", "completed", "missed", "failed", "cancelled"
+    ]
+    attempt_count: int
+    retry_not_before: datetime | None
+    safe_disposition_code: str | None
+    safe_error_code: str | None
+    agent_run_id: uuid.UUID | None
+    created_at: datetime
+    claimed_at: datetime | None
+    completed_at: datetime | None
+
+    @field_validator(
+        "scheduled_at", "retry_not_before", "created_at", "claimed_at", "completed_at"
+    )
+    @classmethod
+    def occurrence_timestamps(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("timestamp must be timezone-aware")
+        return value
+
+
+class AutomationNotificationRead(ClosedModel):
+    """Content-free local inbox projection."""
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+    id: uuid.UUID
+    automation_id: uuid.UUID
+    occurrence_id: uuid.UUID | None
+    agent_run_id: uuid.UUID | None
+    event_kind: Literal[
+        "occurrence_missed",
+        "occurrence_failed",
+        "retry_exhausted",
+        "lifecycle_race",
+        "capacity_delayed",
+        "run_completed",
+    ]
+    severity: Literal["info", "warning", "error"]
+    title: str
+    body: str
+    read_at: datetime | None
+    created_at: datetime
+
+    @field_validator("read_at", "created_at")
+    @classmethod
+    def notification_timestamps(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("timestamp must be timezone-aware")
+        return value
