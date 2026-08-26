@@ -8,10 +8,16 @@ from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
+from app.agent_planning.dependencies import (
+    configured_embedding_provider_available,
+    get_planning_provider,
+)
 from app.agent_runs.service import AgentRunCapacityError
-from app.automations import scheduler
+from app.automations import coordinator, scheduler
+from app.automations.catalog import get_automatic_agent_definition
 from app.core.config import get_settings
 from app.db.session import get_engine
+from app.embeddings.dependencies import get_embedding_provider
 from app.repositories import automations as repository
 
 
@@ -68,6 +74,7 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
         deferred: list[uuid.UUID] = []
         retry_deferred: list[uuid.UUID] = []
         failed: list[uuid.UUID] = []
+        automatically_coordinated: list[uuid.UUID] = []
         for claim in all_claims:
             try:
                 run_id, _ = scheduler.create_and_link_run(
@@ -127,6 +134,34 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
                     )
                     session.commit()
                     failed.append(claim.occurrence_id)
+        for claim in all_claims:
+            occurrence = repository.get_automation_occurrence(
+                session, claim.automation_id, claim.occurrence_id
+            )
+            if (
+                occurrence is None
+                or occurrence.agent_run_id is None
+                or get_automatic_agent_definition(
+                    occurrence.agent_kind, occurrence.agent_version
+                )
+                is None
+            ):
+                session.rollback()
+                continue
+            try:
+                coordinator.coordinate_occurrence(
+                    session,
+                    occurrence.id,
+                    resolve_planning_provider=get_planning_provider,
+                    resolve_embedding_provider=get_embedding_provider,
+                    provider_available=configured_embedding_provider_available,
+                )
+                automatically_coordinated.append(occurrence.id)
+            except Exception:
+                session.rollback()
+                # The durable Run is authoritative; the next explicit tick may
+                # reconcile it, but never invokes manual recovery or replaces it.
+                continue
         return scheduler.TickResult(
             materialized_ids=materialized_ids,
             claimed_ids=tuple(item.occurrence_id for item in all_claims),
@@ -137,6 +172,7 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
             missed_ids=missed_ids,
             retry_deferred_ids=tuple(retry_deferred),
             failed_ids=tuple(failed),
+            automatically_coordinated_ids=tuple(automatically_coordinated),
         )
 
 
@@ -156,6 +192,9 @@ def main() -> int:
                     "missed": len(result.missed_ids),
                     "retry_deferred": len(result.retry_deferred_ids),
                     "failed_safe": len(result.failed_ids),
+                    "automatically_coordinated": len(
+                        result.automatically_coordinated_ids
+                    ),
                 },
                 sort_keys=True,
             )

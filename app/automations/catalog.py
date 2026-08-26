@@ -11,8 +11,23 @@ class SchedulableAgent:
     project_required: bool
 
 
+@dataclass(frozen=True, slots=True)
+class AutomaticAgentDefinition:
+    """Exact fixed definition allowed to cross the unattended boundary."""
+
+    kind: str
+    version: str
+    authority: str
+    registry_version: str
+    allowed_tools: tuple[tuple[str, int], ...]
+    code_owned: bool = True
+
+
 RESERVED_AUTOMATION_AGENT_KINDS = frozenset({"daily_brief", "project_watch"})
 IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES: frozenset[tuple[str, str]] = frozenset()
+AUTOMATIC_AGENT_DEFINITIONS: MappingProxyType[
+    tuple[str, str], AutomaticAgentDefinition
+] = MappingProxyType({})
 
 CATALOG = MappingProxyType(
     {
@@ -52,3 +67,14 @@ def get_schedulable_agent(kind: str, version: str) -> SchedulableAgent | None:
     """
 
     return CATALOG.get((kind, version))
+
+
+def get_automatic_agent_definition(
+    kind: str, version: str
+) -> AutomaticAgentDefinition | None:
+    """Return an implemented definition, never a merely planned catalog row."""
+
+    identity = (kind, version)
+    if identity not in IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES:
+        return None
+    return AUTOMATIC_AGENT_DEFINITIONS.get(identity)

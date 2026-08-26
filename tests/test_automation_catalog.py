@@ -3,11 +3,19 @@
 import pytest
 
 from app.automations.catalog import (
+    IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES,
+    get_automatic_agent_definition,
     get_schedulable_agent,
     is_planned_schedulable_identity,
     is_reserved_automation_agent_identity,
     is_reserved_automation_agent_kind,
 )
+
+
+def test_production_automatic_agent_set_is_empty() -> None:
+    assert not IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES
+    assert get_automatic_agent_definition("daily_brief", "1") is None
+    assert get_automatic_agent_definition("project_watch", "1") is None
 
 
 @pytest.mark.parametrize("kind", ["daily_brief", "project_watch"])

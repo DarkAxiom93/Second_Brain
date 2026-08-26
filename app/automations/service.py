@@ -5,7 +5,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from app.automations.catalog import get_schedulable_agent
+from app.automations.catalog import (
+    get_automatic_agent_definition,
+    get_schedulable_agent,
+)
 from app.automations.schedule import ScheduleDefinition, next_point, validate_definition
 from app.models.automation import Automation
 from app.models.project import Project
@@ -34,6 +37,10 @@ class AutomationDefinitionError(ValueError):
 
 
 class AutomationProjectNotFoundError(Exception):
+    pass
+
+
+class AutomaticExecutionUnavailableError(Exception):
     pass
 
 
@@ -82,6 +89,21 @@ def _validate_scope_and_catalog(
         raise AutomationProjectNotFoundError
 
 
+def _validate_execution_mode(
+    *, agent_kind: str, agent_version: str, execution_mode: str
+) -> None:
+    if execution_mode == "create_only":
+        return
+    definition = get_automatic_agent_definition(agent_kind, agent_version)
+    if (
+        definition is None
+        or not definition.code_owned
+        or definition.authority != "read"
+        or not definition.allowed_tools
+    ):
+        raise AutomaticExecutionUnavailableError
+
+
 def _lock_expected(
     session: Session, automation_id: uuid.UUID, expected_revision: int
 ) -> Automation:
@@ -109,6 +131,11 @@ def create_automation(session: Session, request: AutomationCreate) -> Automation
         agent_kind=request.agent_kind,
         agent_version=request.agent_version,
         project_id=request.project_id,
+    )
+    _validate_execution_mode(
+        agent_kind=request.agent_kind,
+        agent_version=request.agent_version,
+        execution_mode=request.execution_mode,
     )
     automation = Automation(
         label=request.label,
@@ -155,6 +182,13 @@ def update_automation(
     if request.schedule is not None:
         validate_definition(schedule_definition(request.schedule))
         _apply_schedule(automation, request.schedule)
+    if "execution_mode" in fields:
+        assert request.execution_mode is not None
+        _validate_execution_mode(
+            agent_kind=automation.agent_kind,
+            agent_version=automation.agent_version,
+            execution_mode=request.execution_mode,
+        )
     if "label" in fields:
         assert request.label is not None
         automation.label = request.label
@@ -181,6 +215,29 @@ def update_automation(
             automation.next_occurrence_at = point.utc_instant
         else:
             automation.next_occurrence_at = None
+    session.flush()
+    session.refresh(automation)
+    return automation
+
+
+def set_execution_mode(
+    session: Session,
+    automation_id: uuid.UUID,
+    expected_revision: int,
+    execution_mode: str,
+) -> Automation:
+    """Apply the explicit safety-sensitive execution-mode transition."""
+
+    automation = _lock_expected(session, automation_id, expected_revision)
+    if automation.lifecycle == "cancelled":
+        raise AutomationTransitionConflictError
+    _validate_execution_mode(
+        agent_kind=automation.agent_kind,
+        agent_version=automation.agent_version,
+        execution_mode=execution_mode,
+    )
+    automation.execution_mode = execution_mode
+    automation.revision += 1
     session.flush()
     session.refresh(automation)
     return automation

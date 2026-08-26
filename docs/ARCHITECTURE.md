@@ -162,6 +162,15 @@ retries become content-free durable operator-visible failures. Linked Runs are
 never replaced and the scheduler still performs no Agent planning, execution,
 provider, Tool, or manual Agent recovery operation.
 
+Checkpoint 80 is approved and complete after human review. It adds a reusable
+automatic-read-only coordinator over the existing durable Agent Run planning
+and execution services plus an explicit revision-aware execution-mode action.
+Eligibility requires an exact fixed code-owned read definition, current
+registry/policy/scope identity, and the one linked Run; short validation and
+reconciliation transactions bracket all provider and Tool latency. Production
+eligibility remains deliberately empty, so `daily_brief` and `project_watch`
+remain reserved and ordinary ticks perform no automatic provider or Tool work.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

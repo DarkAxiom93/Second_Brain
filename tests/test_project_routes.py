@@ -236,6 +236,7 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/automations/preview",
         "/automations/{automation_id}",
         "/automations/{automation_id}/enable",
+        "/automations/{automation_id}/execution-mode",
         "/automations/{automation_id}/pause",
         "/automations/{automation_id}/resume",
         "/automations/{automation_id}/cancel",

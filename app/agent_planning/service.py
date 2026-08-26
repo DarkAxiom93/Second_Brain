@@ -81,14 +81,21 @@ def _jsonable(value: Any) -> Any:
 
 
 def claim_planning(
-    session: Session, run_id: uuid.UUID, *, expected_revision: int
+    session: Session,
+    run_id: uuid.UUID,
+    *,
+    expected_revision: int,
+    automatic_allowed_tools: tuple[tuple[str, int], ...] | None = None,
 ) -> PlanningClaim | None:
     """Lock and reserve planning. None means a complete ready plan is replayed."""
 
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise run_service.AgentRunNotFoundError
-    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+    if (
+        is_reserved_automation_agent_identity(run.agent_kind, run.agent_version)
+        and automatic_allowed_tools is None
+    ):
         raise AgentDefinitionUnsupportedError
     if run.state == AgentRunState.READY.value:
         steps = repository.list_agent_steps(session, run.id, limit=13)
@@ -127,9 +134,13 @@ def claim_planning(
     )
 
 
-def build_context(claim: PlanningClaim) -> PlanningContext:
+def build_context(
+    claim: PlanningClaim,
+    *,
+    automatic_allowed_tools: tuple[tuple[str, int], ...] | None = None,
+) -> PlanningContext:
     permitted_tools: list[dict[str, Any]] = []
-    allowed = (
+    allowed = automatic_allowed_tools or (
         RESEARCH_TOOLS
         if is_research(claim.agent_kind, claim.agent_version)
         else (
@@ -184,6 +195,7 @@ def validate_plan(
     result: PlanningResult,
     *,
     configured_provider_available: bool,
+    automatic_allowed_tools: tuple[tuple[str, int], ...] | None = None,
 ) -> list[ValidatedStep]:
     try:
         plan = PlanningResult.model_validate(result, strict=True)
@@ -196,7 +208,7 @@ def validate_plan(
         raise PlanningOutputRejectedError
 
     per_tool: Counter[tuple[str, int]] = Counter()
-    allowed = (
+    allowed = automatic_allowed_tools or (
         RESEARCH_TOOLS
         if is_research(claim.agent_kind, claim.agent_version)
         else (

@@ -9,7 +9,11 @@ from sqlalchemy.orm import Session
 
 from app.agent_runs import service as run_service
 from app.automations import faults
-from app.automations.catalog import get_schedulable_agent
+from app.automations.catalog import (
+    IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES,
+    get_automatic_agent_definition,
+    get_schedulable_agent,
+)
 from app.automations.schedule import ScheduleDefinition, SchedulePoint, next_point
 from app.models.agent_runtime import AgentRun
 from app.models.automation import (
@@ -66,6 +70,7 @@ class TickResult:
     missed_ids: tuple[uuid.UUID, ...] = ()
     retry_deferred_ids: tuple[uuid.UUID, ...] = ()
     failed_ids: tuple[uuid.UUID, ...] = ()
+    automatically_coordinated_ids: tuple[uuid.UUID, ...] = ()
 
 
 def _aware_utc(value: datetime) -> datetime:
@@ -288,7 +293,10 @@ def claim_due(
     if available == 0:
         return []
     rows = repository.lock_claimable_occurrences(
-        session, now=operation_time, limit=min(_batch_limit(limit), available)
+        session,
+        now=operation_time,
+        limit=min(_batch_limit(limit), available),
+        automatic_identities=IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES,
     )
     claims: list[OccurrenceClaim] = []
     for occurrence in rows:
@@ -585,7 +593,18 @@ def create_and_link_run(
             raise SchedulerValidationError
         return replay.run.id, False
     _validate_claim(automation, occurrence, claim, operation_time)
-    if occurrence.execution_mode != "create_only":
+    if occurrence.execution_mode == "automatic_read_only":
+        definition = get_automatic_agent_definition(
+            occurrence.agent_kind, occurrence.agent_version
+        )
+        if (
+            definition is None
+            or not definition.code_owned
+            or definition.authority != "read"
+            or not definition.allowed_tools
+        ):
+            raise ExecutionModeUnsupportedError
+    elif occurrence.execution_mode != "create_only":
         raise ExecutionModeUnsupportedError
     catalog = get_schedulable_agent(occurrence.agent_kind, occurrence.agent_version)
     if catalog is None or (catalog.project_required and occurrence.project_id is None):

@@ -15,6 +15,7 @@ from app.models.automation import Automation
 from app.repositories import automations as repository
 from app.schemas.automation import (
     AutomationCreate,
+    AutomationExecutionModeRequest,
     AutomationRead,
     AutomationRevisionRequest,
     AutomationUpdate,
@@ -50,6 +51,12 @@ def _handle_mutation(
         session.rollback()
         raise _error(
             status.HTTP_409_CONFLICT, "automation transition conflict"
+        ) from None
+    except service.AutomaticExecutionUnavailableError:
+        session.rollback()
+        raise _error(
+            status.HTTP_409_CONFLICT,
+            "automatic read-only execution is unavailable for this agent",
         ) from None
     except (service.AutomationDefinitionError, ScheduleCalculationError) as exc:
         session.rollback()
@@ -125,6 +132,23 @@ def update_automation(
 ) -> Automation:
     return _handle_mutation(
         session, lambda: service.update_automation(session, automation_id, request)
+    )
+
+
+@router.post("/{automation_id}/execution-mode", response_model=AutomationRead)
+def set_execution_mode(
+    automation_id: uuid.UUID,
+    request: AutomationExecutionModeRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> Automation:
+    return _handle_mutation(
+        session,
+        lambda: service.set_execution_mode(
+            session,
+            automation_id,
+            request.expected_revision,
+            request.execution_mode,
+        ),
     )
 
 

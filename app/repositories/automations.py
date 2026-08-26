@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import and_, exists, func, not_, or_, select
+from sqlalchemy import and_, exists, func, not_, or_, select, tuple_
 from sqlalchemy.orm import Session
 
 from app.models.automation import (
@@ -138,10 +138,25 @@ def lock_occurrence(
 
 
 def lock_claimable_occurrences(
-    session: Session, *, now: datetime, limit: int
+    session: Session,
+    *,
+    now: datetime,
+    limit: int,
+    automatic_identities: frozenset[tuple[str, str]] = frozenset(),
 ) -> list[AutomationOccurrence]:
     """Lock eligible create-only work in stable due order without waiting."""
 
+    mode_filter = AutomationOccurrence.execution_mode == "create_only"
+    if automatic_identities:
+        mode_filter = or_(
+            mode_filter,
+            and_(
+                AutomationOccurrence.execution_mode == "automatic_read_only",
+                tuple_(
+                    AutomationOccurrence.agent_kind, AutomationOccurrence.agent_version
+                ).in_(automatic_identities),
+            ),
+        )
     return list(
         session.scalars(
             select(AutomationOccurrence)
@@ -153,7 +168,7 @@ def lock_claimable_occurrences(
                     AutomationOccurrence.retry_not_before.is_(None),
                     AutomationOccurrence.retry_not_before <= now,
                 ),
-                AutomationOccurrence.execution_mode == "create_only",
+                mode_filter,
                 Automation.lifecycle == "enabled",
                 Automation.revision == AutomationOccurrence.automation_revision,
                 Automation.schedule_revision == AutomationOccurrence.schedule_revision,

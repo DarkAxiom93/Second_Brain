@@ -124,12 +124,19 @@ def _plain(value: object) -> object:
 
 
 def claim_execution(
-    session: Session, run_id: uuid.UUID, *, expected_revision: int
+    session: Session,
+    run_id: uuid.UUID,
+    *,
+    expected_revision: int,
+    automatic_allowed_tools: tuple[tuple[str, int], ...] | None = None,
 ) -> ExecutionClaim | None:
     run = repository.get_agent_run_for_update(session, run_id)
     if run is None:
         raise service.AgentRunNotFoundError
-    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+    if (
+        is_reserved_automation_agent_identity(run.agent_kind, run.agent_version)
+        and automatic_allowed_tools is None
+    ):
         raise ExecutionAgentVersionError
     if run.state in {state.value for state in service.TERMINAL_STATES}:
         if _original_claim_revision(session, run.id) == expected_revision:
@@ -179,6 +186,10 @@ def claim_execution(
             or (
                 is_curator(run.agent_kind, run.agent_version)
                 and (step.tool_name, version) not in CURATOR_TOOLS
+            )
+            or (
+                automatic_allowed_tools is not None
+                and (step.tool_name, version) not in automatic_allowed_tools
             )
         ):
             valid_tools = False
@@ -242,11 +253,15 @@ def reserve_next(
     claim: ExecutionClaim,
     *,
     provider_available: bool,
+    automatic_allowed_tools: tuple[tuple[str, int], ...] | None = None,
 ) -> tuple[AgentStep, ToolInvocation, int] | None:
     run = repository.get_agent_run_for_update(session, claim.run_id)
     if run is None or run.state != AgentRunState.RUNNING.value:
         return None
-    if is_reserved_automation_agent_identity(run.agent_kind, run.agent_version):
+    if (
+        is_reserved_automation_agent_identity(run.agent_kind, run.agent_version)
+        and automatic_allowed_tools is None
+    ):
         raise ExecutionAgentVersionError
     steps = repository.list_agent_steps_for_update(session, run.id)
     now = service.utc_now()
@@ -267,6 +282,14 @@ def reserve_next(
     if any(previous.status != "succeeded" for previous in steps[: step.ordinal]):
         raise ExecutionPlanInvalidError
     assert step.tool_name is not None and step.tool_version is not None
+    if (
+        automatic_allowed_tools is not None
+        and (step.tool_name, int(step.tool_version)) not in automatic_allowed_tools
+    ):
+        _fail_without_invocation(
+            session, run, step, "tool_policy_authority_denied", now
+        )
+        return None
     all_invocations = repository.list_step_invocations_for_update(session, run.id)
     prior = [item for item in all_invocations if item.step_id == step.id]
     attempt = 0

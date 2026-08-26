@@ -104,6 +104,11 @@ class AutomationRevisionRequest(ClosedModel):
     expected_revision: Annotated[int, Field(ge=0)]
 
 
+class AutomationExecutionModeRequest(ClosedModel):
+    expected_revision: Annotated[int, Field(ge=0)]
+    execution_mode: ExecutionMode
+
+
 class SchedulePreviewRequest(ClosedModel):
     schedule: AutomationSchedule
     after_utc: datetime

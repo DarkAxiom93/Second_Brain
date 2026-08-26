@@ -494,6 +494,7 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/automations/preview",
         "/automations/{automation_id}",
         "/automations/{automation_id}/enable",
+        "/automations/{automation_id}/execution-mode",
         "/automations/{automation_id}/pause",
         "/automations/{automation_id}/resume",
         "/automations/{automation_id}/cancel",
