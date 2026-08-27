@@ -34,6 +34,7 @@ from app.curator.provider import (
     CuratorProviderTimeoutError,
     CuratorProviderUnavailableError,
 )
+from app.daily_brief import service as daily_brief_service
 from app.db.dependencies import get_db_session
 from app.embeddings import EmbeddingProvider, get_embedding_provider
 from app.models.agent_runtime import (
@@ -263,6 +264,10 @@ def create_agent_run(
 ) -> AgentRun:
     """Create one Run and its sequence-zero event atomically."""
 
+    if (request.agent_kind, request.agent_version) == ("daily_brief", "1"):
+        raise _error(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "agent definition unsupported"
+        )
     if is_reserved_automation_agent_identity(request.agent_kind, request.agent_version):
         raise _error(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "agent definition unsupported"
@@ -418,6 +423,7 @@ def _execution_projection(
     invocations: list[ToolInvocation],
     research_result: dict[str, object] | None = None,
     curator_result: dict[str, object] | None = None,
+    daily_brief_result: dict[str, object] | None = None,
 ) -> AgentRunExecutionRead:
     by_step = {item.step_id: item for item in invocations}
     return AgentRunExecutionRead(
@@ -431,6 +437,11 @@ def _execution_projection(
             None
             if curator_result is None
             else CuratorResultRead.model_validate(curator_result)
+        ),
+        daily_brief_result=(
+            None
+            if daily_brief_result is None
+            else ResearchResultRead.model_validate(daily_brief_result)
         ),
         steps=[
             AgentStepExecutionRead(
@@ -473,6 +484,7 @@ def _load_execution(session: Session, run_id: uuid.UUID) -> AgentRunExecutionRea
         list(invocations),
         research_service.get_result(session, run.id),
         curator_service.get_result(session, run.id),
+        daily_brief_service.get_result(session, run.id),
     )
 
 

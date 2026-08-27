@@ -181,6 +181,19 @@ polling, browser persistence, service worker, OS notification, or external
 delivery. Production automatic eligibility remains empty and no fixed Agent is
 installed.
 
+Checkpoint 82 implements the scheduled-only `daily_brief` version `1` Agent as
+the sole production Automation Agent identity. Its fixed label-free goal,
+read-only five-Tool allowlist, exact nullable Project scope, versioned evidence,
+bounded cited synthesis, safe Run projection, and content-free successful-run
+notification reuse the existing Agent Runtime and Checkpoint 80 coordinator.
+Its Daily Brief-specific application-event projection reads at most five recent
+terminal `AutomationOccurrence` records in the exact nullable Project scope and
+exposes only a code-owned event kind, occurrence UUID/version, terminal and
+scheduled timestamps, and fixed Agent identity. Labels, raw Agent events,
+notifications, leases, keys, provider/Tool content, prompts, and mutation data
+remain unavailable. `project_watch` remains reserved and unimplemented.
+Checkpoint 82 is approved and complete after human review.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

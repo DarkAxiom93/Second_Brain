@@ -94,8 +94,8 @@ def claim_planning(
         raise run_service.AgentRunNotFoundError
     if (
         is_reserved_automation_agent_identity(run.agent_kind, run.agent_version)
-        and automatic_allowed_tools is None
-    ):
+        or (run.agent_kind, run.agent_version) == ("daily_brief", "1")
+    ) and automatic_allowed_tools is None:
         raise AgentDefinitionUnsupportedError
     if run.state == AgentRunState.READY.value:
         steps = repository.list_agent_steps(session, run.id, limit=13)

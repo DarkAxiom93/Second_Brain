@@ -16,6 +16,7 @@ from app.agent_runs.service import AgentRunCapacityError
 from app.automations import coordinator, scheduler
 from app.automations.catalog import get_automatic_agent_definition
 from app.core.config import get_settings
+from app.daily_brief.dependencies import get_daily_brief_provider
 from app.db.session import get_engine
 from app.embeddings.dependencies import get_embedding_provider
 from app.repositories import automations as repository
@@ -155,6 +156,7 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
                     resolve_planning_provider=get_planning_provider,
                     resolve_embedding_provider=get_embedding_provider,
                     provider_available=configured_embedding_provider_available,
+                    resolve_daily_brief_provider=get_daily_brief_provider,
                 )
                 automatically_coordinated.append(occurrence.id)
             except Exception:

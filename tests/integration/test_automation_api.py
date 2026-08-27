@@ -111,12 +111,13 @@ def test_lifecycle_revisions_edits_and_terminal_cancellation() -> None:
         f"/automations/{created['id']}/execution-mode",
         json={"expected_revision": 4, "execution_mode": "automatic_read_only"},
     )
-    assert mode_edit.status_code == 409
+    assert mode_edit.status_code == 200
+    assert mode_edit.json()["execution_mode"] == "automatic_read_only"
     create_only = client.post(
         f"/automations/{created['id']}/execution-mode",
-        json={"expected_revision": 4, "execution_mode": "create_only"},
+        json={"expected_revision": 5, "execution_mode": "create_only"},
     ).json()
-    assert (create_only["revision"], create_only["schedule_revision"]) == (5, 1)
+    assert (create_only["revision"], create_only["schedule_revision"]) == (6, 1)
     assert (
         client.post(
             f"/automations/{created['id']}/execution-mode",
@@ -125,17 +126,17 @@ def test_lifecycle_revisions_edits_and_terminal_cancellation() -> None:
         == 409
     )
     resumed = client.post(
-        f"/automations/{created['id']}/resume", json={"expected_revision": 5}
+        f"/automations/{created['id']}/resume", json={"expected_revision": 6}
     ).json()
     assert (paused["lifecycle"], resumed["lifecycle"]) == ("paused", "enabled")
-    assert resumed["revision"] == 6
+    assert resumed["revision"] == 7
     cancelled = client.post(
-        f"/automations/{created['id']}/cancel", json={"expected_revision": 6}
+        f"/automations/{created['id']}/cancel", json={"expected_revision": 7}
     ).json()
     assert (
         client.post(
             f"/automations/{created['id']}/execution-mode",
-            json={"expected_revision": 7, "execution_mode": "create_only"},
+            json={"expected_revision": 8, "execution_mode": "create_only"},
         ).status_code
         == 409
     )
@@ -146,21 +147,22 @@ def test_lifecycle_revisions_edits_and_terminal_cancellation() -> None:
         assert (
             client.post(
                 f"/automations/{created['id']}/{suffix}",
-                json={"expected_revision": 7},
+                json={"expected_revision": 8},
             ).status_code
             == 409
         )
 
 
-def test_generic_update_cannot_activate_unimplemented_automatic_identity() -> None:
+def test_generic_update_can_activate_implemented_daily_brief_identity() -> None:
     client = TestClient(create_app())
     created = client.post("/automations", json=_payload()).json()
     response = client.patch(
         f"/automations/{created['id']}",
         json={"expected_revision": 0, "execution_mode": "automatic_read_only"},
     )
-    assert response.status_code == 409
-    assert client.get(f"/automations/{created['id']}").json()["revision"] == 0
+    assert response.status_code == 200
+    assert response.json()["execution_mode"] == "automatic_read_only"
+    assert client.get(f"/automations/{created['id']}").json()["revision"] == 1
     assert (
         client.patch(
             f"/automations/{created['id']}",
@@ -267,8 +269,8 @@ def test_no_occurrence_run_provider_or_tool_side_effects() -> None:
         "/automations",
         json=_payload(execution_mode="automatic_read_only"),
     )
-    assert rejected.status_code == 409
-    created = client.post("/automations", json=_payload()).json()
+    assert rejected.status_code == 201
+    created = rejected.json()
     assert (
         client.post(
             f"/automations/{created['id']}/enable", json={"expected_revision": 0}

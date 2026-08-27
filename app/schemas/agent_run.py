@@ -150,7 +150,9 @@ class AgentStepExecutionRead(BaseModel):
 
 class ResearchCitationRead(BaseModel):
     number: Annotated[int, Field(gt=0)]
-    entity_type: Literal["project", "memory", "source", "source_chunk"]
+    entity_type: Literal[
+        "project", "memory", "source", "source_chunk", "application_event"
+    ]
     entity_id: uuid.UUID
     version: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 
@@ -195,6 +197,7 @@ class AgentRunExecutionRead(BaseModel):
     steps: list[AgentStepExecutionRead]
     research_result: ResearchResultRead | None = None
     curator_result: CuratorResultRead | None = None
+    daily_brief_result: ResearchResultRead | None = None
 
 
 class ApprovalRequestCreate(BaseModel):

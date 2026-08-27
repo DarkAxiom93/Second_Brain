@@ -401,6 +401,18 @@ def reconcile_linked(
                     code=f"run_{run.state}",
                     now=operation_time,
                 )
+            elif (run.agent_kind, run.agent_version) == ("daily_brief", "1"):
+                from app.daily_brief.service import get_result
+
+                if get_result(session, run.id) is not None:
+                    _notification(
+                        session,
+                        occurrence,
+                        event_kind="run_completed",
+                        severity="info",
+                        code="run_completed",
+                        now=operation_time,
+                    )
         elif occurrence.state == "claimed":
             occurrence.state = "run_created"
             occurrence.safe_disposition_code = "run_created"
@@ -577,13 +589,24 @@ def renew_claim(
 
 
 def _run_request(occurrence: AutomationOccurrence) -> AgentRunCreate:
+    if (occurrence.agent_kind, occurrence.agent_version) == ("daily_brief", "1"):
+        scope = (
+            "the exact captured Project"
+            if occurrence.project_id is not None
+            else "the explicitly unassigned scope"
+        )
+        goal = (
+            "Produce Daily Brief v1 from reviewed local knowledge for "
+            f"{scope}. Use only captured, version-validated evidence and return "
+            "an evidence-cited bounded brief or insufficient evidence."
+        )
+    else:
+        goal = f"Scheduled {occurrence.agent_kind}: {occurrence.automation_label}"
     return AgentRunCreate(
         project_id=occurrence.project_id,
         agent_kind=occurrence.agent_kind,
         agent_version=occurrence.agent_version,
-        goal_summary=(
-            f"Scheduled {occurrence.agent_kind}: {occurrence.automation_label}"
-        ),
+        goal_summary=goal,
     )
 
 

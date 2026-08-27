@@ -97,6 +97,19 @@ public evidence identities, and immutable proposed-action identities. Its
 closed proposal catalog is only `memory.update`; proposal creation occurs only
 during validated synthesis. Existing explicit human review never executes it.
 
+Daily Brief kind `daily_brief` version `1` is scheduled-only and cannot be
+created through the public manual Agent Run API. Scheduler construction uses a
+fixed application-owned goal that never contains the editable Automation label.
+Its dedicated allowlist is the five executable entity/search read Tools. The
+execution projection adds nullable `daily_brief_result` with at most five
+cited claims and twenty versioned citations, or explicit insufficient evidence.
+The exact captured Project or explicitly unassigned scope is revalidated before
+result persistence. Citations may identify a reviewed local entity or a closed
+Daily Brief `application_event` projection derived only from a terminal
+Automation occurrence. At most five application events are selected by
+`completed_at DESC, id DESC`; their projection excludes labels and private
+scheduler/runtime fields. Project Watch remains reserved and unimplemented.
+
 ## Explained Memory search
 
 `POST /memories/search/explained` is the only additive explained-search route.

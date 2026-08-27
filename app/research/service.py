@@ -3,8 +3,9 @@
 import hashlib
 import json
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
@@ -39,6 +40,20 @@ FORBIDDEN_PUBLIC_TEXT = (
 
 class ResearchValidationError(Exception):
     pass
+
+
+class CitationEvidence(Protocol):
+    @property
+    def evidence_id(self) -> str: ...
+
+    @property
+    def entity_type(self) -> str: ...
+
+    @property
+    def entity_id(self) -> uuid.UUID: ...
+
+    @property
+    def version(self) -> str: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,7 +244,7 @@ def evidence_references(items: list[CollectedEvidence]) -> list[dict[str, object
 
 
 def validate_result(
-    result: ResearchProviderResult, evidence: list[CollectedEvidence]
+    result: ResearchProviderResult, evidence: Sequence[CitationEvidence]
 ) -> dict[str, object]:
     try:
         result = ResearchProviderResult.model_validate(result, strict=True)

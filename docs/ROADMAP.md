@@ -110,6 +110,10 @@ Checkpoint 81 is approved and complete after human review. Its additive safe
 history/inbox APIs and explicit-refresh Automations UI do not install either
 reserved fixed Agent, enable automatic execution, or begin Checkpoint 82.
 
+Checkpoint 82 implements only the fixed scheduled-only Daily Brief v1 identity
+and is approved and complete after human review. Project Watch remains
+unimplemented; Checkpoint 83 has not started.
+
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger
 occurrences; fenced leases and duplicate prevention; deterministic restart,

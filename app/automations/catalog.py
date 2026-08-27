@@ -20,14 +20,44 @@ class AutomaticAgentDefinition:
     authority: str
     registry_version: str
     allowed_tools: tuple[tuple[str, int], ...]
+    planning_contract: str = "fixed-read-only-v1"
+    synthesis_contract: str = "fixed-cited-result-v1"
+    evidence_rules: str = "exact-versioned"
+    scope_rules: str = "exact-project-or-explicitly-unassigned"
+    max_evidence: int = 20
+    max_claims: int = 5
+    max_citations: int = 20
     code_owned: bool = True
 
 
 RESERVED_AUTOMATION_AGENT_KINDS = frozenset({"daily_brief", "project_watch"})
-IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES: frozenset[tuple[str, str]] = frozenset()
+DAILY_BRIEF_TOOLS = (
+    ("project.get", 1),
+    ("memory.get", 1),
+    ("memory.search_explained", 1),
+    ("source.get", 1),
+    ("source_chunk.get", 1),
+)
+DAILY_BRIEF_DEFINITION = AutomaticAgentDefinition(
+    kind="daily_brief",
+    version="1",
+    authority="read",
+    registry_version="agent-tools-v1",
+    allowed_tools=DAILY_BRIEF_TOOLS,
+    planning_contract="daily-brief-planning-v1",
+    synthesis_contract="daily-brief-claims-v1",
+    evidence_rules="reviewed-local-exact-run-step-invocation-versioned",
+    scope_rules="exact-project-or-explicitly-unassigned",
+    max_evidence=20,
+    max_claims=5,
+    max_citations=20,
+)
+IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES: frozenset[tuple[str, str]] = frozenset(
+    {("daily_brief", "1")}
+)
 AUTOMATIC_AGENT_DEFINITIONS: MappingProxyType[
     tuple[str, str], AutomaticAgentDefinition
-] = MappingProxyType({})
+] = MappingProxyType({("daily_brief", "1"): DAILY_BRIEF_DEFINITION})
 
 CATALOG = MappingProxyType(
     {

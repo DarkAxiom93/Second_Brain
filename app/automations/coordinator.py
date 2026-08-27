@@ -16,6 +16,7 @@ from app.automations.catalog import (
     get_automatic_agent_definition,
     get_schedulable_agent,
 )
+from app.daily_brief.provider import DailyBriefProvider
 from app.embeddings.provider import EmbeddingProvider
 from app.models.agent_runtime import AgentRun
 from app.models.automation import AutomationOccurrence
@@ -99,6 +100,7 @@ def coordinate_occurrence(
     resolve_planning_provider: Callable[[], PlanningProvider],
     resolve_embedding_provider: Callable[[], EmbeddingProvider],
     provider_available: Callable[[], bool],
+    resolve_daily_brief_provider: Callable[[], DailyBriefProvider] | None = None,
     definition_resolver: DefinitionResolver = get_automatic_agent_definition,
 ) -> uuid.UUID:
     """Validate, release locks, reuse Run orchestration, then reconcile."""
@@ -129,6 +131,7 @@ def coordinate_occurrence(
             allowed_tools=definition.allowed_tools,
             resolve_provider=resolve_embedding_provider,
             provider_available=provider_available,
+            resolve_daily_brief_provider=resolve_daily_brief_provider,
         )
     repository.lock_occurrence(session, occurrence_id)
     from app.automations.scheduler import reconcile_linked

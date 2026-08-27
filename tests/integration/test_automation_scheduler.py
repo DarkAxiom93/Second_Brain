@@ -261,13 +261,19 @@ def test_claiming_is_bounded_deterministic_and_create_only() -> None:
         session.commit()
         assert len(claims) == 1
         claimed = session.get(AutomationOccurrence, claims[0].occurrence_id)
-        assert claimed is not None and claimed.automation_id == first.id
+        assert claimed is not None and claimed.automation_id == automatic.id
         auto_occurrence = session.scalar(
             select(AutomationOccurrence).where(
                 AutomationOccurrence.automation_id == automatic.id
             )
         )
-        assert auto_occurrence is not None and auto_occurrence.state == "due"
+        assert auto_occurrence is not None and auto_occurrence.state == "claimed"
+        first_occurrence = session.scalar(
+            select(AutomationOccurrence).where(
+                AutomationOccurrence.automation_id == first.id
+            )
+        )
+        assert first_occurrence is not None and first_occurrence.state == "due"
 
 
 def test_concurrent_claimers_claim_once() -> None:

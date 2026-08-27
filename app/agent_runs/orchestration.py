@@ -14,7 +14,11 @@ from app.agent_planning.provider import (
     PlanningProviderUnavailableError,
 )
 from app.agent_runs import executor
+from app.daily_brief import service as daily_brief_service
+from app.daily_brief.provider import DailyBriefProvider
 from app.embeddings.provider import EmbeddingProvider
+from app.repositories import agent_runtime as repository
+from app.research import service as evidence_service
 
 
 def plan_read_only_run(
@@ -75,6 +79,7 @@ def execute_read_only_run(
     allowed_tools: tuple[tuple[str, int], ...],
     resolve_provider: Callable[[], EmbeddingProvider],
     provider_available: Callable[[], bool],
+    resolve_daily_brief_provider: Callable[[], DailyBriefProvider] | None = None,
 ) -> None:
     """Execute once through ordinary reservations, dispatch, and finalization."""
 
@@ -87,6 +92,8 @@ def execute_read_only_run(
     session.commit()
     if claim is None:
         return
+    collected: list[evidence_service.CollectedEvidence] = []
+    daily_brief = (claim.agent_kind, claim.agent_version) == ("daily_brief", "1")
     while True:
         reserved = executor.reserve_next(
             session,
@@ -98,6 +105,15 @@ def execute_read_only_run(
         if reserved is None:
             break
         step, invocation, timeout_seconds = reserved
+        observed: list[evidence_service.ObservedEvidence] = []
+
+        def capture_evidence(
+            entity_type: str,
+            row: object,
+            target: list[evidence_service.ObservedEvidence] = observed,
+        ) -> None:
+            target.append(evidence_service.observe_entity(entity_type, row))
+
         output, safe_error = executor.call_reserved_tool(
             session,
             claim,
@@ -105,7 +121,26 @@ def execute_read_only_run(
             invocation,
             timeout_seconds,
             resolve_provider,
+            capture_evidence if daily_brief else None,
         )
+        references: list[dict[str, object]] | None = None
+        if daily_brief and output is not None and safe_error is None:
+            try:
+                run = repository.get_agent_run(session, claim.run_id)
+                if run is None:
+                    raise evidence_service.ResearchValidationError
+                new_evidence = evidence_service.collect_output(
+                    run=run,
+                    step=step,
+                    invocation=invocation,
+                    output=output,
+                    offset=len(collected),
+                    observed=observed,
+                )
+                collected.extend(new_evidence)
+                references = evidence_service.evidence_references(new_evidence)
+            except evidence_service.ResearchValidationError:
+                safe_error = "daily_brief_evidence_invalid"
         session.rollback()
         succeeded = executor.finalize_invocation(
             session,
@@ -114,9 +149,23 @@ def execute_read_only_run(
             invocation_id=invocation.id,
             output=output,
             safe_error_code=safe_error,
+            evidence_references=references,
         )
         session.commit()
         if not succeeded:
             break
-    executor.complete_run(session, claim)
+    if daily_brief and resolve_daily_brief_provider is not None:
+        daily_brief_service.synthesize_and_persist(
+            session,
+            run_id=claim.run_id,
+            evidence=collected,
+            resolve_provider=resolve_daily_brief_provider,
+        )
+    executor.complete_run(
+        session,
+        claim,
+        require_daily_brief_result=(
+            daily_brief and resolve_daily_brief_provider is not None
+        ),
+    )
     session.commit()
