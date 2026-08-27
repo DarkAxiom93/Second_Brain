@@ -8,7 +8,7 @@ from datetime import UTC, datetime, time, timedelta
 
 import pytest
 from sqlalchemy import delete, func, select
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.agent_runs import service as run_service
@@ -626,3 +626,17 @@ def test_retry_classifier_is_closed() -> None:
     assert scheduler.is_retryable_setup_error(transient)
     assert not scheduler.is_retryable_setup_error(scheduler.SchedulerValidationError())
     assert not scheduler.is_retryable_setup_error(IntegrityError("statement", {}, None))
+
+
+@pytest.mark.parametrize("pgcode", ["40001", "40P01"])
+def test_serialization_and_deadlock_codes_are_bounded_retryable(pgcode: str) -> None:
+    class PostgreSQLError(Exception):
+        pass
+
+    original = PostgreSQLError("safe test error")
+    original.sqlstate = pgcode  # type: ignore[attr-defined]
+    error = DBAPIError("statement", {}, original, connection_invalidated=False)
+    assert scheduler.is_retryable_setup_error(error)
+    occurrence_id = uuid.UUID("00000000-0000-4000-8000-000000000084")
+    assert scheduler.retry_delay(occurrence_id, 1) <= scheduler.MAX_RETRY_DELAY
+    assert scheduler.retry_delay(occurrence_id, 3) <= scheduler.MAX_RETRY_DELAY

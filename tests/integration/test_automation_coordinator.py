@@ -30,6 +30,7 @@ from app.models.memory_proposal import MemoryProposal
 from app.models.project import Project
 from app.models.source import Source
 from app.models.source_chunk import SourceChunk
+from app.models.source_document import SourceDocument
 from app.schemas.agent_run import AgentRunCreate
 from tests.integration.conftest import verify_connected_test_database
 
@@ -50,6 +51,7 @@ def clean_runtime(
             Automation,
         ):
             session.execute(delete(model))
+        session.execute(delete(Project).where(Project.name.like("cp84-coordinator-%")))
         session.commit()
     yield
     with Session(get_engine()) as session:
@@ -63,17 +65,26 @@ def clean_runtime(
             Automation,
         ):
             session.execute(delete(model))
+        session.execute(delete(Project).where(Project.name.like("cp84-coordinator-%")))
         session.commit()
 
 
-def _linked(session: Session) -> tuple[AutomationOccurrence, AgentRun]:
+def _linked(
+    session: Session, *, agent_kind: str = "daily_brief"
+) -> tuple[AutomationOccurrence, AgentRun]:
     now = datetime.now(UTC).replace(microsecond=0)
+    project_id = None
+    if agent_kind == "project_watch":
+        project = Project(name=f"cp84-coordinator-{uuid.uuid4().hex}")
+        session.add(project)
+        session.flush()
+        project_id = project.id
     automation = Automation(
         label="Injected fixed definition",
         automation_kind="scheduled_agent",
-        agent_kind="daily_brief",
+        agent_kind=agent_kind,
         agent_version="1",
-        project_id=None,
+        project_id=project_id,
         lifecycle="enabled",
         revision=4,
         execution_mode="automatic_read_only",
@@ -91,10 +102,10 @@ def _linked(session: Session) -> tuple[AutomationOccurrence, AgentRun]:
     session.add(automation)
     session.flush()
     request = AgentRunCreate(
-        project_id=None,
-        agent_kind="daily_brief",
+        project_id=project_id,
+        agent_kind=agent_kind,
         agent_version="1",
-        goal_summary="Scheduled daily_brief: Injected fixed definition",
+        goal_summary=f"Scheduled {agent_kind}: fixed code-owned goal",
     )
     run = run_service.create_run(
         session,
@@ -117,10 +128,10 @@ def _linked(session: Session) -> tuple[AutomationOccurrence, AgentRun]:
         automation_revision=4,
         automation_kind="scheduled_agent",
         automation_label=automation.label,
-        agent_kind="daily_brief",
+        agent_kind=agent_kind,
         agent_version="1",
         execution_mode="automatic_read_only",
-        project_id=None,
+        project_id=project_id,
         agent_run_id=run.id,
     )
     session.add(occurrence)
@@ -128,13 +139,20 @@ def _linked(session: Session) -> tuple[AutomationOccurrence, AgentRun]:
     return occurrence, run
 
 
-def _definition(authority: str = "read") -> AutomaticAgentDefinition:
+def _definition(
+    authority: str = "read", *, agent_kind: str = "daily_brief"
+) -> AutomaticAgentDefinition:
     return AutomaticAgentDefinition(
-        kind="daily_brief",
+        kind=agent_kind,
         version="1",
         authority=authority,
         registry_version="agent-tools-v1",
         allowed_tools=(("memory.search_explained", 1),),
+        scope_rules=(
+            "exact-non-null-project"
+            if agent_kind == "project_watch"
+            else "exact-project-or-explicitly-unassigned"
+        ),
     )
 
 
@@ -194,16 +212,39 @@ def test_unimplemented_and_non_read_definitions_fail_before_planning() -> None:
         assert provider.calls == 0
 
 
-def test_fixed_read_only_definition_executes_once_replays_and_mutates_no_domain() -> (
-    None
-):
-    protected = (Project, Memory, Source, SourceChunk, MemoryProposal, ApprovalRequest)
-    with Session(get_engine()) as session:
-        occurrence, run = _linked(session)
-        before = tuple(
-            session.scalar(select(func.count()).select_from(model))
+@pytest.mark.parametrize("agent_kind", ["daily_brief", "project_watch"])
+def test_fixed_read_only_definition_executes_once_replays_and_mutates_no_domain(
+    agent_kind: str,
+) -> None:
+    protected = (
+        Project,
+        Memory,
+        Source,
+        SourceDocument,
+        SourceChunk,
+        MemoryProposal,
+        ApprovalRequest,
+    )
+
+    def snapshot(
+        session: Session,
+    ) -> tuple[tuple[str, tuple[tuple[object, ...], ...]], ...]:
+        return tuple(
+            (
+                model.__tablename__,
+                tuple(
+                    tuple(
+                        getattr(row, column.name) for column in model.__table__.columns
+                    )
+                    for row in session.scalars(select(model).order_by(model.id))
+                ),
+            )
             for model in protected
         )
+
+    with Session(get_engine()) as session:
+        occurrence, run = _linked(session, agent_kind=agent_kind)
+        before = snapshot(session)
         provider = FakePlanningProvider(_plan(run.goal_summary))
         arguments = dict(
             resolve_planning_provider=lambda: provider,
@@ -211,14 +252,11 @@ def test_fixed_read_only_definition_executes_once_replays_and_mutates_no_domain(
                 "lexical read resolved provider"
             ),
             provider_available=lambda: False,
-            definition_resolver=lambda _k, _v: _definition(),
+            definition_resolver=lambda _k, _v: _definition(agent_kind=agent_kind),
         )
         coordinator.coordinate_occurrence(session, occurrence.id, **arguments)
         coordinator.coordinate_occurrence(session, occurrence.id, **arguments)
-        after = tuple(
-            session.scalar(select(func.count()).select_from(model))
-            for model in protected
-        )
+        after = snapshot(session)
         assert before == after
         assert provider.calls == 1
         assert session.scalar(select(func.count()).select_from(AgentRun)) == 1
