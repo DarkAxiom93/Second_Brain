@@ -52,12 +52,32 @@ DAILY_BRIEF_DEFINITION = AutomaticAgentDefinition(
     max_claims=5,
     max_citations=20,
 )
+PROJECT_WATCH_TOOLS = DAILY_BRIEF_TOOLS
+PROJECT_WATCH_DEFINITION = AutomaticAgentDefinition(
+    kind="project_watch",
+    version="1",
+    authority="read",
+    registry_version="agent-tools-v1",
+    allowed_tools=PROJECT_WATCH_TOOLS,
+    planning_contract="project-watch-planning-v1",
+    synthesis_contract="project-watch-changes-v1",
+    evidence_rules="reviewed-local-change-window-exact-versioned",
+    scope_rules="exact-non-null-project",
+    max_evidence=20,
+    max_claims=5,
+    max_citations=20,
+)
 IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES: frozenset[tuple[str, str]] = frozenset(
-    {("daily_brief", "1")}
+    {("daily_brief", "1"), ("project_watch", "1")}
 )
 AUTOMATIC_AGENT_DEFINITIONS: MappingProxyType[
     tuple[str, str], AutomaticAgentDefinition
-] = MappingProxyType({("daily_brief", "1"): DAILY_BRIEF_DEFINITION})
+] = MappingProxyType(
+    {
+        ("daily_brief", "1"): DAILY_BRIEF_DEFINITION,
+        ("project_watch", "1"): PROJECT_WATCH_DEFINITION,
+    }
+)
 
 CATALOG = MappingProxyType(
     {

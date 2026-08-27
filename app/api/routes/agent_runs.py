@@ -43,6 +43,7 @@ from app.models.agent_runtime import (
     ApprovalRequest,
     ToolInvocation,
 )
+from app.project_watch import service as project_watch_service
 from app.repositories import agent_runtime as repository
 from app.research import service as research_service
 from app.research.catalog import RESEARCH_KIND, is_research, research_definition
@@ -72,6 +73,7 @@ from app.schemas.agent_run import (
     ApprovalRequestStatus,
     ApprovalReview,
     CuratorResultRead,
+    ProjectWatchResultRead,
     ResearchResultRead,
 )
 
@@ -264,7 +266,10 @@ def create_agent_run(
 ) -> AgentRun:
     """Create one Run and its sequence-zero event atomically."""
 
-    if (request.agent_kind, request.agent_version) == ("daily_brief", "1"):
+    if (request.agent_kind, request.agent_version) in {
+        ("daily_brief", "1"),
+        ("project_watch", "1"),
+    }:
         raise _error(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "agent definition unsupported"
         )
@@ -424,6 +429,7 @@ def _execution_projection(
     research_result: dict[str, object] | None = None,
     curator_result: dict[str, object] | None = None,
     daily_brief_result: dict[str, object] | None = None,
+    project_watch_result: dict[str, object] | None = None,
 ) -> AgentRunExecutionRead:
     by_step = {item.step_id: item for item in invocations}
     return AgentRunExecutionRead(
@@ -442,6 +448,11 @@ def _execution_projection(
             None
             if daily_brief_result is None
             else ResearchResultRead.model_validate(daily_brief_result)
+        ),
+        project_watch_result=(
+            None
+            if project_watch_result is None
+            else ProjectWatchResultRead.model_validate(project_watch_result)
         ),
         steps=[
             AgentStepExecutionRead(
@@ -485,6 +496,7 @@ def _load_execution(session: Session, run_id: uuid.UUID) -> AgentRunExecutionRea
         research_service.get_result(session, run.id),
         curator_service.get_result(session, run.id),
         daily_brief_service.get_result(session, run.id),
+        project_watch_service.get_result(session, run.id),
     )
 
 

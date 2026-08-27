@@ -12,20 +12,25 @@ from app.automations.catalog import (
 )
 
 
-def test_production_automatic_agent_set_contains_only_daily_brief_v1() -> None:
-    assert frozenset({("daily_brief", "1")}) == IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES
+def test_production_automatic_agent_set_contains_exact_fixed_v1_agents() -> None:
+    assert (
+        frozenset({("daily_brief", "1"), ("project_watch", "1")})
+        == IMPLEMENTED_AUTOMATION_AGENT_IDENTITIES
+    )
     definition = get_automatic_agent_definition("daily_brief", "1")
     assert definition is not None
     assert definition.authority == "read"
     assert definition.registry_version == "agent-tools-v1"
     assert definition.max_evidence == 20
-    assert get_automatic_agent_definition("project_watch", "1") is None
+    project_watch = get_automatic_agent_definition("project_watch", "1")
+    assert project_watch is not None
+    assert project_watch.scope_rules == "exact-non-null-project"
 
 
 @pytest.mark.parametrize("kind", ["daily_brief", "project_watch"])
 def test_reserved_family_covers_unimplemented_versions(kind: str) -> None:
     assert is_reserved_automation_agent_kind(kind)
-    assert is_reserved_automation_agent_identity(kind, "1") is (kind == "project_watch")
+    assert not is_reserved_automation_agent_identity(kind, "1")
     assert is_reserved_automation_agent_identity(kind, "unknown")
     assert is_planned_schedulable_identity(kind, "1")
     assert not is_planned_schedulable_identity(kind, "2")

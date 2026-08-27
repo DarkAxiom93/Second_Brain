@@ -169,6 +169,14 @@ class ResearchResultRead(BaseModel):
     insufficiency: Annotated[str | None, StringConstraints(max_length=1000)]
 
 
+class ProjectWatchResultRead(BaseModel):
+    status: Literal["changes_found", "no_meaningful_change"]
+    findings: Annotated[list[ResearchClaimRead], Field(max_length=5)]
+    citations: Annotated[list[ResearchCitationRead], Field(max_length=20)]
+    window_start: datetime
+    window_end: datetime
+
+
 class CuratorEvidenceRead(BaseModel):
     entity_type: Literal["project", "memory", "source", "source_chunk"]
     entity_id: uuid.UUID
@@ -198,6 +206,7 @@ class AgentRunExecutionRead(BaseModel):
     research_result: ResearchResultRead | None = None
     curator_result: CuratorResultRead | None = None
     daily_brief_result: ResearchResultRead | None = None
+    project_watch_result: ProjectWatchResultRead | None = None
 
 
 class ApprovalRequestCreate(BaseModel):

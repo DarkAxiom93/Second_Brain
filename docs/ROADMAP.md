@@ -111,8 +111,13 @@ history/inbox APIs and explicit-refresh Automations UI do not install either
 reserved fixed Agent, enable automatic execution, or begin Checkpoint 82.
 
 Checkpoint 82 implements only the fixed scheduled-only Daily Brief v1 identity
-and is approved and complete after human review. Project Watch remains
-unimplemented; Checkpoint 83 has not started.
+and is approved and complete after human review. Checkpoint 83 implements fixed
+scheduled-only Project Watch v1 for one exact non-null Project, with
+application-derived successful-occurrence watermarks, bounded versioned
+Project/Memory change evidence, cited changes/no-change results, automatic
+read-only execution, redacted completion notifications, and UI activation.
+Checkpoint 83 is approved and complete after human review. Checkpoint 84 has
+not started.
 
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger

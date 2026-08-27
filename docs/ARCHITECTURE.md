@@ -194,6 +194,19 @@ notifications, leases, keys, provider/Tool content, prompts, and mutation data
 remain unavailable. `project_watch` remains reserved and unimplemented.
 Checkpoint 82 is approved and complete after human review.
 
+Checkpoint 83 implements scheduled-only `project_watch` version `1` as the
+second and only other production Automation Agent identity. It requires one
+exact non-null Project and uses a fixed label-free goal, the existing five read
+Tools, and a closed Project/Memory change projection. The application derives
+the deterministic `(lower, upper]` window from durable Automation occurrence
+facts: the current canonical scheduled instant is the upper bound, and the
+lower bound is the prior successfully completed Project Watch occurrence's
+scheduled instant or a bounded seven-day first-run value. Only a completed
+linked Run with a persisted Project Watch result advances the predecessor.
+Results are bounded cited `changes_found` findings or a durable
+`no_meaningful_change`. Checkpoint 83 is approved and complete after human
+review; Checkpoint 84 has not started.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

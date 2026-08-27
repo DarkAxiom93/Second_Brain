@@ -17,6 +17,8 @@ from app.agent_runs import executor
 from app.daily_brief import service as daily_brief_service
 from app.daily_brief.provider import DailyBriefProvider
 from app.embeddings.provider import EmbeddingProvider
+from app.project_watch import service as project_watch_service
+from app.project_watch.provider import ProjectWatchProvider
 from app.repositories import agent_runtime as repository
 from app.research import service as evidence_service
 
@@ -80,6 +82,7 @@ def execute_read_only_run(
     resolve_provider: Callable[[], EmbeddingProvider],
     provider_available: Callable[[], bool],
     resolve_daily_brief_provider: Callable[[], DailyBriefProvider] | None = None,
+    resolve_project_watch_provider: Callable[[], ProjectWatchProvider] | None = None,
 ) -> None:
     """Execute once through ordinary reservations, dispatch, and finalization."""
 
@@ -94,6 +97,7 @@ def execute_read_only_run(
         return
     collected: list[evidence_service.CollectedEvidence] = []
     daily_brief = (claim.agent_kind, claim.agent_version) == ("daily_brief", "1")
+    project_watch = (claim.agent_kind, claim.agent_version) == ("project_watch", "1")
     while True:
         reserved = executor.reserve_next(
             session,
@@ -161,11 +165,20 @@ def execute_read_only_run(
             evidence=collected,
             resolve_provider=resolve_daily_brief_provider,
         )
+    if project_watch and resolve_project_watch_provider is not None:
+        project_watch_service.synthesize_and_persist(
+            session,
+            run_id=claim.run_id,
+            resolve_provider=resolve_project_watch_provider,
+        )
     executor.complete_run(
         session,
         claim,
         require_daily_brief_result=(
             daily_brief and resolve_daily_brief_provider is not None
+        ),
+        require_project_watch_result=(
+            project_watch and resolve_project_watch_provider is not None
         ),
     )
     session.commit()

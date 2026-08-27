@@ -135,7 +135,8 @@ def claim_execution(
         raise service.AgentRunNotFoundError
     if (
         is_reserved_automation_agent_identity(run.agent_kind, run.agent_version)
-        or (run.agent_kind, run.agent_version) == ("daily_brief", "1")
+        or (run.agent_kind, run.agent_version)
+        in {("daily_brief", "1"), ("project_watch", "1")}
     ) and automatic_allowed_tools is None:
         raise ExecutionAgentVersionError
     if run.state in {state.value for state in service.TERMINAL_STATES}:
@@ -559,7 +560,11 @@ def finalize_invocation(
 
 
 def complete_run(
-    session: Session, claim: ExecutionClaim, *, require_daily_brief_result: bool = False
+    session: Session,
+    claim: ExecutionClaim,
+    *,
+    require_daily_brief_result: bool = False,
+    require_project_watch_result: bool = False,
 ) -> AgentRun | None:
     run = repository.get_agent_run_for_update(session, claim.run_id)
     if run is None or run.state != AgentRunState.RUNNING.value:
@@ -602,6 +607,18 @@ def complete_run(
             expected_revision=run.revision,
             new_state=AgentRunState.FAILED,
             safe_error_code="daily_brief_result_missing",
+        )
+    if require_project_watch_result and not any(
+        event.event_type == "project_watch.result"
+        for event in repository.list_agent_events(session, run.id, limit=1000)
+    ):
+        return service.transition_run(
+            session,
+            run.id,
+            expected_state=AgentRunState.RUNNING,
+            expected_revision=run.revision,
+            new_state=AgentRunState.FAILED,
+            safe_error_code="project_watch_result_missing",
         )
     faults.fire(faults.FaultPoint.BEFORE_RUN_COMPLETION)
     return service.transition_run(

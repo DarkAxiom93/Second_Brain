@@ -19,6 +19,7 @@ from app.core.config import get_settings
 from app.daily_brief.dependencies import get_daily_brief_provider
 from app.db.session import get_engine
 from app.embeddings.dependencies import get_embedding_provider
+from app.project_watch.dependencies import get_project_watch_provider
 from app.repositories import automations as repository
 
 
@@ -157,6 +158,7 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
                     resolve_embedding_provider=get_embedding_provider,
                     provider_available=configured_embedding_provider_available,
                     resolve_daily_brief_provider=get_daily_brief_provider,
+                    resolve_project_watch_provider=get_project_watch_provider,
                 )
                 automatically_coordinated.append(occurrence.id)
             except Exception:

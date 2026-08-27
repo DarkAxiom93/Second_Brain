@@ -108,7 +108,20 @@ result persistence. Citations may identify a reviewed local entity or a closed
 Daily Brief `application_event` projection derived only from a terminal
 Automation occurrence. At most five application events are selected by
 `completed_at DESC, id DESC`; their projection excludes labels and private
-scheduler/runtime fields. Project Watch remains reserved and unimplemented.
+scheduler/runtime fields.
+
+Project Watch kind `project_watch` version `1` is scheduled-only and rejects
+public manual Run creation. It requires one exact non-null Project and supports
+both `create_only` and explicit `automatic_read_only`. Its fixed application-
+owned goal excludes the editable Automation label. The execution projection
+adds nullable `project_watch_result`, containing a deterministic window,
+`changes_found` with at most five findings and twenty versioned citations, or
+`no_meaningful_change` with no fabricated finding. Evidence is limited to the
+closed exact-scope Project and reviewed Memory state projection. The current
+canonical occurrence schedule is the upper boundary; only a prior completed
+Project Watch occurrence with a completed linked Run and persisted result may
+provide the next lower boundary. Failed, cancelled, expired, invalid, or
+ambiguous work never advances it.
 
 ## Explained Memory search
 

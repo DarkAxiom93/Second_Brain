@@ -401,9 +401,14 @@ def reconcile_linked(
                     code=f"run_{run.state}",
                     now=operation_time,
                 )
-            elif (run.agent_kind, run.agent_version) == ("daily_brief", "1"):
-                from app.daily_brief.service import get_result
-
+            elif (run.agent_kind, run.agent_version) in {
+                ("daily_brief", "1"),
+                ("project_watch", "1"),
+            }:
+                if (run.agent_kind, run.agent_version) == ("daily_brief", "1"):
+                    from app.daily_brief.service import get_result
+                else:
+                    from app.project_watch.service import get_result
                 if get_result(session, run.id) is not None:
                     _notification(
                         session,
@@ -599,6 +604,13 @@ def _run_request(occurrence: AutomationOccurrence) -> AgentRunCreate:
             "Produce Daily Brief v1 from reviewed local knowledge for "
             f"{scope}. Use only captured, version-validated evidence and return "
             "an evidence-cited bounded brief or insufficient evidence."
+        )
+    elif (occurrence.agent_kind, occurrence.agent_version) == ("project_watch", "1"):
+        goal = (
+            "Inspect meaningful reviewed local changes for the exact captured Project "
+            "within the application-derived Project Watch v1 window. Use only "
+            "captured, version-validated evidence and return cited changes or "
+            "no meaningful change."
         )
     else:
         goal = f"Scheduled {occurrence.agent_kind}: {occurrence.automation_label}"

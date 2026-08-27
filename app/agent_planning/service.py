@@ -94,7 +94,8 @@ def claim_planning(
         raise run_service.AgentRunNotFoundError
     if (
         is_reserved_automation_agent_identity(run.agent_kind, run.agent_version)
-        or (run.agent_kind, run.agent_version) == ("daily_brief", "1")
+        or (run.agent_kind, run.agent_version)
+        in {("daily_brief", "1"), ("project_watch", "1")}
     ) and automatic_allowed_tools is None:
         raise AgentDefinitionUnsupportedError
     if run.state == AgentRunState.READY.value:
