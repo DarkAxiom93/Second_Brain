@@ -1,9 +1,22 @@
 """Exact-reference credential-store contract and safe failures."""
 
+import re
 from dataclasses import dataclass
 from typing import NewType, Protocol
 
 CredentialReference = NewType("CredentialReference", str)
+_REFERENCE_PATTERN = re.compile(
+    r"\Asbcred:v1:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-"
+    r"[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z"
+)
+
+
+def validate_credential_reference(value: str) -> CredentialReference:
+    """Return the exact application-owned opaque form or fail closed."""
+
+    if _REFERENCE_PATTERN.fullmatch(value) is None:
+        raise ValueError("invalid credential reference")
+    return CredentialReference(value)
 
 
 @dataclass(frozen=True, slots=True)

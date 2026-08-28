@@ -12,6 +12,7 @@ from app.models.automation import (
     AutomationNotification,
     AutomationOccurrence,
 )
+from app.models.connector import ConnectorAccount, ConnectorSyncRun, ExternalItem
 from app.models.memory import Memory
 from app.models.memory_embedding import MemoryEmbedding
 from app.models.memory_extraction_run import MemoryExtractionRun
@@ -30,6 +31,9 @@ __all__ = [
     "Automation",
     "AutomationNotification",
     "AutomationOccurrence",
+    "ConnectorAccount",
+    "ConnectorSyncRun",
+    "ExternalItem",
     "Memory",
     "MemoryEmbedding",
     "MemoryExtractionRun",

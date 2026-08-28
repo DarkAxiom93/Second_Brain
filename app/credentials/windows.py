@@ -1,7 +1,6 @@
 """Windows Credential Manager adapter using only Python stdlib ``ctypes``."""
 
 import ctypes
-import re
 import sys
 import threading
 import uuid
@@ -17,13 +16,11 @@ from app.credentials.contract import (
     CredentialStoreStatus,
     CredentialStoreUnavailableError,
     clear_secret,
+    validate_credential_reference,
 )
 
 _REFERENCE_PREFIX = "sbcred:v1:"
 _TARGET_PREFIX = "SecondBrain/connector/v1/"
-_REFERENCE_PATTERN = re.compile(
-    r"\Asbcred:v1:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z"
-)
 _CRED_TYPE_GENERIC = 1
 _CRED_PERSIST_LOCAL_MACHINE = 2
 _ERROR_NOT_FOUND = 1168
@@ -66,7 +63,9 @@ def _lock_for(reference: CredentialReference) -> threading.Lock:
 
 def _target(reference: CredentialReference) -> str:
     raw = str(reference)
-    if _REFERENCE_PATTERN.fullmatch(raw) is None:
+    try:
+        validate_credential_reference(raw)
+    except ValueError:
         raise CredentialStoreError() from None
     return f"{_TARGET_PREFIX}{raw.removeprefix(_REFERENCE_PREFIX)}"
 

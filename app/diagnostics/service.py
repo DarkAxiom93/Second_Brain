@@ -12,7 +12,7 @@ from sqlalchemy.engine import URL, make_url
 from app.core.config import Settings
 from app.diagnostics.models import DiagnosticCheck
 
-EXPECTED_HEAD = "0011_automation_persistence"
+EXPECTED_HEAD = "0012_connector_persistence"
 EXPECTED_HOST = "127.0.0.1"
 EXPECTED_PORT = 5433
 MIN_POSTGRESQL_VERSION = 16
@@ -32,6 +32,9 @@ REQUIRED_TABLES = (
     "tool_invocations",
     "approval_requests",
     "agent_events",
+    "connector_accounts",
+    "connector_sync_runs",
+    "external_items",
 )
 COUNT_TABLES = {
     "Projects": "projects",

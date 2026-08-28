@@ -42,6 +42,9 @@ def test_metadata_contains_only_approved_tables() -> None:
         "automations",
         "automation_occurrences",
         "automation_notifications",
+        "connector_accounts",
+        "connector_sync_runs",
+        "external_items",
     }
 
 

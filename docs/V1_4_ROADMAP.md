@@ -5,7 +5,7 @@ Status: **Approved by human review; Checkpoint 87 complete.**
 This document plans Local V1.4 only. It authorizes no implementation. Local
 V1.3 is the current published release as `v1.3.0` from
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The current stable identities are
-Alembic `0011_automation_persistence`, Tool Registry `agent-tools-v1`, and
+Alembic `0012_connector_persistence`, Tool Registry `agent-tools-v1`, and
 Project export `second-brain-project-export` version `1`.
 
 ## Decision
@@ -385,8 +385,9 @@ downgrades run only against the verified test database.
 Checkpoint 87 starts none of Checkpoints 88-97.
 
 Implementation status: Checkpoint 88 is approved and complete after human
-review. It adds only the Windows per-user credential-store prerequisite and
-secret boundary described above. Checkpoints 89-97 have not started.
+review. Checkpoint 89 is approved and complete after human review and adds only
+the inert connector persistence and closed GitHub catalog described above.
+Checkpoints 90-97 have not started.
 
 ## Explicitly deferred beyond V1.4
 

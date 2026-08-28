@@ -13,7 +13,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0011_automation_persistence"
+    assert revision == "0012_connector_persistence"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -53,6 +53,9 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "automations",
         "automation_occurrences",
         "automation_notifications",
+        "connector_accounts",
+        "connector_sync_runs",
+        "external_items",
     }
 
 
@@ -61,7 +64,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0011_automation_persistence"]
+    assert script.get_heads() == ["0012_connector_persistence"]
+    assert script.get_revision("0012_connector_persistence").down_revision == (
+        "0011_automation_persistence"
+    )
     assert script.get_revision("0011_automation_persistence").down_revision == (
         "0010_agent_runtime_persistence"
     )
