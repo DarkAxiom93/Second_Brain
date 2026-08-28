@@ -1,6 +1,6 @@
 # Local V1.3 Automation threat model
 
-Status: **Approved and complete with Checkpoint 75.**
+Status: **Implemented through approved Checkpoint 85; A01-A18 are release gates.**
 
 This model extends, and does not replace, `AGENT_THREAT_MODEL.md`. The protected
 assets remain reviewed knowledge, exact nullable Project scope, database and
@@ -37,7 +37,8 @@ authoritative for ownership; host wake timing is not.
 
 ## Threat register
 
-Every `Axx` item requires deterministic tests before V1.3 acceptance.
+Every `Axx` item has deterministic accepted Checkpoint 84 tests and remains a
+release gate.
 
 | ID / threat | Impact | Prevention and fail-closed behavior | Detection / recovery / required tests |
 |---|---|---|---|

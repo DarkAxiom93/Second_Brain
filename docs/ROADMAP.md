@@ -95,7 +95,7 @@ evidence-backed answers; batch embedding/re-embedding; read-only maintenance
 and diagnostics; versioned Project export and controlled import; all eight
 top-level local UI routes; non-authoritative CI; and V1/V1.1 acceptance.
 
-## Proposed Local V1.3
+## Local V1.3 release candidate
 
 Checkpoint 75 completed the approved documentation-only
 [Local Automations & Scheduled Agents](V1_3_AUTOMATION_ROADMAP.md) architecture
@@ -116,8 +116,11 @@ scheduled-only Project Watch v1 for one exact non-null Project, with
 application-derived successful-occurrence watermarks, bounded versioned
 Project/Memory change evidence, cited changes/no-change results, automatic
 read-only execution, redacted completion notifications, and UI activation.
-Checkpoint 83 is approved and complete after human review. Checkpoint 84 has
-not started.
+Checkpoint 83 is approved and complete after human review. Checkpoint 84's
+A01-A18 deterministic security/evaluation harness and Checkpoint 85's joined
+V1.3 end-to-end acceptance are approved and complete. Checkpoint 86 performs
+documentation-and-evidence-only release hardening; publication remains a
+separate approval.
 
 The proposed scope is a local scheduler; typed one-time, daily, and weekly
 Automation definitions; explicit enable/pause/cancel lifecycle; durable trigger
@@ -127,15 +130,11 @@ fixed read-only Daily Brief and Project Watch Agents. An Automation is a durable
 trigger that may create one bounded Agent Run per occurrence; it is never the
 Run and grants no additional authority.
 
-Automatic planning/execution is proposed only for explicit opt-in fixed
-read-only Agents after a trigger-only scheduler and recovery foundation pass
-independent review. The initial/default mode creates a Run for explicit human
-execution. The independently reviewable implementation sequence is Checkpoints
-76-86. Checkpoint 76 implements only the three-table persistence foundation and
-is complete after human review. Checkpoint 77 implements the additive typed
-Automation API, revision-aware lifecycle, and deterministic schedule preview;
-it is approved and complete after human review. Checkpoint 78 implements the
-approved trigger-only scheduler foundation and is complete after human review.
+Automatic planning/execution exists only for explicit opt-in fixed read-only
+Daily Brief v1 and Project Watch v1. The default `create_only` mode creates a
+Run for explicit human execution. The independently reviewed implementation
+sequence is Checkpoints 76-85; Checkpoint 86 changes only release documentation
+and evidence.
 
 Connectors, arbitrary/external research or network access, external writes,
 proposal execution, automatic Approval, credentials, authentication/multi-user,

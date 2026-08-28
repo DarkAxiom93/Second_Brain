@@ -1,7 +1,8 @@
-# Local V1.2 runbook
+# Local V1.3 runbook
 
-This runbook is the supported Windows maintainer path for the current Local
-V1.2.1 release. Published `v1.2.0` remains intact as the preceding release.
+This runbook is the supported Windows maintainer path for the Local V1.3
+release candidate. Published `v1.2.1` remains the recovery release until a
+separate publication approval creates `v1.3.0`.
 Run commands from the repository root in PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
@@ -63,7 +64,7 @@ Invoke-RestMethod http://127.0.0.1:5173/api/ready
 ```
 
 The top-level screens are Dashboard, Projects, Sources, Proposals, Memories,
-Search, Answers, Agent Runs, and Settings. Provider-backed semantic/hybrid search,
+Search, Answers, Agent Runs, Automations, Notifications, and Settings. Provider-backed semantic/hybrid search,
 proposal generation, and successful answered responses require configured
 provider credentials; deterministic automated tests cover those success paths
 when credentials are absent.
@@ -72,6 +73,19 @@ Search uses the additive explained-search endpoint and displays deterministic
 channel ranks and signals as ordering aids, never as confidence or certainty.
 Lexical explained search requires no provider. Semantic and hybrid modes fail
 safely when no provider is configured and never retry automatically.
+
+Run one bounded scheduler tick only when due work should be processed:
+
+```powershell
+.\scripts\run-automation-scheduler.ps1
+```
+
+The scheduler is a dedicated operator process, not Uvicorn startup behavior.
+Stopping it is safe: committed Automations, occurrences, Runs, and notifications
+remain durable in PostgreSQL. Restart derives work only from committed state,
+reclaims only expired generation-fenced leases, and reuses linked Runs. There is
+no replay-all recovery. `create_only` is the default; `automatic_read_only` is
+explicit opt-in. No database lock spans provider or Tool latency.
 
 ## Full verification
 
@@ -138,7 +152,7 @@ the result as sensitive. Create the destination directory first:
 
 ```powershell
 docker compose --env-file .env.example exec -T db `
-  pg_dump -U postgres -d second_brain -Fc -f /tmp/second-brain.dump
+  pg_dump -U second_brain -d second_brain -Fc -f /tmp/second-brain.dump
 docker compose --env-file .env.example cp db:/tmp/second-brain.dump C:\backup\second-brain.dump
 docker compose --env-file .env.example exec -T db `
   pg_restore --list /tmp/second-brain.dump
@@ -173,9 +187,9 @@ volume. Never use `docker compose down -v`.
 
 ## Recovery
 
-Local V1.2.0 `v1.2.0` at
-`67e790f2f2c34b346773cddba385fa3f2db04a26` is the preceding published release
-for patch rollback. It uses the same `0010_agent_runtime_persistence` revision,
+Local V1.2.1 `v1.2.1` at
+`04e9db33dc0de7529b1599871c58cace6ed9f9e2` is the published recovery release.
+It uses revision `0010_agent_runtime_persistence`,
 but recovery still belongs in a separate checkout with a verified backup and an
 identity-checked database. Never downgrade the development database. Preserve
 the PostgreSQL container and `second-brain_postgres_data` named volume. Version

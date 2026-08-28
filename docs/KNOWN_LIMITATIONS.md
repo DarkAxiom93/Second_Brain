@@ -1,4 +1,4 @@
-# Local V1.2 known limitations
+# Local V1.3 candidate known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -25,9 +25,10 @@ artifacts. V1.2.1 is the current published patch release from
 `04e9db33dc0de7529b1599871c58cace6ed9f9e2`; V1.2.0 remains intact as the
 preceding release from `67e790f2f2c34b346773cddba385fa3f2db04a26`. The
 live-provider and Agent reliability hardening is documented in
-[V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). Checkpoint 75 completed the
-approved documentation-only V1.3 Automation architecture; no V1.3
-implementation has started.
+[V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). Checkpoints 75-85 completed
+the approved V1.3 Automation architecture, implementation, security gates, and
+acceptance. Checkpoint 86 release hardening is approved and complete after
+human review; V1.3 is not published.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -40,10 +41,17 @@ implementation has started.
   explicit-refresh Agent UI, fixed read-only Research Agent, and fixed advisory
   Memory Curator Agent exist. The Curator can create only immutable
   `memory.update` Approval Requests; there is no Approval execution.
-- There are no scheduled jobs, background workers, autonomous agents, or
-  Automations. An Automation is deferred and would be a trigger that creates an
-  Agent Run, not the Run itself. The proposed V1.3 plan authorizes no current
-  behavior.
+- Automations run only through an explicit operator-started scheduler command;
+  there is no continuously embedded API worker. Scheduling is limited to typed
+  one-time/daily/weekly definitions and the fixed Daily Brief v1 and Project
+  Watch v1 Agents. `create_only` is default and `automatic_read_only` is opt-in.
+- Research and Memory Curator remain unschedulable. There are no arbitrary Agent
+  prompts or Tools, external/network research, connectors, automatic reviewed-
+  knowledge writes, proposal execution, or automatic Approval.
+- Notifications are a local content-free inbox only. There is no webhook,
+  email, push, OS notification, or other external delivery.
+- Automation, occurrence, Run, and notification history has no automatic
+  deletion. Scheduler recovery has no replay-all behavior.
 - Maintenance and diagnostics are read-only. There is no automatic
   maintenance, repair, expiration processing, or re-embedding.
 - Version 1 `.sbexport` bundles are private but not encrypted. Protect them as

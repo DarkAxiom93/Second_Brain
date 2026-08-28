@@ -1,6 +1,6 @@
 # Local V1.3 Automations roadmap
 
-Status: **Approved and complete with Checkpoint 75.**
+Status: **Implementation and release hardening complete through approved Checkpoint 86.**
 
 This document plans Local V1.3 only. It authorizes no implementation. Local
 V1.2.1 at `04e9db33dc0de7529b1599871c58cace6ed9f9e2` remains the published
@@ -512,5 +512,6 @@ downgrades occur only in the verified test database.
 - **Focused tests:** complete Full verification and clean-install/restart checks.
 - **Rollback:** documentation revert; V1.2.1 remains the recovery release.
 
-Checkpoint 75 authorizes none of Checkpoints 76-86. Each begins only after
-separate human approval. Checkpoint 75 itself is approved and complete.
+Checkpoints 75-85 are approved and complete after separate human review.
+Checkpoint 86 release hardening is approved and complete after human review; no
+tag or GitHub Release has been created.

@@ -21,7 +21,7 @@ Second Brain is a local-first personal knowledge management application. It comb
 
 The core workflow keeps source material, model suggestions, reviewed knowledge, and agent activity visibly separate.
 
-| Area | Current V1.2 capabilities |
+| Area | Current V1.3 candidate capabilities |
 | --- | --- |
 | Organize | Group knowledge into Projects and maintain structured, provenance-linked Memories. |
 | Ingest | Create Sources and ingest TXT, PDF, or JSON content into auditable documents and chunks. |
@@ -30,6 +30,7 @@ The core workflow keeps source material, model suggestions, reviewed knowledge, 
 | Answer | Ask stateless questions over bounded Memory retrieval and receive evidence-backed Answers with citations. |
 | Move data | Export a Project to a private versioned bundle, validate an import without writing, and execute only conflict-free imports. |
 | Use Agents | Manually run bounded plans, use a read-only Research Agent, review advisory Memory Curator proposals, and inspect explicit Approvals. |
+| Automate | Define one-time, daily, or weekly Automations for fixed Daily Brief and Project Watch Agents, using safe `create_only` or explicit `automatic_read_only` execution. |
 
 Second Brain also includes explicit Memory supersession, expiration, quality refinement, embedding maintenance, local diagnostics, and maintenance audits. Provider-backed features require locally configured credentials; lexical search and the rest of the deterministic application remain available without them.
 
@@ -51,11 +52,12 @@ Answers retrieve a bounded set of Memory evidence and render supporting citation
   <img src="docs/assets/screenshots/evidence-backed-answer.png" alt="Stateless generated Answer with cited supporting Memory evidence and retrieval ranks" width="1200">
 </p>
 
-## Agents: safety by design
+## Agents and Automations: safety by design
 
-V1.2 treats model output and retrieved content as untrusted data. Agents do not receive a terminal, a browser, database access, or a general-purpose tool interface. Instead, every Run passes through application-owned policy, a versioned tool registry, strict schemas, bounded plans, and durable audit state.
+Second Brain treats model output and retrieved content as untrusted data. Agents do not receive a terminal, a browser, database access, or a general-purpose tool interface. Instead, every Run passes through application-owned policy, a versioned tool registry, strict schemas, bounded plans, and durable audit state.
 
-- Runs are initiated manually; there is no background worker, scheduler, or autonomous trigger.
+- Manual Agents remain explicitly initiated. A separate operator-started scheduler may trigger only the fixed `daily_brief` v1 and `project_watch` v1 Agents.
+- Automations default to `create_only`; `automatic_read_only` is an explicit opt-in and cannot grant write, propose, or Approval authority.
 - The Research Agent is read-only and can use only scoped, application-owned read Tools.
 - The Memory Curator is advisory and can create only immutable `memory.update` proposals.
 - A human explicitly approves or rejects proposed actions; V1.2 cannot execute a proposal.
@@ -117,17 +119,19 @@ Then open two additional PowerShell terminals at the repository root:
 .\scripts\frontend-dev.ps1
 ```
 
-Open <http://127.0.0.1:5173>. The complete safe setup, migration verification, backup, shutdown, troubleshooting, and recovery procedures are in the [Local V1.2 runbook](docs/LOCAL_V1_RUNBOOK.md).
+Open <http://127.0.0.1:5173>. The complete safe setup, migration verification, backup, shutdown, troubleshooting, and recovery procedures are in the [local runbook](docs/LOCAL_V1_RUNBOOK.md).
 
-To run one explicit bounded trigger-only Automation scheduler tick:
+To run one explicit bounded Automation scheduler tick:
 
 ```powershell
 .\scripts\run-automation-scheduler.ps1
 ```
 
-The command materializes and claims bounded due `create_only` work and creates
-at most one inert `created` Agent Run per occurrence. It does not plan or execute
-Agents, call providers or Tools, reconcile missed work, or run from API startup.
+The command materializes and claims bounded due work, creates or reuses at most
+one Agent Run per occurrence, reconciles committed state, and coordinates only
+explicit `automatic_read_only` Daily Brief or Project Watch work. `create_only`
+remains the default. The command is one operator-started tick and never runs from
+API startup.
 
 ## Current release
 
@@ -139,11 +143,13 @@ Release commit: [`04e9db33dc0de7529b1599871c58cace6ed9f9e2`](https://github.com/
 
 Read the [V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md) and [V1.2.1 hotfix report](docs/V1_2_1_HOTFIX_REPORT.md) for the detailed inventory, verification, and recovery guidance.
 
+Local V1.3 is a release candidate only. See the [candidate V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md); no `v1.3.0` tag or GitHub Release has been created.
+
 ## Current limitations
 
 - Second Brain is a trusted, single-maintainer local application with no authentication, remote access, synchronization, or multi-user isolation.
 - Provider-backed proposal generation, embeddings, semantic/hybrid retrieval, and successful generated Answers require local provider credentials.
-- Agents remain bounded. Typed Automations and an explicit trigger-only scheduler can create inert Runs, but there is no automatic planning/execution, recovery loop, background startup worker, connector, autonomous approval, external write, or proposal execution.
+- Agents remain bounded. Automatic execution is limited to explicit opt-in fixed read-only Daily Brief and Project Watch definitions; there is no startup worker, connector, autonomous Approval, external write, or proposal execution.
 - Answers are stateless; questions, answers, citations, and conversation history are not persisted.
 - Project bundles are sensitive and unencrypted, exclude Agent and Approval state, and support validation-first, conflict-free import only—never merge or overwrite.
 - Maintenance is explicit and advisory; there is no automatic repair, expiration processing, or re-embedding.
@@ -157,6 +163,7 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 | [Local runbook](docs/LOCAL_V1_RUNBOOK.md) | Supported Windows setup, verification, backup, shutdown, and recovery. |
 | [Architecture](docs/ARCHITECTURE.md) | System topology, components, persistence, boundaries, and transactions. |
 | [V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md) | Release inventory, safety boundary, and recovery notes. |
+| [V1.3 candidate release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) | Candidate Automation inventory, verification, recovery, and deferred scope. |
 | [Known limitations](docs/KNOWN_LIMITATIONS.md) | Current operational and product boundaries. |
 | [Agent threat model](docs/AGENT_THREAT_MODEL.md) | Assets, trust boundaries, security invariants, and threat controls. |
 | [Verification](docs/VERIFICATION.md) | Local verification requirements and release-authoritative checks. |

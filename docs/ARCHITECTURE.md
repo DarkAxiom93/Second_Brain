@@ -205,7 +205,17 @@ scheduled instant or a bounded seven-day first-run value. Only a completed
 linked Run with a persisted Project Watch result advances the predecessor.
 Results are bounded cited `changes_found` findings or a durable
 `no_meaningful_change`. Checkpoint 83 is approved and complete after human
-review; Checkpoint 84 has not started.
+review.
+
+Checkpoint 84 is approved and complete after human review. Its deterministic
+A01-A18 manifest, adversarial corpus, PostgreSQL concurrency/fault gates,
+notification privacy checks, and complete-row protected-domain snapshots add
+release evidence without changing production behavior. Checkpoint 85 is also
+approved and complete: its joined acceptance proves both fixed Agents through
+the loopback API, scheduler, Agent Runtime, history, notification, and UI
+contracts without duplicate occurrences or Runs. Checkpoint 86 is
+documentation-and-evidence-only release hardening for candidate `v1.3.0`; no
+tag or GitHub Release has been created.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

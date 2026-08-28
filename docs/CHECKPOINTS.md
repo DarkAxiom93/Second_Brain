@@ -89,6 +89,9 @@ history. A dash means Alembic had not yet been introduced.
 | 81 | Automations UI and local notification inbox | Complete | `0011_automation_persistence` | This commit |
 | 82 | Daily Brief Agent v1 | Complete | `0011_automation_persistence` | This commit |
 | 83 | Project Watch Agent v1 | Complete | `0011_automation_persistence` | This commit |
+| 84 | Automation security and evaluation harness | Complete | `0011_automation_persistence` | `3318859` |
+| 85 | Local V1.3 end-to-end acceptance | Complete | `0011_automation_persistence` | `8232918` |
+| 86 | Local V1.3 release hardening | Complete | `0011_automation_persistence` | This commit |
 
 ## Standard lifecycle
 
