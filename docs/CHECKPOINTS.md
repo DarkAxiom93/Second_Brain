@@ -95,8 +95,9 @@ history. A dash means Alembic had not yet been introduced.
 | 87 | Local V1.4 scope, architecture, roadmap, and threat model | Complete | `0011_automation_persistence` | This commit |
 | 88 | OS credential-store prerequisite and secret boundary | Complete | `0011_automation_persistence` | This commit |
 | 89 | Inert connector persistence and closed catalog | Complete | `0012_connector_persistence` | This commit |
+| 90 | Connector account lifecycle and safe UI | Complete | `0012_connector_persistence` | This commit |
 
-Proposed Checkpoints 90-97 are defined in `V1_4_ROADMAP.md`; none has started.
+Proposed Checkpoints 91-97 are defined in `V1_4_ROADMAP.md`; none has started.
 
 ## Standard lifecycle
 

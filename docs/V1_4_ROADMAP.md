@@ -387,7 +387,10 @@ Checkpoint 87 starts none of Checkpoints 88-97.
 Implementation status: Checkpoint 88 is approved and complete after human
 review. Checkpoint 89 is approved and complete after human review and adds only
 the inert connector persistence and closed GitHub catalog described above.
-Checkpoints 90-97 have not started.
+Checkpoint 90 is approved and complete after human review. It adds
+metadata-only, revision-aware GitHub account lifecycle/configuration APIs and
+an accessible Settings flow without credential display, browser persistence,
+provider calls, or new authority. Checkpoints 91-97 have not started.
 
 ## Explicitly deferred beyond V1.4
 

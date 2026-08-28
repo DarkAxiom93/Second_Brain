@@ -181,6 +181,9 @@ textarea { min-height: 6rem; resize: vertical; }
 .count-grid dd { margin: .25rem 0 0; font-size: 1.35rem; font-weight: 750; }
 .finding-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
 .finding-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; border-radius: .65rem; background: #f2f6f0; overflow-wrap: anywhere; }
+.connector-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.connector-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; overflow-wrap: anywhere; }
+.connector-list h3, .connector-list p { margin: 0 0 .5rem; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .agent-list { display: grid; gap: 1rem; margin: 0; padding-left: 1.5rem; }
 .agent-list > li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; overflow-wrap: anywhere; }

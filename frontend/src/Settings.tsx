@@ -14,6 +14,7 @@ import {
   type OperationsDiagnostics,
   type OperationsMaintenanceAudit,
 } from "./api/client";
+import { ConnectorAccounts } from "./ConnectorAccounts";
 
 type LoadState = "loading" | "ready" | "error";
 const labels: Record<string, string> = {
@@ -165,6 +166,7 @@ export function Settings() {
       {maintenanceState === "error" && <p>Embedding coverage could not be loaded.</p>}
       {maintenanceState === "ready" && <dl className="count-grid"><div><dt>Active Memories</dt><dd>{activeCount}</dd></div><div><dt>Current embeddings</dt><dd>{embeddedCurrent}</dd></div><div><dt>Missing embeddings</dt><dd>{missing}</dd></div><div><dt>Stale or incompatible</dt><dd>{stale}</dd></div></dl>}
     </section>
+    <ConnectorAccounts />
     <section className="panel operations-panel" aria-labelledby="export-heading"><h2 id="export-heading">Project Export</h2><p>Download one private, unencrypted Project bundle. Store it securely.</p>
       {projects.length === 0 ? <button type="button" onClick={() => void loadProjects(0)}>Load Projects</button> : <><label htmlFor="export-project">Project</label><select id="export-project" value={selectedProject} onChange={e => setSelectedProject(e.target.value)}><option value="">Select a Project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select><div className="actions"><button type="button" disabled={!selectedProject || exportState === "loading"} onClick={() => void startExport()}>{exportState === "loading" ? "Exporting…" : "Export selected Project"}</button><button type="button" disabled={projectOffset === 0} onClick={() => void loadProjects(Math.max(0, projectOffset - projectPageSize))}>Previous Projects</button><button type="button" disabled={projects.length < projectPageSize} onClick={() => void loadProjects(projectOffset + projectPageSize)}>Next Projects</button>{exportState === "loading" && <button type="button" onClick={() => operationController.current?.abort()}>Cancel Export</button>}</div></>}
       <p aria-live="polite">{exportState === "success" ? "Export download started." : exportState === "error" ? "The Project export could not be downloaded safely." : ""}</p>

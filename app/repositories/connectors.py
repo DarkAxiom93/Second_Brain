@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from app.connectors.validation import (
@@ -41,6 +41,19 @@ def get_account(session: Session, account_id: uuid.UUID) -> ConnectorAccount | N
     )
 
 
+def list_accounts(
+    session: Session, *, limit: int, offset: int
+) -> list[ConnectorAccount]:
+    return list(
+        session.scalars(
+            select(ConnectorAccount)
+            .order_by(ConnectorAccount.created_at.desc(), ConnectorAccount.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+    )
+
+
 def lock_account(session: Session, account_id: uuid.UUID) -> ConnectorAccount | None:
     return session.scalar(
         select(ConnectorAccount)
@@ -57,6 +70,19 @@ def increment_account_revision(
         account.revision += 1
         session.flush()
     return account
+
+
+def has_active_sync_run(session: Session, account_id: uuid.UUID) -> bool:
+    return bool(
+        session.scalar(
+            select(
+                exists().where(
+                    ConnectorSyncRun.account_id == account_id,
+                    ConnectorSyncRun.status.in_(("claimed", "running")),
+                )
+            )
+        )
+    )
 
 
 def create_sync_run(session: Session, run: ConnectorSyncRun) -> ConnectorSyncRun:

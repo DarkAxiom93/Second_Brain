@@ -37,6 +37,13 @@ export type ProjectRead = {
   created_at: string;
   updated_at: string;
 };
+export type ConnectorAccount = {
+  id: string; provider: "github"; external_account_identity: string;
+  scope: { kind: "project" | "unassigned"; project_id: string | null };
+  repositories: string[]; lifecycle: "disabled" | "enabled" | "revoked";
+  validation_status: "unvalidated" | "valid" | "invalid" | "expired" | "revoked";
+  revision: number; last_validated_at: string | null; created_at: string; updated_at: string;
+};
 export type ProjectCreate = { name: string; description: string | null };
 export type SourceRead = {
   id: string;
@@ -428,6 +435,35 @@ function isProjectList(value: unknown): value is ProjectRead[] {
 
 export function listProjects(limit: number, offset: number, signal?: AbortSignal): Promise<ProjectRead[]> {
   return request(`/projects?limit=${limit}&offset=${offset}`, isProjectList, signal);
+}
+
+function isConnectorAccount(value: unknown): value is ConnectorAccount {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["created_at", "external_account_identity", "id", "last_validated_at", "lifecycle", "provider", "repositories", "revision", "scope", "updated_at", "validation_status"];
+  if (JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(keys.sort()) ||
+      typeof r.id !== "string" || !UUID_PATTERN.test(r.id) || r.provider !== "github" ||
+      typeof r.external_account_identity !== "string" || !Array.isArray(r.repositories) ||
+      r.repositories.length < 1 || r.repositories.length > 32 || !r.repositories.every(x => typeof x === "string") ||
+      !["disabled", "enabled", "revoked"].includes(r.lifecycle as string) ||
+      !["unvalidated", "valid", "invalid", "expired", "revoked"].includes(r.validation_status as string) ||
+      !Number.isInteger(r.revision) || (r.revision as number) < 0 || !isTimestamp(r.created_at) ||
+      !isTimestamp(r.updated_at) || (r.last_validated_at !== null && !isTimestamp(r.last_validated_at))) return false;
+  if (typeof r.scope !== "object" || r.scope === null || Array.isArray(r.scope)) return false;
+  const scope = r.scope as Record<string, unknown>;
+  return JSON.stringify(Object.keys(scope).sort()) === JSON.stringify(["kind", "project_id"]) &&
+    ((scope.kind === "unassigned" && scope.project_id === null) ||
+     (scope.kind === "project" && typeof scope.project_id === "string" && UUID_PATTERN.test(scope.project_id)));
+}
+
+export function listConnectorAccounts(signal?: AbortSignal) {
+  return request("/connector-accounts?limit=100&offset=0", (v): v is ConnectorAccount[] => Array.isArray(v) && v.every(isConnectorAccount), signal);
+}
+export function createConnectorAccount(body: { external_account_identity: string; credential_reference: string; scope: ConnectorAccount["scope"]; repositories: string[] }, signal?: AbortSignal) {
+  return request("/connector-accounts", isConnectorAccount, signal, { method: "POST", body });
+}
+export function connectorLifecycle(id: string, action: "disable" | "re-enable" | "revoke", expected_revision: number, signal?: AbortSignal) {
+  return request(`/connector-accounts/${id}/${action}`, isConnectorAccount, signal, { method: "POST", body: { expected_revision } });
 }
 
 export function createProject(project: ProjectCreate, signal?: AbortSignal): Promise<ProjectRead> {
