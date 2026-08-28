@@ -92,6 +92,9 @@ history. A dash means Alembic had not yet been introduced.
 | 84 | Automation security and evaluation harness | Complete | `0011_automation_persistence` | `3318859` |
 | 85 | Local V1.3 end-to-end acceptance | Complete | `0011_automation_persistence` | `8232918` |
 | 86 | Local V1.3 release hardening | Complete | `0011_automation_persistence` | This commit |
+| 87 | Local V1.4 scope, architecture, roadmap, and threat model | Complete | `0011_automation_persistence` | This commit |
+
+Proposed Checkpoints 88-97 are defined in `V1_4_ROADMAP.md`; none has started.
 
 ## Standard lifecycle
 

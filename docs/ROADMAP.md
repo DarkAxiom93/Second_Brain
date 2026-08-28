@@ -11,7 +11,9 @@ point. Local V1.1 is published as `v1.1.0` from exact commit
 commit. Local V1.2.1 is the current published V1.2 patch release, tagged
 `v1.2.1` from exact commit `04e9db33dc0de7529b1599871c58cace6ed9f9e2`.
 Local V1.2.0 remains intact as the preceding release from
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. The sole current Alembic head is
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.3 is the current
+published release, tagged `v1.3.0` from exact commit
+`f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
 `0011_automation_persistence`, and Project export remains
 `second-brain-project-export` version 1.
 
@@ -141,3 +143,21 @@ proposal execution, automatic Approval, credentials, authentication/multi-user,
 remote/cloud/mobile operation, arbitrary execution, import merge/overwrite/
 remap, and encrypted export redesign are deferred beyond V1.3 to separate
 roadmaps and threat models.
+
+## Approved Local V1.4 direction
+
+Checkpoint 87 is approved and complete after human review. It defines
+[Local V1.4 — Read-only Connectors & External Context](V1_4_ROADMAP.md)
+and its [threat model](V1_4_THREAT_MODEL.md). The recommended narrow release is
+one connector foundation plus an independently reviewed GitHub read-only
+implementation using OS-protected credentials, explicit repository allowlists,
+bounded refresh, quarantined versioned external snapshots, and explicit single-
+item import into the existing audited ingestion/review flow.
+
+The proposal preserves the loopback single-maintainer boundary, keeps all
+existing Agents and Automations unchanged, adds no connector Tool to
+`agent-tools-v1`, and leaves Project export version 1 unchanged. Checkpoints
+88-97 are proposed but none has started. Calendar and Gmail, direct Agent
+connector access, external writes, automatic import/review/promotion,
+authentication/multi-user, generic network execution, and export redesign
+remain deferred. Checkpoint 88 has not started.
