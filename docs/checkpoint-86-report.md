@@ -1,6 +1,7 @@
 # Checkpoint 86 report - Local V1.3 release hardening
 
-Status: **Approved and complete after human review; unpublished.**
+Status: **Approved and complete after human review; subsequently published as
+`v1.3.0`.**
 
 ## Base and preflight
 
@@ -11,8 +12,9 @@ Status: **Approved and complete after human review; unpublished.**
 - Exact Checkpoint 85 push CI: **Second Brain CI** run `33104265544`, event
   `push`, completed successfully for the exact base SHA from
   `2026-08-27T18:35:50Z` to `2026-08-27T18:38:24Z`.
-- Candidate identity: `v1.3.0`, title **Second Brain Local V1.3**. No tag,
-  GitHub Release, PR, push, or publication action was created or executed.
+- Candidate identity: `v1.3.0`, title **Second Brain Local V1.3**. At Checkpoint
+  86 completion, no tag, GitHub Release, PR, push, or publication action had
+  been created or executed.
 
 ## Release inventory and stable identities
 
@@ -172,5 +174,7 @@ The exact documentation diff is 10 paths: eight modified files with 87
 insertions and 44 deletions, plus two new files with 291 lines, for 378
 insertions and 44 deletions overall.
 
-Checkpoint 86 is approved and complete after human review. Local V1.3 is ready
-for separate publication approval and is not yet published.
+Checkpoint 86 is approved and complete after human review. Local V1.3 was
+subsequently published as `v1.3.0` with title **Second Brain Local V1.3** from
+exact release commit `f79d556cb8d99961aa081464ef151ef1037fe87a`. V1.2.1
+remains intact as the documented recovery release, and no V1.4 work has begun.

@@ -1,15 +1,17 @@
-# Second Brain Local V1.3 candidate release notes
+# Second Brain Local V1.3 release notes
 
-Release candidate: `v1.3.0`
+Release: [`v1.3.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.3.0)
 
-Candidate title: **Second Brain Local V1.3**
+Release title: **Second Brain Local V1.3**
 
-Status: **Release hardening approved and complete; not published.**
+Release commit: `f79d556cb8d99961aa081464ef151ef1037fe87a`
+
+Status: **Published and current.**
 
 Local V1.3 adds durable local Automations and scheduled fixed Agents without
 changing the trusted single-maintainer, loopback-only deployment boundary.
-Published `v1.2.1` remains the recovery release until separate publication
-approval.
+Local V1.3 is the current published release. Published `v1.2.1` remains intact
+as the documented recovery release.
 
 ## Major capabilities
 
@@ -112,4 +114,4 @@ zero skips. Dependency checks, Ruff lint/format, strict mypy, Alembic
 current/heads/check, ESLint, TypeScript, production build, and diff hygiene also
 passed.
 
-These are candidate notes only. No tag or GitHub Release has been created.
+Local V1.3 is published as `v1.3.0`. No V1.4 work has begun.

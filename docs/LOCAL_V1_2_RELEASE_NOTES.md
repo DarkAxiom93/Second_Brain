@@ -6,7 +6,8 @@ exact release commit `04e9db33dc0de7529b1599871c58cace6ed9f9e2` with title
 `Second Brain Local V1.2.1`. Final pre-release `Second Brain CI` run
 `32559057246`, attempt 1, completed successfully. Local V1.2.0 remains intact as
 the preceding published release from
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. No V1.3 work has started.
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. At V1.2.1 publication, no V1.3
+work had started; Local V1.3 was subsequently published as `v1.3.0`.
 
 ## V1.2 inventory
 
