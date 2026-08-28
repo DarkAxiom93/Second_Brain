@@ -384,6 +384,10 @@ downgrades run only against the verified test database.
 
 Checkpoint 87 starts none of Checkpoints 88-97.
 
+Implementation status: Checkpoint 88 is approved and complete after human
+review. It adds only the Windows per-user credential-store prerequisite and
+secret boundary described above. Checkpoints 89-97 have not started.
+
 ## Explicitly deferred beyond V1.4
 
 Gmail; Google Calendar until its own OAuth/privacy review; every other connector;

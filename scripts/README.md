@@ -13,6 +13,7 @@ provider, or remove the PostgreSQL volume.
 .\scripts\evaluate-retrieval.ps1 -BaselineCheck
 .\scripts\audit-memory-maintenance.ps1
 .\scripts\diagnose-system.ps1
+.\scripts\manage-credential.ps1 status
 .\scripts\frontend-setup.ps1
 .\scripts\verify.ps1 -Mode Full
 .\scripts\start-api.ps1 -Reload
@@ -106,6 +107,17 @@ and timestamps. Supply exactly one `-RunId <uuid>` to synchronously reconcile
 that Run. This recovery path has no bulk mutation, automatic startup invocation,
 worker, lease, or background recovery. The command accepts only the live
 verified `second_brain` database on `127.0.0.1`.
+
+## Connector credential store
+
+`manage-credential.ps1` uses the current Windows user's Credential Manager. Use
+`install` to enter a credential through a non-echoing prompt and receive an
+opaque reference. Use `replace <reference>` to overwrite only that exact entry,
+`revoke <reference>` to delete only that exact entry, and `status` for a
+content-free capability check. The command never accepts a secret argument and
+never prints a secret. Credential Manager is outside Project export and
+application backups; an OS or machine backup may separately include protected
+credentials.
 
 ## Automation scheduler
 
