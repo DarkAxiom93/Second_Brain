@@ -13,7 +13,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0012_connector_persistence"
+    assert revision == "0013_external_item_imports"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -32,7 +32,8 @@ def test_vector_extension_is_installed_at_expected_version(
 
 
 def test_only_approved_application_tables_exist(migrated_test_database: None) -> None:
-    tables = set(inspect(get_engine()).get_table_names(schema="public"))
+    inspector = inspect(get_engine())
+    tables = set(inspector.get_table_names(schema="public"))
 
     assert tables == {
         "alembic_version",
@@ -56,6 +57,20 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "connector_accounts",
         "connector_sync_runs",
         "external_items",
+        "external_item_imports",
+    }
+    unique_columns = {
+        tuple(value["column_names"])
+        for value in inspector.get_unique_constraints("external_item_imports")
+    }
+    assert unique_columns == {("external_item_id",), ("source_document_id",)}
+    foreign_keys = {
+        (tuple(value["constrained_columns"]), value["referred_table"])
+        for value in inspector.get_foreign_keys("external_item_imports")
+    }
+    assert foreign_keys == {
+        (("external_item_id",), "external_items"),
+        (("source_document_id",), "source_documents"),
     }
 
 
@@ -64,7 +79,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0012_connector_persistence"]
+    assert script.get_heads() == ["0013_external_item_imports"]
+    assert script.get_revision("0013_external_item_imports").down_revision == (
+        "0012_connector_persistence"
+    )
     assert script.get_revision("0012_connector_persistence").down_revision == (
         "0011_automation_persistence"
     )
@@ -104,5 +122,5 @@ def test_automation_migration_test_database_downgrade_upgrade_lifecycle(
                 == "0010_agent_runtime_persistence"
             )
     finally:
-        command.upgrade(alembic_config, "0011_automation_persistence")
+        command.upgrade(alembic_config, "head")
     assert inspect(get_engine()).has_table("automations")

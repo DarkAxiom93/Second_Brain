@@ -45,6 +45,7 @@ def test_metadata_contains_only_approved_tables() -> None:
         "connector_accounts",
         "connector_sync_runs",
         "external_items",
+        "external_item_imports",
     }
 
 

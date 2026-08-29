@@ -66,6 +66,13 @@ export type ExternalItem = {
   source_url: string | null; is_latest: boolean; trust: "external_untrusted";
 };
 export type ExternalItemPage = { items: ExternalItem[]; next_cursor: string | null };
+export type ExternalItemImportPreview = {
+  account_id: string; external_item_row_id: string; external_resource_id: string; external_item_id: string;
+  application_revision: number; trust: "external_untrusted"; scope: { kind: "project" | "unassigned"; project_id: string | null };
+  resource_type: "repository" | "issue" | "pull_request"; title: string; normalized_text: string;
+  provider_source_version: string; content_hash: string; canonical_source_url: string | null; confirmation_fingerprint: string;
+};
+export type ExternalItemImportRead = { import_id: string; external_item_row_id: string; source_id: string; source_document_id: string; chunk_count: number; import_status: "created" | "existing" };
 export type ProjectCreate = { name: string; description: string | null };
 export type SourceRead = {
   id: string;
@@ -534,6 +541,26 @@ export function getExternalItem(accountId: string, rowId: string, scope: string,
 
 export function listExternalItemVersions(accountId: string, rowId: string, scope: string, signal?: AbortSignal) {
   return request(`/connector-accounts/${accountId}/external-items/${rowId}/versions?scope=${encodeURIComponent(scope)}`, (v): v is ExternalItem[] => Array.isArray(v) && v.every(isExternalItem), signal);
+}
+
+function isExternalItemImportPreview(value: unknown): value is ExternalItemImportPreview {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  return Object.keys(r).sort().join() === "account_id,application_revision,canonical_source_url,confirmation_fingerprint,content_hash,external_item_id,external_item_row_id,external_resource_id,normalized_text,provider_source_version,resource_type,scope,title,trust" && typeof r.account_id === "string" && typeof r.external_item_row_id === "string" && typeof r.external_resource_id === "string" && typeof r.external_item_id === "string" && Number.isInteger(r.application_revision) && r.trust === "external_untrusted" && typeof r.title === "string" && typeof r.normalized_text === "string" && typeof r.provider_source_version === "string" && typeof r.content_hash === "string" && (r.canonical_source_url === null || typeof r.canonical_source_url === "string") && typeof r.confirmation_fingerprint === "string" && ["repository", "issue", "pull_request"].includes(r.resource_type as string) && typeof r.scope === "object" && r.scope !== null;
+}
+
+function isExternalItemImportRead(value: unknown): value is ExternalItemImportRead {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  return Object.keys(r).sort().join() === "chunk_count,external_item_row_id,import_id,import_status,source_document_id,source_id" && typeof r.import_id === "string" && typeof r.external_item_row_id === "string" && typeof r.source_id === "string" && typeof r.source_document_id === "string" && Number.isInteger(r.chunk_count) && ["created", "existing"].includes(r.import_status as string);
+}
+
+export function previewExternalItemImport(accountId: string, rowId: string, scope: string, signal?: AbortSignal) {
+  return request(`/connector-accounts/${accountId}/external-items/${rowId}/import-preview?scope=${encodeURIComponent(scope)}`, isExternalItemImportPreview, signal, { method: "POST", body: {} });
+}
+
+export function confirmExternalItemImport(accountId: string, rowId: string, scope: string, preview: ExternalItemImportPreview, signal?: AbortSignal) {
+  return request(`/connector-accounts/${accountId}/external-items/${rowId}/import?scope=${encodeURIComponent(scope)}`, isExternalItemImportRead, signal, { method: "POST", body: { application_revision: preview.application_revision, provider_source_version: preview.provider_source_version, content_hash: preview.content_hash, confirmation_fingerprint: preview.confirmation_fingerprint } });
 }
 
 export function createProject(project: ProjectCreate, signal?: AbortSignal): Promise<ProjectRead> {

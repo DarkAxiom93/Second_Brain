@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.connectors import imports as import_service
 from app.connectors import query as item_query
 from app.connectors import service
 from app.connectors import sync as sync_service
@@ -26,6 +27,9 @@ from app.schemas.connector import (
     ConnectorAccountUpdate,
     ConnectorRevisionRequest,
     ConnectorSyncRunRead,
+    ExternalItemImportConfirm,
+    ExternalItemImportPreview,
+    ExternalItemImportRead,
     ExternalItemPage,
     ExternalItemRead,
     ExternalResourceType,
@@ -274,4 +278,62 @@ def list_external_item_versions(
     except item_query.ExternalItemNotFoundError:
         raise _error(404, "external item not found") from None
     except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None
+
+
+@router.post(
+    "/{account_id}/external-items/{row_id}/import-preview",
+    response_model=ExternalItemImportPreview,
+)
+def preview_external_item_import(
+    account_id: uuid.UUID,
+    row_id: uuid.UUID,
+    scope: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ExternalItemImportPreview:
+    try:
+        return import_service.preview(session, account_id, _scope(scope), row_id)
+    except import_service.ExternalItemImportNotFoundError:
+        raise _error(404, "external item not found") from None
+    except import_service.ExternalItemImportConflictError:
+        raise _error(409, "external item import conflict") from None
+    except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None
+
+
+@router.post(
+    "/{account_id}/external-items/{row_id}/import",
+    response_model=ExternalItemImportRead,
+)
+def confirm_external_item_import(
+    account_id: uuid.UUID,
+    row_id: uuid.UUID,
+    scope: str,
+    request: ExternalItemImportConfirm,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ExternalItemImportRead:
+    try:
+        result = import_service.confirm(
+            session, account_id, _scope(scope), row_id, request
+        )
+        session.commit()
+        return ExternalItemImportRead(
+            import_id=result.provenance.id,
+            external_item_row_id=result.provenance.external_item_id,
+            source_id=result.source.id,
+            source_document_id=result.document.id,
+            chunk_count=result.chunk_count,
+            import_status="created" if result.created else "existing",
+        )
+    except import_service.ExternalItemImportNotFoundError:
+        session.rollback()
+        raise _error(404, "external item not found") from None
+    except import_service.ExternalItemImportConflictError:
+        session.rollback()
+        raise _error(409, "external item import conflict") from None
+    except IntegrityError:
+        session.rollback()
+        raise _error(409, "external item import conflict") from None
+    except SQLAlchemyError:
+        session.rollback()
         raise _error(503, "database unavailable") from None

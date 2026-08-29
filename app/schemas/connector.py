@@ -22,6 +22,7 @@ SyncStatus = Literal[
 ]
 ExternalResourceType = Literal["repository", "issue", "pull_request"]
 ReconciliationState = Literal["current", "stale", "deleted"]
+ImportStatus = Literal["created", "existing"]
 
 
 class ClosedModel(BaseModel):
@@ -139,3 +140,40 @@ class ExternalItemRead(ClosedModel):
 class ExternalItemPage(ClosedModel):
     items: list[ExternalItemRead]
     next_cursor: str | None
+
+
+class ExternalItemImportConfirm(ClosedModel):
+    application_revision: Annotated[int, Field(ge=1)]
+    provider_source_version: Annotated[
+        str, StringConstraints(min_length=1, max_length=255)
+    ]
+    content_hash: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    confirmation_fingerprint: Annotated[
+        str, StringConstraints(pattern=r"^[0-9a-f]{64}$")
+    ]
+
+
+class ExternalItemImportPreview(ClosedModel):
+    account_id: uuid.UUID
+    external_item_row_id: uuid.UUID
+    external_resource_id: str
+    external_item_id: str
+    application_revision: int
+    trust: Literal["external_untrusted"] = "external_untrusted"
+    scope: ConnectorScope
+    resource_type: ExternalResourceType
+    title: str
+    normalized_text: str
+    provider_source_version: str
+    content_hash: str
+    canonical_source_url: str | None
+    confirmation_fingerprint: str
+
+
+class ExternalItemImportRead(ClosedModel):
+    import_id: uuid.UUID
+    external_item_row_id: uuid.UUID
+    source_id: uuid.UUID
+    source_document_id: uuid.UUID
+    chunk_count: int
+    import_status: ImportStatus

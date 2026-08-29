@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0012_connector_persistence`.
+`0013_external_item_imports`.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
@@ -235,6 +235,16 @@ manual refresh reconciles only latest exact identities in its captured scope:
 observed identities are current and absent identities become stale. Incomplete
 or failed runs infer no absence. There is no deletion, import, Agent/Automation
 access, transport expansion, or migration.
+
+Checkpoint 93 adds one explicit, network-free preview/confirm action that copies
+exactly one current latest ExternalItem revision into the audited local
+Source/SourceDocument/plain-text chunk boundary. The additive
+`external_item_imports` relationship permanently binds the exact quarantined
+revision to its resulting document; database uniqueness and an ExternalItem row
+lock provide revision-specific idempotency. Disabled or revoked accounts retain
+this historical import capability because no credential or provider access is
+performed. Import creates no Memory, proposal, Approval, Agent, or Automation
+state, and connector provenance remains excluded from Project export v1.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

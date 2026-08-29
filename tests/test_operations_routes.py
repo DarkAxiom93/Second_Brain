@@ -192,7 +192,7 @@ def test_project_export_streams_safe_attachment_and_cleans_exact_file(
     monkeypatch,
 ) -> None:
     session = Mock()
-    session.scalar.side_effect = ["second_brain", "0012_connector_persistence"]
+    session.scalar.side_effect = ["second_brain", "0013_external_item_imports"]
     created: list[Path] = []
 
     captured: dict[str, str] = {}
@@ -217,7 +217,7 @@ def test_project_export_streams_safe_attachment_and_cleans_exact_file(
         == f'attachment; filename="project-{project_id}.sbexport"'
     )
     assert created and not created[0].exists()
-    assert captured == {"source_alembic_revision": "0012_connector_persistence"}
+    assert captured == {"source_alembic_revision": "0013_external_item_imports"}
     session.commit.assert_not_called()
 
 
@@ -254,7 +254,7 @@ def test_import_validation_returns_safe_conflict_plan_and_cleans_upload(
     monkeypatch,
 ) -> None:
     session = Mock()
-    session.scalar.side_effect = ["second_brain", "0012_connector_persistence"]
+    session.scalar.side_effect = ["second_brain", "0013_external_item_imports"]
     project_id = uuid4()
     manifest = ExportManifest(
         exported_at=datetime(2026, 8, 2, tzinfo=UTC),
@@ -294,7 +294,7 @@ def test_import_execute_requires_exact_confirmations_and_commits_once(
     monkeypatch,
 ) -> None:
     session = Mock()
-    session.scalar.side_effect = ["second_brain", "0012_connector_persistence"]
+    session.scalar.side_effect = ["second_brain", "0013_external_item_imports"]
     project_id = uuid4()
     manifest = ExportManifest(
         exported_at=datetime(2026, 8, 2, tzinfo=UTC),

@@ -5,7 +5,7 @@ Status: **Approved by human review; Checkpoint 87 complete.**
 This document plans Local V1.4 only. It authorizes no implementation. Local
 V1.3 is the current published release as `v1.3.0` from
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The current stable identities are
-Alembic `0012_connector_persistence`, Tool Registry `agent-tools-v1`, and
+Alembic `0013_external_item_imports`, Tool Registry `agent-tools-v1`, and
 Project export `second-brain-project-export` version `1`.
 
 ## Decision

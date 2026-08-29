@@ -1,9 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ExternalContext } from "./ExternalContext";
+import { ExternalContext, ExternalContextDetail } from "./ExternalContext";
 
 const account = { id: "123e4567-e89b-42d3-a456-426614174000", provider: "github", external_account_identity: "operator", scope: { kind: "unassigned", project_id: null }, repositories: ["owner/repo"], lifecycle: "enabled", validation_status: "valid", revision: 1, last_validated_at: null, created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z" };
 const hostile = "<script>alert(1)</script> [run](javascript:alert(2)) \u202e";
@@ -25,5 +25,22 @@ describe("External Context", () => {
     expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
     expect(screen.getByText(/External \/ Untrusted · current/)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("requires preview then exact confirmation and warns that no Memory is created", async () => {
+    const preview = { account_id: account.id, external_item_row_id: item.id, external_resource_id: item.external_resource_id, external_item_id: item.external_item_id, application_revision: 1, trust: "external_untrusted", scope: item.scope, resource_type: "issue", title: hostile, normalized_text: `${hostile}\n\nIssue #7 (open)\n\n${hostile}`, provider_source_version: item.provider_source_version, content_hash: "a".repeat(64), canonical_source_url: item.source_url, confirmation_fingerprint: "b".repeat(64) };
+    const result = { import_id: "423e4567-e89b-42d3-a456-426614174000", external_item_row_id: item.id, source_id: "523e4567-e89b-42d3-a456-426614174000", source_document_id: "623e4567-e89b-42d3-a456-426614174000", chunk_count: 1, import_status: "created" };
+    const fetchMock = vi.fn().mockResolvedValueOnce(response(item)).mockResolvedValueOnce(response([item])).mockResolvedValueOnce(response(preview)).mockResolvedValueOnce(response(result));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MemoryRouter initialEntries={[`/external-context/${account.id}/${item.id}?scope=unassigned`]}><Routes><Route path="/external-context/:accountId/:itemId" element={<ExternalContextDetail />} /></Routes></MemoryRouter>);
+    expect(await screen.findByText(/does not create Memory or proposals/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await userEvent.click(screen.getByRole("button", { name: "Preview import" }));
+    expect(await screen.findByRole("heading", { name: "Exact import preview" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await userEvent.click(screen.getByRole("button", { name: "Confirm exact import" }));
+    expect(await screen.findByText(/Import created/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open resulting Source" })).toHaveAttribute("href", `/sources/${result.source_id}`);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });

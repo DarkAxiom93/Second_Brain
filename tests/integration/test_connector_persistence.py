@@ -304,6 +304,7 @@ def test_project_export_v1_excludes_all_connector_data(tmp_path: Path) -> None:
             "connector_accounts.jsonl",
             "connector_sync_runs.jsonl",
             "external_items.jsonl",
+            "external_item_imports.jsonl",
         } & set(archive.namelist())
         unpacked = b"".join(archive.read(name) for name in archive.namelist())
     assert reference.encode() not in unpacked
@@ -325,5 +326,5 @@ def test_connector_migration_test_database_lifecycle(
                 == "0011_automation_persistence"
             )
     finally:
-        command.upgrade(alembic_config, "0012_connector_persistence")
+        command.upgrade(alembic_config, "head")
     assert inspect(get_engine()).has_table("external_items")

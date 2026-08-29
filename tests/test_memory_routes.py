@@ -511,6 +511,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/connector-accounts/{account_id}/external-items",
         "/connector-accounts/{account_id}/external-items/{row_id}",
         "/connector-accounts/{account_id}/external-items/{row_id}/versions",
+        "/connector-accounts/{account_id}/external-items/{row_id}/import-preview",
+        "/connector-accounts/{account_id}/external-items/{row_id}/import",
         "/health",
         "/ready",
         "/projects",

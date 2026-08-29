@@ -14,7 +14,7 @@ Local V1.2.0 remains intact as the preceding release from
 `67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.3 is the current
 published release, tagged `v1.3.0` from exact commit
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
-`0012_connector_persistence`, and Project export remains
+`0013_external_item_imports`, and Project export remains
 `second-brain-project-export` version 1.
 
 V1.1 adds the patched frontend dependency graph, least-privilege

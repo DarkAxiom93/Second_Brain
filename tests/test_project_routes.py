@@ -253,6 +253,8 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/connector-accounts/{account_id}/external-items",
         "/connector-accounts/{account_id}/external-items/{row_id}",
         "/connector-accounts/{account_id}/external-items/{row_id}/versions",
+        "/connector-accounts/{account_id}/external-items/{row_id}/import-preview",
+        "/connector-accounts/{account_id}/external-items/{row_id}/import",
         "/health",
         "/ready",
         "/projects",
