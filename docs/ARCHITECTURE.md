@@ -246,6 +246,12 @@ this historical import capability because no credential or provider access is
 performed. Import creates no Memory, proposal, Approval, Agent, or Automation
 state, and connector provenance remains excluded from Project export v1.
 
+Checkpoint 95 is approved and complete after human review. Its code-owned C01-C18
+manifest, hostile-content/configuration corpus, credential/export/schema scans,
+PostgreSQL connector evidence, and focused frontend gate add deterministic
+release evidence without changing production behavior or authority. Checkpoint
+96 has not started.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

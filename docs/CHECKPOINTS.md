@@ -100,8 +100,9 @@ history. A dash means Alembic had not yet been introduced.
 | 92 | External context browser and reconciliation | Complete | `0012_connector_persistence` | This commit |
 | 93 | Explicit single-item import into audited ingestion | Complete | `0013_external_item_imports` | This commit |
 | 94 | Optional explicit connector refresh scheduling | Complete | `0014_connector_refresh_schedules` | This commit |
+| 95 | Connector security and evaluation gate | Complete | `0014_connector_refresh_schedules` | This commit |
 
-Proposed Checkpoints 95-97 remain defined in `V1_4_ROADMAP.md`; none has started.
+Proposed Checkpoints 96-97 remain defined in `V1_4_ROADMAP.md`; neither has started.
 
 ## Standard lifecycle
 

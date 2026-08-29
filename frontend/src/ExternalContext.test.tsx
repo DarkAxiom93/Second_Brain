@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ExternalContext, ExternalContextDetail } from "./ExternalContext";
+import { ConnectorScheduleControls, ExternalContext, ExternalContextDetail } from "./ExternalContext";
 
 const account = { id: "123e4567-e89b-42d3-a456-426614174000", provider: "github", external_account_identity: "operator", scope: { kind: "unassigned", project_id: null }, repositories: ["owner/repo"], lifecycle: "enabled", validation_status: "valid", revision: 1, last_validated_at: null, created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z" };
 const hostile = "<script>alert(1)</script> [run](javascript:alert(2)) \u202e";
@@ -42,5 +42,30 @@ describe("External Context", () => {
     expect(await screen.findByText(/Import created/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open resulting Source" })).toHaveAttribute("href", `/sources/${result.source_id}`);
     expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("keeps connector scheduling draft-first with warning and explicit enable", async () => {
+    const schedule = { id: "723e4567-e89b-42d3-a456-426614174000", account_id: account.id, provider: "github", lifecycle: "draft", revision: 0, schedule_revision: 0, schedule_kind: "daily", timezone_name: "UTC", local_time: "08:00:00", one_time_local_date: null, weekdays: [], interval_count: 1, nonexistent_time_policy: "first_valid_after_gap", ambiguous_time_policy: "earlier_fold", missed_run_policy: "skip", next_occurrence_at: null, created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z", cancelled_at: null };
+    const enabled = { ...schedule, lifecycle: "enabled", revision: 1, next_occurrence_at: "2026-08-29T08:00:00Z" };
+    const storage = vi.spyOn(Storage.prototype, "setItem");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response([account]))
+      .mockResolvedValueOnce(response(schedule))
+      .mockResolvedValueOnce(response([]))
+      .mockResolvedValueOnce(response(enabled))
+      .mockResolvedValueOnce(response([]));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MemoryRouter><ConnectorScheduleControls /></MemoryRouter>);
+    expect(await screen.findByText(/does not run an Agent and does not import content/)).toBeInTheDocument();
+    const enable = await screen.findByRole("button", { name: "Enable explicitly" });
+    expect(screen.getByText(/Status: draft/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await userEvent.click(enable);
+    expect(await screen.findByText("Schedule enable completed.")).toBeInTheDocument();
+    expect(fetchMock.mock.calls[3][1]).toMatchObject({ method: "POST" });
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1].body))).toEqual({ expected_revision: 0 });
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(storage).not.toHaveBeenCalled();
   });
 });
