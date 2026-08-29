@@ -391,8 +391,10 @@ Checkpoint 90 is approved and complete after human review. It adds
 metadata-only, revision-aware GitHub account lifecycle/configuration APIs and
 an accessible Settings flow without credential display, browser persistence,
 provider calls, or new authority. Checkpoint 91 is approved and complete after
-human review; it adds only the bounded explicit manual GitHub refresh described above.
-Checkpoints 92-97 have not started.
+human review; it adds only the bounded explicit manual GitHub refresh described
+above. Checkpoint 92 is approved and complete after human review; it adds only
+the bounded external-context browser and complete-run reconciliation described
+above. Checkpoints 93-97 have not started.
 
 ## Explicitly deferred beyond V1.4
 

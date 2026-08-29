@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.connectors import query as item_query
 from app.connectors import service
 from app.connectors import sync as sync_service
 from app.connectors.dependencies import (
@@ -25,6 +26,10 @@ from app.schemas.connector import (
     ConnectorAccountUpdate,
     ConnectorRevisionRequest,
     ConnectorSyncRunRead,
+    ExternalItemPage,
+    ExternalItemRead,
+    ExternalResourceType,
+    ReconciliationState,
 )
 
 router = APIRouter(prefix="/connector-accounts", tags=["connector-accounts"])
@@ -200,5 +205,73 @@ def latest_sync_status(
             raise _error(404, "connector account not found")
         run = repository.latest_sync_run(session, account_id)
         return None if run is None else sync_service.public_sync_run(run)
+    except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None
+
+
+def _scope(value: str) -> item_query.ExternalScope:
+    try:
+        return item_query.parse_scope(value)
+    except ValueError:
+        raise _error(422, "invalid external item scope") from None
+
+
+@router.get("/{account_id}/external-items", response_model=ExternalItemPage)
+def list_external_items(
+    account_id: uuid.UUID,
+    scope: str,
+    session: Annotated[Session, Depends(get_db_session)],
+    resource_type: ExternalResourceType | None = None,
+    state: ReconciliationState | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 25,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
+) -> ExternalItemPage:
+    try:
+        return item_query.list_latest(
+            session,
+            account_id,
+            _scope(scope),
+            resource_type=resource_type,
+            state=state,
+            limit=limit,
+            cursor=cursor,
+        )
+    except item_query.ExternalItemNotFoundError:
+        raise _error(404, "connector account not found") from None
+    except item_query.ExternalItemCursorError:
+        raise _error(422, "invalid external item cursor") from None
+    except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None
+
+
+@router.get("/{account_id}/external-items/{row_id}", response_model=ExternalItemRead)
+def get_external_item(
+    account_id: uuid.UUID,
+    row_id: uuid.UUID,
+    scope: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ExternalItemRead:
+    try:
+        return item_query.get_detail(session, account_id, _scope(scope), row_id)
+    except item_query.ExternalItemNotFoundError:
+        raise _error(404, "external item not found") from None
+    except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None
+
+
+@router.get(
+    "/{account_id}/external-items/{row_id}/versions",
+    response_model=list[ExternalItemRead],
+)
+def list_external_item_versions(
+    account_id: uuid.UUID,
+    row_id: uuid.UUID,
+    scope: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> list[ExternalItemRead]:
+    try:
+        return item_query.list_versions(session, account_id, _scope(scope), row_id)
+    except item_query.ExternalItemNotFoundError:
+        raise _error(404, "external item not found") from None
     except SQLAlchemyError:
         raise _error(503, "database unavailable") from None

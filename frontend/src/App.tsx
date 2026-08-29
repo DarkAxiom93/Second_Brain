@@ -12,6 +12,7 @@ import { Answers } from "./Answers";
 import { Settings } from "./Settings";
 import { AgentRunDetail, AgentRuns } from "./Agents";
 import { AutomationCreate, AutomationDetail, Automations, NotificationInbox } from "./Automations";
+import { ExternalContext, ExternalContextDetail } from "./ExternalContext";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -23,6 +24,7 @@ const navigation = [
   ["/answers", "Answers"],
   ["/agents", "Agent"],
   ["/automations", "Automations"],
+  ["/external-context", "External Context"],
   ["/settings", "Settings"],
 ] as const;
 
@@ -142,6 +144,8 @@ export function App() {
           <Route path="/automations/new" element={<AutomationCreate />} />
           <Route path="/automations/:automationId" element={<AutomationDetail />} />
           <Route path="/notifications" element={<NotificationInbox />} />
+          <Route path="/external-context" element={<ExternalContext />} />
+          <Route path="/external-context/:accountId/:itemId" element={<ExternalContextDetail />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -97,8 +97,9 @@ history. A dash means Alembic had not yet been introduced.
 | 89 | Inert connector persistence and closed catalog | Complete | `0012_connector_persistence` | This commit |
 | 90 | Connector account lifecycle and safe UI | Complete | `0012_connector_persistence` | This commit |
 | 91 | Bounded GitHub read transport and explicit manual sync | Complete | `0012_connector_persistence` | This commit |
+| 92 | External context browser and reconciliation | Complete | `0012_connector_persistence` | This commit |
 
-Proposed Checkpoints 92-97 are defined in `V1_4_ROADMAP.md`; none has started.
+Proposed Checkpoints 93-97 are defined in `V1_4_ROADMAP.md`; none has started.
 
 ## Standard lifecycle
 

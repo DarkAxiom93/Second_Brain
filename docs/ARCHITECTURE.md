@@ -227,6 +227,15 @@ quarantined ExternalItem revisions in a short fenced transaction. No connector
 content is available to Agents or Automations, no deletion inference or import
 exists, and Tool Registry/export identities remain unchanged.
 
+Checkpoint 92 adds account-and-exact-scope-bound browsing of only the latest
+quarantined ExternalItem revision, with explicit bounded history reads, closed
+type/state filters, opaque filter-bound keyset cursors, typed normalized public
+content, and application-derived canonical GitHub links. A fully exhausted
+manual refresh reconciles only latest exact identities in its captured scope:
+observed identities are current and absent identities become stale. Incomplete
+or failed runs infer no absence. There is no deletion, import, Agent/Automation
+access, transport expansion, or migration.
+
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,
 list, retrieve, and human-review immutable `memory.update` proposals using the

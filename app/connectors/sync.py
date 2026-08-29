@@ -297,6 +297,7 @@ def _persist_page(
     repo_id: int,
     resource_type: str,
     snapshots: list[tuple[str, str, str, str]],
+    observed: set[tuple[str, str]],
 ) -> None:
     account = _captured_account(session, run)
     if repository_name.casefold() not in {
@@ -314,6 +315,7 @@ def _persist_page(
     created = 0
     unchanged = 0
     for item_id, title, body, version in snapshots:
+        observed.add((f"github_repo:{repo_id}", item_id))
         item = ExternalItem(
             account_id=run.account_id,
             provider="github",
@@ -372,6 +374,7 @@ def refresh(
     run_id = run.id
     run_account_id = run.account_id
     captured_revision = run.account_revision
+    observed: set[tuple[str, str]] = set()
 
     def ensure_deadline() -> None:
         if time.monotonic() >= deadline:
@@ -444,6 +447,7 @@ def refresh(
                     repo_id,
                     "repository",
                     repo_snapshot,
+                    observed,
                 )
             accepted += 1
             for resource_type, fetch in (
@@ -471,6 +475,7 @@ def refresh(
                             repo_id,
                             resource_type,
                             snapshots,
+                            observed,
                         )
                     accepted += len(snapshots)
                     if not page.may_have_more:
@@ -478,6 +483,13 @@ def refresh(
                     if page_number == MAX_DATA_PAGES:
                         incomplete = True
         with session.begin():
+            current = repository.get_sync_run(session, run_id)
+            assert current is not None
+            if not incomplete:
+                _captured_account(session, current)
+                repository.reconcile_latest_items(
+                    session, current, observed, reconciled_at=datetime.now(UTC)
+                )
             return _finish(
                 session,
                 run_id,

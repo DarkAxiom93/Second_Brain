@@ -20,6 +20,8 @@ ValidationStatus = Literal["unvalidated", "valid", "invalid", "expired", "revoke
 SyncStatus = Literal[
     "claimed", "running", "succeeded", "incomplete", "failed", "cancelled"
 ]
+ExternalResourceType = Literal["repository", "issue", "pull_request"]
+ReconciliationState = Literal["current", "stale", "deleted"]
 
 
 class ClosedModel(BaseModel):
@@ -94,3 +96,46 @@ class ConnectorSyncRunRead(ClosedModel):
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+
+
+class RepositoryExternalContent(ClosedModel):
+    kind: Literal["repository"] = "repository"
+    description: str | None
+    private: bool
+    archived: bool
+
+
+class NumberedExternalContent(ClosedModel):
+    kind: Literal["issue", "pull_request"]
+    number: int
+    state: Literal["open", "closed"]
+    body: str
+
+
+class ExternalItemRead(ClosedModel):
+    id: uuid.UUID
+    account_id: uuid.UUID
+    provider: Literal["github"]
+    external_account_identity: str
+    scope: ConnectorScope
+    external_resource_id: str
+    external_item_id: str
+    resource_type: ExternalResourceType
+    application_revision: int
+    provider_source_version: str
+    reconciliation_state: ReconciliationState
+    title: str
+    content: RepositoryExternalContent | NumberedExternalContent
+    first_seen_at: datetime
+    revision_last_observed_at: datetime
+    created_sync_run_id: uuid.UUID
+    revision_last_observed_sync_run_id: uuid.UUID
+    confirmed_present_through: datetime | None
+    source_url: str | None
+    is_latest: bool
+    trust: Literal["external_untrusted"] = "external_untrusted"
+
+
+class ExternalItemPage(ClosedModel):
+    items: list[ExternalItemRead]
+    next_cursor: str | None

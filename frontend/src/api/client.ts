@@ -52,6 +52,20 @@ export type ConnectorSyncRun = {
   safe_error_code: string | null; reconciliation_complete: boolean;
   created_at: string; started_at: string | null; completed_at: string | null;
 };
+export type ExternalItem = {
+  id: string; account_id: string; provider: "github"; external_account_identity: string;
+  scope: { kind: "project" | "unassigned"; project_id: string | null };
+  external_resource_id: string; external_item_id: string;
+  resource_type: "repository" | "issue" | "pull_request"; application_revision: number;
+  provider_source_version: string; reconciliation_state: "current" | "stale" | "deleted";
+  title: string;
+  content: { kind: "repository"; description: string | null; private: boolean; archived: boolean } |
+    { kind: "issue" | "pull_request"; number: number; state: "open" | "closed"; body: string };
+  first_seen_at: string; revision_last_observed_at: string; created_sync_run_id: string;
+  revision_last_observed_sync_run_id: string; confirmed_present_through: string | null;
+  source_url: string | null; is_latest: boolean; trust: "external_untrusted";
+};
+export type ExternalItemPage = { items: ExternalItem[]; next_cursor: string | null };
 export type ProjectCreate = { name: string; description: string | null };
 export type SourceRead = {
   id: string;
@@ -492,6 +506,34 @@ export function refreshConnectorAccount(id: string, expected_revision: number, s
 }
 export function getConnectorSyncStatus(id: string, signal?: AbortSignal) {
   return request(`/connector-accounts/${id}/sync-status`, (value): value is ConnectorSyncRun | null => value === null || isConnectorSyncRun(value), signal);
+}
+
+function isExternalItem(value: unknown): value is ExternalItem {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["account_id", "application_revision", "confirmed_present_through", "content", "created_sync_run_id", "external_account_identity", "external_item_id", "external_resource_id", "first_seen_at", "id", "is_latest", "provider", "provider_source_version", "reconciliation_state", "resource_type", "revision_last_observed_at", "revision_last_observed_sync_run_id", "scope", "source_url", "title", "trust"];
+  if (JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(keys.sort()) || typeof r.id !== "string" || !UUID_PATTERN.test(r.id) || typeof r.account_id !== "string" || !UUID_PATTERN.test(r.account_id) || r.provider !== "github" || r.trust !== "external_untrusted" || typeof r.external_account_identity !== "string" || typeof r.external_resource_id !== "string" || typeof r.external_item_id !== "string" || typeof r.title !== "string" || !["repository", "issue", "pull_request"].includes(r.resource_type as string) || !Number.isInteger(r.application_revision) || typeof r.provider_source_version !== "string" || !["current", "stale", "deleted"].includes(r.reconciliation_state as string) || !isTimestamp(r.first_seen_at) || !isTimestamp(r.revision_last_observed_at) || typeof r.created_sync_run_id !== "string" || !UUID_PATTERN.test(r.created_sync_run_id) || typeof r.revision_last_observed_sync_run_id !== "string" || !UUID_PATTERN.test(r.revision_last_observed_sync_run_id) || (r.confirmed_present_through !== null && !isTimestamp(r.confirmed_present_through)) || (r.source_url !== null && (typeof r.source_url !== "string" || !/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/(?:issues|pull)\/[1-9][0-9]*)?$/.test(r.source_url))) || typeof r.is_latest !== "boolean") return false;
+  if (typeof r.scope !== "object" || r.scope === null || Array.isArray(r.scope) || typeof r.content !== "object" || r.content === null || Array.isArray(r.content)) return false;
+  const scope = r.scope as Record<string, unknown>, content = r.content as Record<string, unknown>;
+  const validScope = JSON.stringify(Object.keys(scope).sort()) === JSON.stringify(["kind", "project_id"]) && ((scope.kind === "unassigned" && scope.project_id === null) || (scope.kind === "project" && typeof scope.project_id === "string" && UUID_PATTERN.test(scope.project_id)));
+  if (!validScope || content.kind !== r.resource_type) return false;
+  return content.kind === "repository" ? JSON.stringify(Object.keys(content).sort()) === JSON.stringify(["archived", "description", "kind", "private"]) && (content.description === null || typeof content.description === "string") && typeof content.private === "boolean" && typeof content.archived === "boolean" : JSON.stringify(Object.keys(content).sort()) === JSON.stringify(["body", "kind", "number", "state"]) && typeof content.body === "string" && Number.isInteger(content.number) && ["open", "closed"].includes(content.state as string);
+}
+
+export function listExternalItems(accountId: string, scope: string, filters: { resourceType?: string; state?: string; cursor?: string }, signal?: AbortSignal) {
+  const query = new URLSearchParams({ scope, limit: "25" });
+  if (filters.resourceType) query.set("resource_type", filters.resourceType);
+  if (filters.state) query.set("state", filters.state);
+  if (filters.cursor) query.set("cursor", filters.cursor);
+  return request(`/connector-accounts/${accountId}/external-items?${query}`, (v): v is ExternalItemPage => typeof v === "object" && v !== null && !Array.isArray(v) && Object.keys(v).sort().join() === "items,next_cursor" && Array.isArray((v as ExternalItemPage).items) && (v as ExternalItemPage).items.every(isExternalItem) && ((v as ExternalItemPage).next_cursor === null || typeof (v as ExternalItemPage).next_cursor === "string"), signal);
+}
+
+export function getExternalItem(accountId: string, rowId: string, scope: string, signal?: AbortSignal) {
+  return request(`/connector-accounts/${accountId}/external-items/${rowId}?scope=${encodeURIComponent(scope)}`, isExternalItem, signal);
+}
+
+export function listExternalItemVersions(accountId: string, rowId: string, scope: string, signal?: AbortSignal) {
+  return request(`/connector-accounts/${accountId}/external-items/${rowId}/versions?scope=${encodeURIComponent(scope)}`, (v): v is ExternalItem[] => Array.isArray(v) && v.every(isExternalItem), signal);
 }
 
 export function createProject(project: ProjectCreate, signal?: AbortSignal): Promise<ProjectRead> {

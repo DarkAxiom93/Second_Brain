@@ -211,6 +211,164 @@ def test_manual_refresh_inventory_quarantine_replay_and_safe_status() -> None:
         assert session.scalar(select(func.count(ExternalItem.id))) == 3
 
 
+def test_external_browser_history_cursor_links_and_scope_fail_closed() -> None:
+    transport = FakeGitHubTransport(_responses())
+    client, account_id = _enabled_client(transport)
+    assert (
+        client.post(
+            f"/connector-accounts/{account_id}/refresh",
+            json={"expected_revision": 1},
+        ).status_code
+        == 200
+    )
+    first = client.get(
+        f"/connector-accounts/{account_id}/external-items",
+        params={"scope": "unassigned", "limit": 1},
+    )
+    assert first.status_code == 200
+    page = first.json()
+    assert len(page["items"]) == 1 and page["next_cursor"]
+    item = page["items"][0]
+    assert item["trust"] == "external_untrusted" and item["is_latest"] is True
+    assert "content_hash" not in item and "body" not in item
+    assert item["source_url"].startswith("https://github.com/owner/repository")
+    assert (
+        client.get(
+            f"/connector-accounts/{account_id}/external-items",
+            params={"scope": "unassigned", "limit": 1, "cursor": page["next_cursor"]},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"/connector-accounts/{account_id}/external-items",
+            params={
+                "scope": "unassigned",
+                "limit": 1,
+                "state": "stale",
+                "cursor": page["next_cursor"],
+            },
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            f"/connector-accounts/{account_id}/external-items",
+            params={"scope": str(uuid.uuid4())},
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/connector-accounts/{uuid.uuid4()}/external-items/{item['id']}",
+            params={"scope": "unassigned"},
+        ).status_code
+        == 404
+    )
+
+    changed = _responses()
+    changed[2] = GitHubPage(
+        [
+            {
+                "id": 201,
+                "number": 1,
+                "title": "Changed <b>literal</b>",
+                "body": "[x](javascript:alert(1))\u202e",
+                "state": "closed",
+                "updated_at": "2026-08-29T11:00:00Z",
+            }
+        ]
+    )
+    client.app.dependency_overrides[github_transport_factory_dependency] = lambda: (
+        lambda: FakeGitHubTransport(changed)
+    )
+    assert (
+        client.post(
+            f"/connector-accounts/{account_id}/refresh", json={"expected_revision": 1}
+        ).json()["status"]
+        == "succeeded"
+    )
+    issues = client.get(
+        f"/connector-accounts/{account_id}/external-items",
+        params={"scope": "unassigned", "resource_type": "issue"},
+    ).json()["items"]
+    assert len(issues) == 1 and issues[0]["application_revision"] == 2
+    assert issues[0]["content"] == {
+        "kind": "issue",
+        "number": 1,
+        "state": "closed",
+        "body": "[x](javascript:alert(1))\u202e",
+    }
+    history = client.get(
+        f"/connector-accounts/{account_id}/external-items/{issues[0]['id']}/versions",
+        params={"scope": "unassigned"},
+    ).json()
+    assert [value["application_revision"] for value in history] == [2, 1]
+    assert history[1]["content"]["body"] == "<script>inert()</script>"
+
+
+def test_complete_absence_stales_partial_does_not_and_replay_restores() -> None:
+    client, account_id = _enabled_client(FakeGitHubTransport(_responses()))
+    assert (
+        client.post(
+            f"/connector-accounts/{account_id}/refresh", json={"expected_revision": 1}
+        ).json()["status"]
+        == "succeeded"
+    )
+    partial = _responses()
+    partial[2] = GitHubPage([], may_have_more=True)
+    partial.insert(3, GitHubPage([], may_have_more=True))
+    client.app.dependency_overrides[github_transport_factory_dependency] = lambda: (
+        lambda: FakeGitHubTransport(partial)
+    )
+    result = client.post(
+        f"/connector-accounts/{account_id}/refresh", json={"expected_revision": 1}
+    ).json()
+    assert (
+        result["status"] == "incomplete" and result["reconciliation_complete"] is False
+    )
+    with Session(get_engine()) as session:
+        latest_issue = session.scalar(
+            select(ExternalItem)
+            .where(ExternalItem.resource_type == "issue")
+            .order_by(ExternalItem.application_revision.desc())
+        )
+        assert latest_issue is not None and latest_issue.state == "current"
+
+    absent = _responses()
+    absent[2] = GitHubPage([])
+    client.app.dependency_overrides[github_transport_factory_dependency] = lambda: (
+        lambda: FakeGitHubTransport(absent)
+    )
+    assert (
+        client.post(
+            f"/connector-accounts/{account_id}/refresh", json={"expected_revision": 1}
+        ).json()["status"]
+        == "succeeded"
+    )
+    stale = client.get(
+        f"/connector-accounts/{account_id}/external-items",
+        params={"scope": "unassigned", "resource_type": "issue"},
+    ).json()["items"]
+    assert len(stale) == 1 and stale[0]["reconciliation_state"] == "stale"
+    before_revision = stale[0]["application_revision"]
+    client.app.dependency_overrides[github_transport_factory_dependency] = lambda: (
+        lambda: FakeGitHubTransport(_responses())
+    )
+    assert (
+        client.post(
+            f"/connector-accounts/{account_id}/refresh", json={"expected_revision": 1}
+        ).json()["status"]
+        == "succeeded"
+    )
+    restored = client.get(
+        f"/connector-accounts/{account_id}/external-items",
+        params={"scope": "unassigned", "resource_type": "issue"},
+    ).json()["items"]
+    assert restored[0]["reconciliation_state"] == "current"
+    assert restored[0]["application_revision"] == before_revision
+
+
 def test_disabled_and_stale_revision_make_zero_requests() -> None:
     transport = FakeGitHubTransport([])
     app = create_app()

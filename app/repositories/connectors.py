@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import exists, func, select, text
+from sqlalchemy import and_, exists, func, select, text
 from sqlalchemy.orm import Session
 
 from app.connectors.validation import (
@@ -206,3 +206,62 @@ def record_item_revision(
     session.flush()
     session.refresh(item)
     return item, True
+
+
+def reconcile_latest_items(
+    session: Session,
+    run: ConnectorSyncRun,
+    observed: set[tuple[str, str]],
+    *,
+    reconciled_at: datetime,
+) -> None:
+    """Reconcile only latest exact identities after a complete fenced run."""
+
+    latest = (
+        select(
+            ExternalItem.account_id,
+            ExternalItem.external_resource_id,
+            ExternalItem.external_item_id,
+            func.max(ExternalItem.application_revision).label("max_revision"),
+        )
+        .where(ExternalItem.account_id == run.account_id)
+        .group_by(
+            ExternalItem.account_id,
+            ExternalItem.external_resource_id,
+            ExternalItem.external_item_id,
+        )
+        .subquery()
+    )
+    rows = list(
+        session.scalars(
+            select(ExternalItem)
+            .join(
+                latest,
+                and_(
+                    ExternalItem.account_id == latest.c.account_id,
+                    ExternalItem.external_resource_id == latest.c.external_resource_id,
+                    ExternalItem.external_item_id == latest.c.external_item_id,
+                    ExternalItem.application_revision == latest.c.max_revision,
+                ),
+            )
+            .where(
+                ExternalItem.account_id == run.account_id,
+                ExternalItem.project_id.is_(None)
+                if run.project_id is None
+                else ExternalItem.project_id == run.project_id,
+            )
+            .with_for_update(of=ExternalItem)
+        )
+    )
+    for item in rows:
+        target = (
+            "current"
+            if (item.external_resource_id, item.external_item_id) in observed
+            else "stale"
+        )
+        if item.state != target:
+            item.state = target
+            if target == "current":
+                item.last_seen_at = reconciled_at
+                item.last_seen_sync_run_id = run.id
+    session.flush()
