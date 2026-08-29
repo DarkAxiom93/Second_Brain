@@ -12,7 +12,7 @@ from sqlalchemy.engine import URL, make_url
 from app.core.config import Settings
 from app.diagnostics.models import DiagnosticCheck
 
-EXPECTED_HEAD = "0013_external_item_imports"
+EXPECTED_HEAD = "0014_connector_refresh_schedules"
 EXPECTED_HOST = "127.0.0.1"
 EXPECTED_PORT = 5433
 MIN_POSTGRESQL_VERSION = 16

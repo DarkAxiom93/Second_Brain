@@ -99,8 +99,9 @@ history. A dash means Alembic had not yet been introduced.
 | 91 | Bounded GitHub read transport and explicit manual sync | Complete | `0012_connector_persistence` | This commit |
 | 92 | External context browser and reconciliation | Complete | `0012_connector_persistence` | This commit |
 | 93 | Explicit single-item import into audited ingestion | Complete | `0013_external_item_imports` | This commit |
+| 94 | Optional explicit connector refresh scheduling | Complete | `0014_connector_refresh_schedules` | This commit |
 
-Proposed Checkpoints 93-97 are defined in `V1_4_ROADMAP.md`; none has started.
+Proposed Checkpoints 95-97 remain defined in `V1_4_ROADMAP.md`; none has started.
 
 ## Standard lifecycle
 

@@ -87,7 +87,7 @@ class ConnectorSyncRunRead(ClosedModel):
     id: uuid.UUID
     account_id: uuid.UUID
     account_revision: int
-    trigger_kind: Literal["manual"]
+    trigger_kind: Literal["manual", "scheduled"]
     status: SyncStatus
     items_seen: int
     items_created: int

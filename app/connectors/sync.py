@@ -71,7 +71,7 @@ def public_sync_run(run: ConnectorSyncRun) -> ConnectorSyncRunRead:
         id=run.id,
         account_id=run.account_id,
         account_revision=run.account_revision,
-        trigger_kind="manual",
+        trigger_kind=cast(Any, run.trigger_kind),
         status=cast(SyncStatus, run.status),
         items_seen=run.items_seen,
         items_created=run.items_created,
@@ -84,8 +84,13 @@ def public_sync_run(run: ConnectorSyncRun) -> ConnectorSyncRunRead:
     )
 
 
-def claim(
-    session: Session, account_id: uuid.UUID, expected_revision: int
+def claim_with_trigger(
+    session: Session,
+    account_id: uuid.UUID,
+    expected_revision: int,
+    *,
+    trigger_kind: str,
+    trigger_identity: str,
 ) -> ConnectorSyncRun:
     repository.lock_sync_capacity(session)
     account = repository.lock_account(session, account_id)
@@ -125,14 +130,27 @@ def claim(
         external_account_id=account.external_account_id,
         account_revision=account.revision,
         project_id=account.project_id,
-        trigger_kind="manual",
-        trigger_identity=_TRIGGER_IDENTITY,
+        trigger_kind=trigger_kind,
+        trigger_identity=trigger_identity,
         status="claimed",
     )
     try:
         return repository.create_sync_run(session, run)
     except IntegrityError:
         raise SyncConflictError from None
+
+
+def claim(
+    session: Session, account_id: uuid.UUID, expected_revision: int
+) -> ConnectorSyncRun:
+    """Preserve the exact public manual-refresh claim behavior."""
+    return claim_with_trigger(
+        session,
+        account_id,
+        expected_revision,
+        trigger_kind="manual",
+        trigger_identity=_TRIGGER_IDENTITY,
+    )
 
 
 def _captured_account(session: Session, run: ConnectorSyncRun) -> ConnectorAccount:

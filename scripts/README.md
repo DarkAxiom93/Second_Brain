@@ -121,11 +121,11 @@ credentials.
 
 ## Automation scheduler
 
-`run-automation-scheduler.ps1` runs exactly one operator-started bounded
-trigger-only tick against the verified live `second_brain` database. It
-materializes and claims eligible `create_only` occurrences and atomically links
-inert `created` Agent Runs. It does not plan or execute Agents, call providers
-or Tools, reconcile missed work, recover expired leases, or start with FastAPI.
+`run-automation-scheduler.ps1` runs exactly one operator-started bounded tick
+against the verified live `second_brain` database. Agent Automation and
+connector refresh occurrences remain separately owned. Connector schedules
+default to draft and never create Agent Runs or imports. The process never
+starts with FastAPI.
 
 ## Retrieval evaluation
 

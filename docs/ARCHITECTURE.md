@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0013_external_item_imports`.
+`0014_connector_refresh_schedules`.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.

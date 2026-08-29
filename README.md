@@ -133,6 +133,11 @@ explicit `automatic_read_only` Daily Brief or Project Watch work. `create_only`
 remains the default. The command is one operator-started tick and never runs from
 API startup.
 
+The same explicit tick processes enabled connector refresh schedules through
+separately owned connector occurrences. New schedules remain disabled drafts
+until explicitly enabled. Scheduled refresh does not run an Agent or import
+content.
+
 ## Current release
 
 ### [v1.3.0 — Second Brain Local V1.3](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.3.0)

@@ -15,12 +15,19 @@ from app.agent_planning.dependencies import (
 from app.agent_runs.service import AgentRunCapacityError
 from app.automations import coordinator, scheduler
 from app.automations.catalog import get_automatic_agent_definition
+from app.connectors import scheduler as connector_scheduler
+from app.connectors import sync as connector_sync
+from app.connectors.dependencies import (
+    credential_store_dependency,
+    github_transport_factory_dependency,
+)
 from app.core.config import get_settings
 from app.daily_brief.dependencies import get_daily_brief_provider
 from app.db.session import get_engine
 from app.embeddings.dependencies import get_embedding_provider
 from app.project_watch.dependencies import get_project_watch_provider
 from app.repositories import automations as repository
+from app.repositories import connector_schedules as connector_schedule_repository
 
 
 def _verify_operator_database() -> None:
@@ -166,7 +173,7 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
                 # The durable Run is authoritative; the next explicit tick may
                 # reconcile it, but never invokes manual recovery or replaces it.
                 continue
-        return scheduler.TickResult(
+        automation_result = scheduler.TickResult(
             materialized_ids=materialized_ids,
             claimed_ids=tuple(item.occurrence_id for item in all_claims),
             linked_run_ids=tuple(linked),
@@ -178,6 +185,88 @@ def run_one_tick(*, now: datetime | None = None) -> scheduler.TickResult:
             failed_ids=tuple(failed),
             automatically_coordinated_ids=tuple(automatically_coordinated),
         )
+    run_connector_tick(now=now)
+    return automation_result
+
+
+def run_connector_tick(*, now: datetime | None = None) -> dict[str, int]:
+    """Run one separately owned bounded connector scheduling tick."""
+    settings = get_settings()
+    limit = settings.automation_scheduler_batch_size
+    lease = timedelta(seconds=settings.automation_lease_seconds)
+    owner = uuid.uuid4()
+    with Session(get_engine()) as session:
+        database_time = repository.database_utc_now(session)
+        operation_time = scheduler._aware_utc(now) if now is not None else database_time
+        linked_claims = connector_scheduler.reclaim_linked(
+            session,
+            now=operation_time,
+            owner_token=owner,
+            lease_duration=lease,
+            limit=limit,
+        )
+        session.commit()
+        reclaimed = connector_scheduler.reclaim_expired(
+            session,
+            now=operation_time,
+            owner_token=owner,
+            lease_duration=lease,
+            limit=limit,
+        )
+        session.commit()
+        materialized = connector_scheduler.materialize_due(
+            session, now=operation_time, limit=limit
+        )
+        session.commit()
+        claims = connector_scheduler.claim_due(
+            session,
+            now=operation_time,
+            owner_token=owner,
+            lease_duration=lease,
+            limit=limit,
+        )
+        session.commit()
+        work = {
+            claim.occurrence_id: claim
+            for claim in (*linked_claims, *reclaimed, *claims)
+        }
+        completed = failed = 0
+        for claim in work.values():
+            try:
+                occurrence = connector_schedule_repository.lock_occurrence(
+                    session, claim.occurrence_id
+                )
+                if occurrence is None:
+                    session.rollback()
+                    continue
+                if occurrence.state == "claimed":
+                    connector_scheduler.create_and_link_sync(session, claim)
+                    session.commit()
+                else:
+                    session.rollback()
+                run = connector_scheduler.validate_network_fence(session, claim)
+                run_status = run.status
+                session.rollback()
+                if run_status not in {"succeeded", "incomplete", "failed", "cancelled"}:
+                    run = connector_sync.refresh(
+                        session,
+                        run,
+                        credential_store_dependency(),
+                        github_transport_factory_dependency(),
+                    )
+                    session.commit()
+                connector_scheduler.finalize(session, claim, now=operation_time)
+                session.commit()
+                completed += 1
+            except Exception:
+                session.rollback()
+                failed += 1
+        return {
+            "materialized": len(materialized),
+            "claimed": len(work),
+            "completed": completed,
+            "failed_safe": failed,
+        }
 
 
 def main() -> int:

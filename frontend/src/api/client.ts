@@ -46,12 +46,14 @@ export type ConnectorAccount = {
   revision: number; last_validated_at: string | null; created_at: string; updated_at: string;
 };
 export type ConnectorSyncRun = {
-  id: string; account_id: string; account_revision: number; trigger_kind: "manual";
+  id: string; account_id: string; account_revision: number; trigger_kind: "manual" | "scheduled";
   status: "claimed" | "running" | "succeeded" | "incomplete" | "failed" | "cancelled";
   items_seen: number; items_created: number; items_unchanged: number;
   safe_error_code: string | null; reconciliation_complete: boolean;
   created_at: string; started_at: string | null; completed_at: string | null;
 };
+export type ConnectorRefreshSchedule = { id:string; account_id:string; provider:"github"; lifecycle:"draft"|"enabled"|"paused"|"cancelled"; revision:number; schedule_revision:number; schedule_kind:"one_time"|"daily"|"weekly"; timezone_name:string; local_time:string; one_time_local_date:string|null; weekdays:number[]; interval_count:1; nonexistent_time_policy:"first_valid_after_gap"; ambiguous_time_policy:"earlier_fold"; missed_run_policy:"skip"|"run_once"; next_occurrence_at:string|null; created_at:string; updated_at:string; cancelled_at:string|null };
+export type ConnectorRefreshOccurrence = { id:string; schedule_id:string; scheduled_at:string; scheduled_local_date:string; scheduled_local_time:string; scheduled_utc_offset_minutes:number; timezone_name:string; state:"due"|"claimed"|"sync_created"|"succeeded"|"incomplete"|"failed"|"missed"|"cancelled"; attempt_count:number; safe_disposition_code:string|null; safe_error_code:string|null; connector_sync_run_id:string|null; created_at:string; claimed_at:string|null; completed_at:string|null };
 export type ExternalItem = {
   id: string; account_id: string; provider: "github"; external_account_identity: string;
   scope: { kind: "project" | "unassigned"; project_id: string | null };
@@ -491,7 +493,7 @@ function isConnectorSyncRun(value: unknown): value is ConnectorSyncRun {
   const keys = ["account_id", "account_revision", "completed_at", "created_at", "id", "items_created", "items_seen", "items_unchanged", "reconciliation_complete", "safe_error_code", "started_at", "status", "trigger_kind"];
   return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) &&
     typeof r.id === "string" && UUID_PATTERN.test(r.id) && typeof r.account_id === "string" && UUID_PATTERN.test(r.account_id) &&
-    Number.isInteger(r.account_revision) && (r.account_revision as number) >= 0 && r.trigger_kind === "manual" &&
+    Number.isInteger(r.account_revision) && (r.account_revision as number) >= 0 && ["manual", "scheduled"].includes(r.trigger_kind as string) &&
     ["claimed", "running", "succeeded", "incomplete", "failed", "cancelled"].includes(r.status as string) &&
     isCount(r.items_seen) && isCount(r.items_created) && isCount(r.items_unchanged) &&
     (r.safe_error_code === null || (typeof r.safe_error_code === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(r.safe_error_code))) &&
@@ -514,6 +516,20 @@ export function refreshConnectorAccount(id: string, expected_revision: number, s
 export function getConnectorSyncStatus(id: string, signal?: AbortSignal) {
   return request(`/connector-accounts/${id}/sync-status`, (value): value is ConnectorSyncRun | null => value === null || isConnectorSyncRun(value), signal);
 }
+function isConnectorRefreshSchedule(value: unknown): value is ConnectorRefreshSchedule {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  return typeof r.id === "string" && typeof r.account_id === "string" && r.provider === "github" && ["draft", "enabled", "paused", "cancelled"].includes(r.lifecycle as string) && Number.isInteger(r.revision) && Number.isInteger(r.schedule_revision) && ["one_time", "daily", "weekly"].includes(r.schedule_kind as string) && typeof r.timezone_name === "string" && typeof r.local_time === "string" && Array.isArray(r.weekdays) && r.interval_count === 1 && ["skip", "run_once"].includes(r.missed_run_policy as string);
+}
+function isConnectorRefreshOccurrence(value: unknown): value is ConnectorRefreshOccurrence {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  return typeof r.id === "string" && typeof r.schedule_id === "string" && typeof r.scheduled_at === "string" && ["due", "claimed", "sync_created", "succeeded", "incomplete", "failed", "missed", "cancelled"].includes(r.state as string);
+}
+export function getConnectorRefreshSchedule(accountId: string, signal?: AbortSignal) { return request(`/connector-accounts/${accountId}/refresh-schedule`, isConnectorRefreshSchedule, signal); }
+export function createConnectorRefreshSchedule(accountId: string, body: { schedule: { kind: "daily"; timezone_name: string; local_time: string; weekdays: never[]; interval_count: 1 }; missed_run_policy: "skip" | "run_once" }, signal?: AbortSignal) { return request(`/connector-accounts/${accountId}/refresh-schedule`, isConnectorRefreshSchedule, signal, { method: "POST", body }); }
+export function transitionConnectorRefreshSchedule(id: string, action: "enable" | "pause" | "resume" | "cancel", revision: number, signal?: AbortSignal) { return request(`/connector-refresh-schedules/${id}/${action}`, isConnectorRefreshSchedule, signal, { method: "POST", body: { expected_revision: revision } }); }
+export function listConnectorRefreshOccurrences(id: string, signal?: AbortSignal) { return request(`/connector-refresh-schedules/${id}/occurrences?limit=20&offset=0`, (v): v is ConnectorRefreshOccurrence[] => Array.isArray(v) && v.every(isConnectorRefreshOccurrence), signal); }
 
 function isExternalItem(value: unknown): value is ExternalItem {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;

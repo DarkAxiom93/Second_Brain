@@ -13,7 +13,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0013_external_item_imports"
+    assert revision == "0014_connector_refresh_schedules"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -58,6 +58,9 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "connector_sync_runs",
         "external_items",
         "external_item_imports",
+        "connector_refresh_schedules",
+        "connector_refresh_occurrences",
+        "connector_refresh_notifications",
     }
     unique_columns = {
         tuple(value["column_names"])
@@ -79,7 +82,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0013_external_item_imports"]
+    assert script.get_heads() == ["0014_connector_refresh_schedules"]
+    assert script.get_revision("0014_connector_refresh_schedules").down_revision == (
+        "0013_external_item_imports"
+    )
     assert script.get_revision("0013_external_item_imports").down_revision == (
         "0012_connector_persistence"
     )

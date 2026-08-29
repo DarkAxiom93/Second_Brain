@@ -46,6 +46,9 @@ def test_metadata_contains_only_approved_tables() -> None:
         "connector_sync_runs",
         "external_items",
         "external_item_imports",
+        "connector_refresh_schedules",
+        "connector_refresh_occurrences",
+        "connector_refresh_notifications",
     }
 
 

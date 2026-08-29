@@ -14,7 +14,7 @@ Local V1.2.0 remains intact as the preceding release from
 `67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.3 is the current
 published release, tagged `v1.3.0` from exact commit
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
-`0013_external_item_imports`, and Project export remains
+`0014_connector_refresh_schedules`, and Project export remains
 `second-brain-project-export` version 1.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
@@ -158,12 +158,11 @@ The proposal preserves the loopback single-maintainer boundary, keeps all
 existing Agents and Automations unchanged, adds no connector Tool to
 `agent-tools-v1`, and leaves Project export version 1 unchanged. Checkpoint 89
 is approved and complete after human review with inert connector persistence
-and the closed GitHub catalog. Checkpoint 90 is approved and complete after
-human review. Checkpoint 91 is approved and complete after human review;
-Checkpoints 92-97 remain proposed and none has started.
+and the closed GitHub catalog. Checkpoints 90-94 are approved and complete
+after human review. Checkpoints 95-97 remain proposed and none has started.
 Checkpoint 88 completed the Windows per-user OS credential-store prerequisite
 after human review.
 Calendar and Gmail, direct Agent
 connector access, external writes, automatic import/review/promotion,
 authentication/multi-user, generic network execution, and export redesign
-remain deferred. Checkpoint 92 has not started.
+remain deferred.
