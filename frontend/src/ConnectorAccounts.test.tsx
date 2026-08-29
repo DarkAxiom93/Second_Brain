@@ -20,7 +20,8 @@ describe("connector account settings flow", () => {
     const localSet = vi.spyOn(Storage.prototype, "setItem");
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(response(account(), 201))
-      .mockResolvedValueOnce(response([account()]));
+      .mockResolvedValueOnce(response([account()]))
+      .mockResolvedValueOnce(response(null));
     vi.stubGlobal("fetch", fetchMock); render(<ConnectorAccounts />);
     await userEvent.type(screen.getByLabelText(/External account identity/), "operator-account");
     await userEvent.type(screen.getByLabelText("Opaque credential reference"), reference);
@@ -38,8 +39,10 @@ describe("connector account settings flow", () => {
     const confirm = vi.fn().mockReturnValue(true); vi.stubGlobal("confirm", confirm);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(response([account()]))
+      .mockResolvedValueOnce(response(null))
       .mockResolvedValueOnce(response({}, 409))
       .mockResolvedValueOnce(response([account(1, "enabled")]))
+      .mockResolvedValueOnce(response(null))
       .mockResolvedValueOnce(response(account(2, "revoked")));
     vi.stubGlobal("fetch", fetchMock); render(<ConnectorAccounts />);
     await userEvent.click(screen.getByRole("button", { name: "Load or refresh accounts" }));
@@ -61,5 +64,31 @@ describe("connector account settings flow", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(/Check the account identity/);
     expect(screen.getByRole("button", { name: "Create disabled GitHub account" })).toBeEnabled();
     expect(document.querySelector(".operations-panel")).toHaveClass("panel");
+  });
+
+  it("runs one explicit bounded refresh, shows safe counts, and does not poll or persist", async () => {
+    const enabled = account(1, "enabled");
+    const run = { id: "223e4567-e89b-42d3-a456-426614174000", account_id: enabled.id, account_revision: 1, trigger_kind: "manual", status: "succeeded", items_seen: 3, items_created: 2, items_unchanged: 1, safe_error_code: null, reconciliation_complete: true, created_at: "2026-08-28T10:00:00Z", started_at: "2026-08-28T10:00:01Z", completed_at: "2026-08-28T10:00:02Z" };
+    let resolveRefresh!: (value: Response) => void;
+    const pending = new Promise<Response>(resolve => { resolveRefresh = resolve; });
+    const storage = vi.spyOn(Storage.prototype, "setItem");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response([enabled]))
+      .mockResolvedValueOnce(response(null))
+      .mockReturnValueOnce(pending)
+      .mockResolvedValueOnce(response([{ ...enabled, validation_status: "valid", last_validated_at: "2026-08-28T10:00:02Z" }]));
+    vi.stubGlobal("fetch", fetchMock); render(<ConnectorAccounts />);
+    await userEvent.click(screen.getByRole("button", { name: "Load or refresh accounts" }));
+    const refreshButton = await screen.findByRole("button", { name: "Refresh GitHub" });
+    await userEvent.click(refreshButton);
+    expect(screen.getByRole("button", { name: "Refreshing…" })).toBeDisabled();
+    resolveRefresh(response(run));
+    expect(await screen.findByText(/Latest refresh:/)).toHaveTextContent("seen 3, created 2, unchanged 1");
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(storage).not.toHaveBeenCalled();
+    const request = fetchMock.mock.calls[2][1] as RequestInit;
+    expect(request.method).toBe("POST");
+    expect(JSON.parse(request.body as string)).toEqual({ expected_revision: 1 });
   });
 });

@@ -9,6 +9,13 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.connectors import service
+from app.connectors import sync as sync_service
+from app.connectors.dependencies import (
+    credential_store_dependency,
+    github_transport_factory_dependency,
+)
+from app.connectors.github import GitHubTransport
+from app.credentials.contract import CredentialStore
 from app.db.dependencies import get_db_session
 from app.models.connector import ConnectorAccount
 from app.repositories import connectors as repository
@@ -17,6 +24,7 @@ from app.schemas.connector import (
     ConnectorAccountRead,
     ConnectorAccountUpdate,
     ConnectorRevisionRequest,
+    ConnectorSyncRunRead,
 )
 
 router = APIRouter(prefix="/connector-accounts", tags=["connector-accounts"])
@@ -148,3 +156,49 @@ def revoke(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> ConnectorAccountRead:
     return _lifecycle(account_id, request, session, "revoked")
+
+
+@router.post("/{account_id}/refresh", response_model=ConnectorSyncRunRead)
+def refresh(
+    account_id: uuid.UUID,
+    request: ConnectorRevisionRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+    store: Annotated[CredentialStore, Depends(credential_store_dependency)],
+    transport_factory: Annotated[
+        Callable[[], GitHubTransport], Depends(github_transport_factory_dependency)
+    ],
+) -> ConnectorSyncRunRead:
+    try:
+        run = sync_service.claim(session, account_id, request.expected_revision)
+        session.commit()
+        session.refresh(run)
+    except sync_service.SyncNotFoundError:
+        session.rollback()
+        raise _error(404, "connector account not found") from None
+    except sync_service.SyncRevisionConflictError:
+        session.rollback()
+        raise _error(409, "connector account revision conflict") from None
+    except (sync_service.SyncConflictError, sync_service.SyncCapacityConflictError):
+        session.rollback()
+        raise _error(409, "connector refresh conflict") from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(503, "database unavailable") from None
+    result = sync_service.refresh(session, run, store, transport_factory)
+    session.commit()
+    session.refresh(result)
+    return sync_service.public_sync_run(result)
+
+
+@router.get("/{account_id}/sync-status", response_model=ConnectorSyncRunRead | None)
+def latest_sync_status(
+    account_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ConnectorSyncRunRead | None:
+    try:
+        if repository.get_account(session, account_id) is None:
+            raise _error(404, "connector account not found")
+        run = repository.latest_sync_run(session, account_id)
+        return None if run is None else sync_service.public_sync_run(run)
+    except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None

@@ -35,3 +35,6 @@ def configure_logging(level: str) -> None:
 
     handler.setLevel(numeric_level)
     handler.setFormatter(logging.Formatter(_FORMAT))
+    # Provider libraries must not emit request URLs or headers through root logs.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)

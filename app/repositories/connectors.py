@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select, text
 from sqlalchemy.orm import Session
 
 from app.connectors.validation import (
@@ -82,6 +82,53 @@ def has_active_sync_run(session: Session, account_id: uuid.UUID) -> bool:
                 )
             )
         )
+    )
+
+
+def lock_sync_capacity(session: Session) -> None:
+    """Serialize global active-sync capacity accounting without schema changes."""
+
+    session.execute(text("SELECT pg_advisory_xact_lock(910004)"))
+
+
+def active_sync_count(session: Session) -> int:
+    return int(
+        session.scalar(
+            select(func.count(ConnectorSyncRun.id)).where(
+                ConnectorSyncRun.status.in_(("claimed", "running"))
+            )
+        )
+        or 0
+    )
+
+
+def get_sync_run(session: Session, run_id: uuid.UUID) -> ConnectorSyncRun | None:
+    return session.get(ConnectorSyncRun, run_id)
+
+
+def latest_sync_run(session: Session, account_id: uuid.UUID) -> ConnectorSyncRun | None:
+    return session.scalar(
+        select(ConnectorSyncRun)
+        .where(ConnectorSyncRun.account_id == account_id)
+        .order_by(ConnectorSyncRun.created_at.desc(), ConnectorSyncRun.id.desc())
+        .limit(1)
+    )
+
+
+def latest_repository_snapshot(
+    session: Session, account_id: uuid.UUID, repository_name: str
+) -> ExternalItem | None:
+    """Return prior repository identity by its validated case-insensitive name."""
+
+    return session.scalar(
+        select(ExternalItem)
+        .where(
+            ExternalItem.account_id == account_id,
+            ExternalItem.resource_type == "repository",
+            func.lower(ExternalItem.title) == repository_name.casefold(),
+        )
+        .order_by(ExternalItem.application_revision.desc())
+        .limit(1)
     )
 
 

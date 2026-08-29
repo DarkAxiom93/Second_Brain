@@ -12,7 +12,7 @@ _RESOURCE = re.compile(
     r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,99}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z"
 )
 _SAFE_CODE = re.compile(r"\A[a-z][a-z0-9_]{0,99}\Z")
-_GITHUB_GRANTED_SCOPES = frozenset(
+_GITHUB_APPLICATION_READ_POLICY = frozenset(
     {"metadata_read", "issues_read", "pull_requests_read"}
 )
 _SECRET_MARKERS = (
@@ -110,14 +110,19 @@ def snapshot_content_hash(title: str, body: str) -> str:
 
 
 def granted_scope_fingerprint(scope_names: tuple[str, ...]) -> str:
-    """Derive a fingerprint from closed permission names, never credential material."""
+    """Fingerprint the application-owned policy, not provider token grants.
+
+    The persisted column name is retained for schema compatibility. GitHub's
+    bounded response surface does not prove the complete grants of a fine-grained
+    PAT, and provider permission headers must never enter this derivation.
+    """
 
     if not scope_names or len(scope_names) > 32:
         raise ValueError("invalid granted scopes")
     normalized = tuple(sorted(set(scope_names)))
     if (
         len(normalized) != len(scope_names)
-        or not set(normalized) <= _GITHUB_GRANTED_SCOPES
+        or not set(normalized) <= _GITHUB_APPLICATION_READ_POLICY
     ):
         raise ValueError("invalid granted scopes")
     return sha256("\n".join(normalized).encode()).hexdigest()

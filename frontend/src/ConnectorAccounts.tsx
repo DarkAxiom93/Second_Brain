@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import { ApiConflictError, connectorLifecycle, createConnectorAccount, listConnectorAccounts, listProjects, type ConnectorAccount, type ProjectRead } from "./api/client";
+import { ApiConflictError, connectorLifecycle, createConnectorAccount, getConnectorSyncStatus, listConnectorAccounts, listProjects, refreshConnectorAccount, type ConnectorAccount, type ConnectorSyncRun, type ProjectRead } from "./api/client";
 
 const REFERENCE = /^sbcred:v1:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}\/[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
@@ -14,12 +14,19 @@ export function ConnectorAccounts() {
   const [repositories, setRepositories] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [syncBusy, setSyncBusy] = useState<string | null>(null);
+  const [syncRuns, setSyncRuns] = useState<Record<string, ConnectorSyncRun | null>>({});
   const statusRef = useRef<HTMLParagraphElement>(null);
 
   const announce = (value: string) => { setMessage(value); requestAnimationFrame(() => statusRef.current?.focus()); };
+  const loadAccounts = async () => {
+    const loaded = await listConnectorAccounts(); setAccounts(loaded);
+    const statuses = await Promise.all(loaded.map(async account => [account.id, await getConnectorSyncStatus(account.id)] as const));
+    setSyncRuns(Object.fromEntries(statuses));
+  };
   const refresh = async () => {
     setBusy(true);
-    try { setAccounts(await listConnectorAccounts()); announce("Connector accounts refreshed."); }
+    try { await loadAccounts(); announce("Connector accounts refreshed."); }
     catch { announce("Connector accounts could not be loaded safely."); }
     finally { setBusy(false); }
   };
@@ -39,7 +46,7 @@ export function ConnectorAccounts() {
     try {
       await createConnectorAccount({ external_account_identity: identity.trim(), credential_reference: credentialReference, scope: scope === "unassigned" ? { kind: "unassigned", project_id: null } : { kind: "project", project_id: scope }, repositories: repoList });
       setCredentialReference(""); setIdentity(""); setRepositories(""); setScope("unassigned");
-      setAccounts(await listConnectorAccounts()); announce("GitHub account metadata created disabled and unvalidated. The credential reference was cleared.");
+      await loadAccounts(); announce("GitHub account metadata created disabled and unvalidated. The credential reference was cleared.");
     } catch { setCredentialReference(""); announce("Connector account metadata could not be created safely. The credential reference was cleared."); }
     finally { setBusy(false); }
   };
@@ -50,14 +57,26 @@ export function ConnectorAccounts() {
       const updated = await connectorLifecycle(account.id, action, account.revision);
       setAccounts(values => values.map(value => value.id === updated.id ? updated : value)); announce(`Connector account ${action} completed.`);
     } catch (error) {
-      if (error instanceof ApiConflictError) { try { setAccounts(await listConnectorAccounts()); announce("The account changed elsewhere. Current state was refreshed; review it before retrying."); } catch { announce("The account changed elsewhere and refresh failed safely."); } }
+      if (error instanceof ApiConflictError) { try { await loadAccounts(); announce("The account changed elsewhere. Current state was refreshed; review it before retrying."); } catch { announce("The account changed elsewhere and refresh failed safely."); } }
       else announce("The connector lifecycle action failed safely.");
     } finally { setBusy(false); }
+  };
+  const sync = async (account: ConnectorAccount) => {
+    setSyncBusy(account.id);
+    try {
+      const result = await refreshConnectorAccount(account.id, account.revision);
+      setSyncRuns(values => ({ ...values, [account.id]: result }));
+      setAccounts(await listConnectorAccounts());
+      announce(`GitHub refresh ${result.status}.`);
+    } catch (error) {
+      if (error instanceof ApiConflictError) { try { await loadAccounts(); announce("The account changed or refresh capacity is unavailable. Current state was refreshed."); } catch { announce("The connector refresh conflict could not be reconciled safely."); } }
+      else announce("The GitHub refresh failed safely.");
+    } finally { setSyncBusy(null); }
   };
 
   return <section className="panel operations-panel" aria-labelledby="connector-heading">
     <h2 id="connector-heading">GitHub connector accounts</h2>
-    <p>Metadata only. Install the credential itself with <code>scripts/manage-credential.ps1</code>, then paste only its opaque <code>sbcred:v1:&lt;UUIDv4&gt;</code> reference here. Never enter a GitHub token, password, or private client credential.</p>
+    <p>Install the credential with <code>scripts/manage-credential.ps1</code>, then paste only its opaque <code>sbcred:v1:&lt;UUIDv4&gt;</code> reference here. Never enter a GitHub token, password, or private client credential.</p>
     <div className="actions"><button type="button" onClick={() => void refresh()} disabled={busy}>Load or refresh accounts</button><button type="button" onClick={() => void loadProjects()} disabled={busy}>Load scope Projects</button></div>
     <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite">{message}</p>
     <form onSubmit={event => void create(event)} autoComplete="off">
@@ -71,6 +90,6 @@ export function ConnectorAccounts() {
       <textarea id="connector-repositories" value={repositories} onChange={event => setRepositories(event.target.value)} />
       <button type="submit" disabled={busy}>Create disabled GitHub account</button>
     </form>
-    {accounts.length === 0 ? <p>No connector accounts loaded.</p> : <ul className="connector-list">{accounts.map(account => <li key={account.id}><h3>{account.external_account_identity}</h3><p><strong>{account.lifecycle}</strong> · {account.validation_status} · revision {account.revision}</p><p>Scope: {account.scope.kind === "unassigned" ? "Unassigned" : projects.find(project => project.id === account.scope.project_id)?.name ?? account.scope.project_id}</p><p>Repositories: {account.repositories.join(", ")}</p><div className="actions">{account.lifecycle === "enabled" && <button type="button" disabled={busy} onClick={() => void mutate(account, "disable")}>Disable</button>}{account.lifecycle === "disabled" && <button type="button" disabled={busy} onClick={() => void mutate(account, "re-enable")}>Re-enable</button>}{account.lifecycle !== "revoked" && <button type="button" className="danger" disabled={busy} onClick={() => void mutate(account, "revoke")}>Revoke</button>}</div></li>)}</ul>}
+    {accounts.length === 0 ? <p>No connector accounts loaded.</p> : <ul className="connector-list">{accounts.map(account => { const run = syncRuns[account.id]; return <li key={account.id}><h3>{account.external_account_identity}</h3><p><strong>{account.lifecycle}</strong> · {account.validation_status} · revision {account.revision}</p><p>Scope: {account.scope.kind === "unassigned" ? "Unassigned" : projects.find(project => project.id === account.scope.project_id)?.name ?? account.scope.project_id}</p><p>Repositories: {account.repositories.join(", ")}</p>{run && <p>Latest refresh: <strong>{run.status}</strong> · seen {run.items_seen}, created {run.items_created}, unchanged {run.items_unchanged}{run.safe_error_code ? ` · ${run.safe_error_code}` : ""}</p>}<div className="actions">{account.lifecycle === "enabled" && <button type="button" disabled={busy || syncBusy === account.id} onClick={() => void sync(account)}>{syncBusy === account.id ? "Refreshing…" : "Refresh GitHub"}</button>}{account.lifecycle === "enabled" && <button type="button" disabled={busy || syncBusy === account.id} onClick={() => void mutate(account, "disable")}>Disable</button>}{account.lifecycle === "disabled" && <button type="button" disabled={busy} onClick={() => void mutate(account, "re-enable")}>Re-enable</button>}{account.lifecycle !== "revoked" && <button type="button" className="danger" disabled={busy || syncBusy === account.id} onClick={() => void mutate(account, "revoke")}>Revoke</button>}</div></li>; })}</ul>}
   </section>;
 }

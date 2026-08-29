@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0011_automation_persistence`.
+`0012_connector_persistence`.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
@@ -216,6 +216,16 @@ the loopback API, scheduler, Agent Runtime, history, notification, and UI
 contracts without duplicate occurrences or Runs. Checkpoint 86 is
 documentation-and-evidence-only release hardening for candidate `v1.3.0`; no
 tag or GitHub Release has been created.
+
+Checkpoint 91 implements one explicit synchronous manual GitHub refresh for an
+enabled, revision-matched ConnectorAccount. The production transport is fixed to
+GET requests against `https://api.github.com` for authenticated-user identity,
+exact configured repository metadata, issues, and pull requests only. Claims
+commit before credential or network latency, PostgreSQL advisory locking
+serializes the global active-sync cap of four, and every validated page commits
+quarantined ExternalItem revisions in a short fenced transaction. No connector
+content is available to Agents or Automations, no deletion inference or import
+exists, and Tool Registry/export identities remain unchanged.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

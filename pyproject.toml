@@ -11,6 +11,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic==1.18.5",
     "fastapi==0.140.7",
+    "httpx==0.28.1",
     "openai==2.50.0",
     "pgvector==0.5.0",
     "psycopg[binary]==3.3.4",
@@ -24,7 +25,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "httpx==0.28.1",
     "mypy==1.20.2",
     "pytest==9.0.3",
     "pytest-cov==7.1.0",

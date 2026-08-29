@@ -89,7 +89,11 @@ def test_scope_fingerprint_uses_only_canonical_permission_names() -> None:
 
 
 def test_inert_connector_modules_import_no_network_or_credential_adapter() -> None:
-    roots = (Path("app/connectors"), Path("app/repositories/connectors.py"))
+    roots = (
+        Path("app/connectors/catalog.py"),
+        Path("app/connectors/validation.py"),
+        Path("app/repositories/connectors.py"),
+    )
     forbidden = {
         "httpx",
         "requests",

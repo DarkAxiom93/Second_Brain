@@ -2,6 +2,7 @@ const DEFAULT_API_BASE = "/api";
 const REQUEST_TIMEOUT_MS = 5_000;
 const PLANNING_REQUEST_TIMEOUT_MS = 35_000;
 const EXECUTION_REQUEST_TIMEOUT_MS = 665_000;
+const CONNECTOR_REFRESH_TIMEOUT_MS = 65_000;
 
 export type HealthResponse = { status: "ok" };
 export type ReadinessResponse = { status: "ready" };
@@ -43,6 +44,13 @@ export type ConnectorAccount = {
   repositories: string[]; lifecycle: "disabled" | "enabled" | "revoked";
   validation_status: "unvalidated" | "valid" | "invalid" | "expired" | "revoked";
   revision: number; last_validated_at: string | null; created_at: string; updated_at: string;
+};
+export type ConnectorSyncRun = {
+  id: string; account_id: string; account_revision: number; trigger_kind: "manual";
+  status: "claimed" | "running" | "succeeded" | "incomplete" | "failed" | "cancelled";
+  items_seen: number; items_created: number; items_unchanged: number;
+  safe_error_code: string | null; reconciliation_complete: boolean;
+  created_at: string; started_at: string | null; completed_at: string | null;
 };
 export type ProjectCreate = { name: string; description: string | null };
 export type SourceRead = {
@@ -456,6 +464,20 @@ function isConnectorAccount(value: unknown): value is ConnectorAccount {
      (scope.kind === "project" && typeof scope.project_id === "string" && UUID_PATTERN.test(scope.project_id)));
 }
 
+function isConnectorSyncRun(value: unknown): value is ConnectorSyncRun {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["account_id", "account_revision", "completed_at", "created_at", "id", "items_created", "items_seen", "items_unchanged", "reconciliation_complete", "safe_error_code", "started_at", "status", "trigger_kind"];
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) &&
+    typeof r.id === "string" && UUID_PATTERN.test(r.id) && typeof r.account_id === "string" && UUID_PATTERN.test(r.account_id) &&
+    Number.isInteger(r.account_revision) && (r.account_revision as number) >= 0 && r.trigger_kind === "manual" &&
+    ["claimed", "running", "succeeded", "incomplete", "failed", "cancelled"].includes(r.status as string) &&
+    isCount(r.items_seen) && isCount(r.items_created) && isCount(r.items_unchanged) &&
+    (r.safe_error_code === null || (typeof r.safe_error_code === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(r.safe_error_code))) &&
+    typeof r.reconciliation_complete === "boolean" && isTimestamp(r.created_at) &&
+    (r.started_at === null || isTimestamp(r.started_at)) && (r.completed_at === null || isTimestamp(r.completed_at));
+}
+
 export function listConnectorAccounts(signal?: AbortSignal) {
   return request("/connector-accounts?limit=100&offset=0", (v): v is ConnectorAccount[] => Array.isArray(v) && v.every(isConnectorAccount), signal);
 }
@@ -464,6 +486,12 @@ export function createConnectorAccount(body: { external_account_identity: string
 }
 export function connectorLifecycle(id: string, action: "disable" | "re-enable" | "revoke", expected_revision: number, signal?: AbortSignal) {
   return request(`/connector-accounts/${id}/${action}`, isConnectorAccount, signal, { method: "POST", body: { expected_revision } });
+}
+export function refreshConnectorAccount(id: string, expected_revision: number, signal?: AbortSignal) {
+  return request(`/connector-accounts/${id}/refresh`, isConnectorSyncRun, signal, { method: "POST", body: { expected_revision } }, undefined, false, false, CONNECTOR_REFRESH_TIMEOUT_MS);
+}
+export function getConnectorSyncStatus(id: string, signal?: AbortSignal) {
+  return request(`/connector-accounts/${id}/sync-status`, (value): value is ConnectorSyncRun | null => value === null || isConnectorSyncRun(value), signal);
 }
 
 export function createProject(project: ProjectCreate, signal?: AbortSignal): Promise<ProjectRead> {

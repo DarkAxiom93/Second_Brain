@@ -24,7 +24,11 @@ from app.schemas.connector import (
 )
 
 _PROVIDER = "github"
-_PERMISSIONS = ("metadata_read", "issues_read", "pull_requests_read")
+_APPLICATION_READ_POLICY = (
+    "metadata_read",
+    "issues_read",
+    "pull_requests_read",
+)
 
 
 class ConnectorNotFoundError(Exception):
@@ -104,7 +108,7 @@ def create_account(
         credential_reference=request.credential_reference,
         project_id=_project_id(session, request.scope),
         resource_allowlist=repositories,
-        granted_scope_fingerprint=granted_scope_fingerprint(_PERMISSIONS),
+        granted_scope_fingerprint=granted_scope_fingerprint(_APPLICATION_READ_POLICY),
         lifecycle="disabled",
         validation_status="unvalidated",
         revision=0,

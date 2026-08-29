@@ -17,6 +17,9 @@ CredentialReference = Annotated[
 ]
 Lifecycle = Literal["disabled", "enabled", "revoked"]
 ValidationStatus = Literal["unvalidated", "valid", "invalid", "expired", "revoked"]
+SyncStatus = Literal[
+    "claimed", "running", "succeeded", "incomplete", "failed", "cancelled"
+]
 
 
 class ClosedModel(BaseModel):
@@ -75,3 +78,19 @@ class ConnectorAccountRead(ClosedModel):
     last_validated_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class ConnectorSyncRunRead(ClosedModel):
+    id: uuid.UUID
+    account_id: uuid.UUID
+    account_revision: int
+    trigger_kind: Literal["manual"]
+    status: SyncStatus
+    items_seen: int
+    items_created: int
+    items_unchanged: int
+    safe_error_code: str | None
+    reconciliation_complete: bool
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None

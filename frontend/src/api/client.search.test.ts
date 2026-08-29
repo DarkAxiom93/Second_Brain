@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { executeAgentRun, getAgentRun, planAgentRun, SafeApiError, searchMemories } from "./client";
+import { executeAgentRun, getAgentRun, planAgentRun, refreshConnectorAccount, SafeApiError, searchMemories } from "./client";
 
 const response = (body: unknown): Response => ({ ok: true, status: 200, json: vi.fn().mockResolvedValue(body) } as unknown as Response);
 
@@ -55,6 +55,18 @@ describe("Agent request timeouts", () => {
     await vi.advanceTimersByTimeAsync(35_000);
     expect(vi.getTimerCount()).toBe(1);
     await vi.advanceTimersByTimeAsync(629_999);
+    expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await request).toBeInstanceOf(SafeApiError);
+  });
+
+  it("allows the 60-second connector sync budget plus bounded response margin", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", abortingFetch());
+    const request = refreshConnectorAccount("11111111-1111-4111-8111-111111111111", 1).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(4_999);
     expect(vi.getTimerCount()).toBe(1);
     await vi.advanceTimersByTimeAsync(1);
     expect(await request).toBeInstanceOf(SafeApiError);
