@@ -2,11 +2,13 @@
 
 Status: **Approved by human review; Checkpoint 87 complete.**
 
-This document plans Local V1.4 only. It authorizes no implementation. Local
-V1.3 is the current published release as `v1.3.0` from
-`f79d556cb8d99961aa081464ef151ef1037fe87a`. The current stable identities are
-Alembic `0013_external_item_imports`, Tool Registry `agent-tools-v1`, and
-Project export `second-brain-project-export` version `1`.
+This document planned Local V1.4 only; it did not authorize implementation.
+Local V1.4 is now the current published release as `v1.4.0`, titled **Second
+Brain Local V1.4**, from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. Local V1.3.0 remains the preceding
+documented recovery release. The current stable identities are Alembic
+`0014_connector_refresh_schedules`, Tool Registry `agent-tools-v1`, and Project
+export `second-brain-project-export` version `1`.
 
 ## Decision
 
@@ -395,9 +397,9 @@ human review; it adds only the bounded explicit manual GitHub refresh described
 above. Checkpoint 92 is approved and complete after human review; it adds only
 the bounded external-context browser and complete-run reconciliation described
 above. Checkpoints 93-96 are approved and complete after human review.
-Checkpoint 97 release hardening is approved and complete after human review;
-candidate `v1.4.0` is ready for publication but has not been tagged or
-published.
+Checkpoint 97 release hardening is approved and complete after human review.
+After that approval, Local V1.4 was published as `v1.4.0` from exact release
+commit `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`.
 
 ## Explicitly deferred beyond V1.4
 

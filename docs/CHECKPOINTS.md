@@ -104,10 +104,11 @@ history. A dash means Alembic had not yet been introduced.
 | 96 | Local V1.4 end-to-end acceptance | Complete | `0014_connector_refresh_schedules` | This commit |
 | 97 | Local V1.4 release hardening | Approved and complete after human review | `0014_connector_refresh_schedules` | This commit |
 
-Checkpoint 97 prepares candidate `v1.4.0` / **Second Brain Local V1.4** without
-creating a tag or release. It is approved and complete after human review; its
-completed evidence and final disk-stability investigation are in
-`checkpoint-97-report.md`.
+Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
+creating a tag or release during the checkpoint. It is approved and complete
+after human review and was subsequently published from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`; its completed evidence and final
+disk-stability investigation are in `checkpoint-97-report.md`.
 
 ## Standard lifecycle
 

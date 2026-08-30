@@ -1,14 +1,15 @@
 # Checkpoint 97 report - Local V1.4 release hardening
 
-Status: **Approved and complete after human review.**
+Status: **Approved and complete after human review; subsequently published as
+`v1.4.0`.**
 
 ## Outcome and release candidate
 
-Checkpoint 97 prepares candidate tag `v1.4.0`, title **Second Brain Local
+Checkpoint 97 prepared candidate tag `v1.4.0`, title **Second Brain Local
 V1.4**, from approved/pushed Checkpoint 96 base
 `49f6eaa78f2a1a27bf5e48d6d845c0f082e10d6f`. Exact push CI run `33292270431`
-completed successfully. No tag, GitHub Release, PR, commit, push, or publication
-action occurred.
+completed successfully. At Checkpoint 97 completion, no tag, GitHub Release,
+PR, commit, push, or publication action had occurred.
 
 This checkpoint changes documentation and release evidence only. It changes no
 production behavior, schema, migration, API, frontend capability, dependency,
@@ -187,9 +188,10 @@ Changed paths are exactly `README.md`, `docs/ARCHITECTURE.md`,
 `docs/LOCAL_V1_RUNBOOK.md`, `docs/ROADMAP.md`, `docs/V1_4_ROADMAP.md`,
 `docs/V1_4_THREAT_MODEL.md`, new `docs/LOCAL_V1_4_RELEASE_NOTES.md`, and new
 `docs/checkpoint-97-report.md`. Everything remains unstaged and uncommitted.
-No release blocker remains. Checkpoint 97 is approved and complete after human
-review. Local V1.4 is ready for separately authorized publication, but remains
-unpublished; `v1.4.0` has not been tagged or released.
+No release blocker remained. Checkpoint 97 was approved and complete after human
+review. Local V1.4 was subsequently published as `v1.4.0`, titled **Second Brain
+Local V1.4**, from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`.
 Only release documentation changed after the authoritative focused and Full
 runs, so their 145/1,237/137 zero-skip evidence was preserved and not repeated;
 the final resumed bounded `pip check` passed.

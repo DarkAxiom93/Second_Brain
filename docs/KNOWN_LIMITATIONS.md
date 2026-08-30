@@ -1,4 +1,4 @@
-# Local V1.4 candidate known limitations
+# Local V1.4 known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -31,8 +31,10 @@ acceptance. Checkpoint 86 release hardening is approved and complete after
 human review; V1.3 is published as `v1.3.0`. Checkpoints 87-96 completed the
 approved V1.4 connector architecture, implementation, security gate, and joined
 acceptance. Checkpoint 97 release hardening is approved and complete after human
-review. Candidate `v1.4.0` is ready for publication but is not tagged or
-published.
+review. After that approval, Local V1.4 was published as `v1.4.0`, titled
+**Second Brain Local V1.4**, from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. It is the current published
+release; `v1.3.0` remains the preceding documented recovery release.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

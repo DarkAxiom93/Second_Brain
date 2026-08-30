@@ -260,8 +260,10 @@ The stable Local V1.4 boundary remains `agent-tools-v1`, Project export
 `second-brain-project-export` version `1`, and Alembic
 `0014_connector_refresh_schedules`.
 Checkpoint 97 Local V1.4 release hardening is approved and complete after human
-review. Local V1.4 is ready for publication but remains unpublished; `v1.4.0`
-has not been tagged or released.
+review. After that approval, Local V1.4 was published as `v1.4.0`, titled
+**Second Brain Local V1.4**, from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. It is the current published
+release; `v1.3.0` remains the preceding documented recovery release.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

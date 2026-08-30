@@ -2,7 +2,7 @@
 
 **A local-first personal knowledge system for turning source material into reviewed, searchable, evidence-backed knowledge.**
 
-[![Latest release](https://img.shields.io/github/v/release/DarkAxiom93/Second_Brain?label=release)](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.3.0)
+[![Latest release](https://img.shields.io/github/v/release/DarkAxiom93/Second_Brain?label=release)](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.4.0)
 [![Second Brain CI](https://github.com/DarkAxiom93/Second_Brain/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DarkAxiom93/Second_Brain/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.140-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -11,7 +11,7 @@
 
 Second Brain is a local-first personal knowledge management application. It combines structured **Memories**, source-backed retrieval, evidence-backed **Answers**, and bounded **AI Agents** in a loopback-only workspace for one trusted maintainer. The result is a practical knowledge base with semantic search and RAG-style retrieval—without handing a model unrestricted control of your computer.
 
-[**V1.3 release**](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.3.0) · [**Local runbook**](docs/LOCAL_V1_RUNBOOK.md) · [**Architecture**](docs/ARCHITECTURE.md) · [**Known limitations**](docs/KNOWN_LIMITATIONS.md)
+[**V1.4 release**](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.4.0) · [**Local runbook**](docs/LOCAL_V1_RUNBOOK.md) · [**Architecture**](docs/ARCHITECTURE.md) · [**Known limitations**](docs/KNOWN_LIMITATIONS.md)
 
 <p align="center">
   <img src="docs/assets/screenshots/dashboard.png" alt="Second Brain local dashboard showing healthy API and PostgreSQL readiness" width="1200">
@@ -142,18 +142,19 @@ content.
 
 ## Current release
 
-### [v1.3.0 — Second Brain Local V1.3](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.3.0)
+### [v1.4.0 — Second Brain Local V1.4](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.4.0)
 
-V1.3 is the current published release. It adds durable local Automations and scheduled fixed Daily Brief and Project Watch Agents while preserving the trusted single-maintainer, loopback-only deployment boundary. V1.2.1 remains intact as the documented recovery release.
+V1.4 is the current published release. It adds bounded read-only GitHub context,
+quarantined external-item history, explicit single-item import, and optional
+operator-started connector refresh schedules while preserving the trusted
+single-maintainer, loopback-only deployment boundary. V1.3.0 remains intact as
+the preceding documented recovery release.
 
-Release commit: [`f79d556cb8d99961aa081464ef151ef1037fe87a`](https://github.com/DarkAxiom93/Second_Brain/commit/f79d556cb8d99961aa081464ef151ef1037fe87a)
+Release commit: [`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`](https://github.com/DarkAxiom93/Second_Brain/commit/c02a8ccb4b0b93a2fb73f23c112344b69eaac39a)
 
-Read the [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) for its detailed inventory, verification, recovery guidance, and deferred scope.
-
-Local V1.4 is prepared as candidate tag `v1.4.0`, title **Second Brain Local
-V1.4**. It has not been tagged or published. See the
-[V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) for its exact read-only
-connector boundary and release evidence.
+Read the [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) for its exact
+read-only connector inventory, verification, recovery guidance, residual risk,
+and deferred scope.
 
 ## Current limitations
 
@@ -175,7 +176,7 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 | [Architecture](docs/ARCHITECTURE.md) | System topology, components, persistence, boundaries, and transactions. |
 | [V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md) | Release inventory, safety boundary, and recovery notes. |
 | [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) | Published Automation inventory, verification, recovery, and deferred scope. |
-| [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) | Candidate read-only connector inventory, evidence, recovery, and residual risks. |
+| [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) | Published read-only connector inventory, evidence, recovery, and residual risks. |
 | [Known limitations](docs/KNOWN_LIMITATIONS.md) | Current operational and product boundaries. |
 | [Agent threat model](docs/AGENT_THREAT_MODEL.md) | Assets, trust boundaries, security invariants, and threat controls. |
 | [Verification](docs/VERIFICATION.md) | Local verification requirements and release-authoritative checks. |
@@ -184,7 +185,7 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 
 ## Project status
 
-Second Brain Local V1.3 is published and remains intentionally local-first. Issues, feedback, and stars are welcome. The repository does not currently define a formal contribution process; review the architecture, safety rules, and checkpoint guidance before proposing changes.
+Second Brain Local V1.4 is published and remains intentionally local-first. Issues, feedback, and stars are welcome. The repository does not currently define a formal contribution process; review the architecture, safety rules, and checkpoint guidance before proposing changes.
 
 For release-authoritative local verification, keep PostgreSQL and the separate test database running, then run:
 

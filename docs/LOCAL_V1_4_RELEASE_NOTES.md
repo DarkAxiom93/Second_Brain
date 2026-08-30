@@ -1,13 +1,23 @@
 # Second Brain Local V1.4 release notes
 
-Status: **Checkpoint 97 approved and complete after human review. Release
-candidate ready for publication but not published.**
+Status: **Published and current. Checkpoint 97 approved and complete after
+human review before publication.**
 
-Candidate tag: `v1.4.0`
+Release: [`v1.4.0`](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.4.0)
 
-Candidate title: **Second Brain Local V1.4**
+Release title: **Second Brain Local V1.4**
 
-Release-candidate base: `49f6eaa78f2a1a27bf5e48d6d845c0f082e10d6f`
+Release commit: `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`
+
+Annotated tag object: `90c18d0d65895b807623a8058d7dfc629b5690b3`
+
+GitHub Release ID: `379368468`
+
+Published: `2026-08-30T18:37:22Z`
+
+Exact release-commit push CI: `33327262569`, successful
+
+Release state: public, draft `false`, prerelease `false`, no assets
 
 ## Read-only Connectors and External Context
 
@@ -108,4 +118,6 @@ V1.3.0 remains the preceding published recovery release, but recovery must use
 a separate checkout and identity-verified backup rather than downgrading the
 development database.
 
-No tag or GitHub Release was created while preparing these notes.
+Local V1.4 was published only after Checkpoint 97 approval as `v1.4.0`, titled
+**Second Brain Local V1.4**, from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`.

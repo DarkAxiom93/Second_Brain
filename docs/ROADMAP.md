@@ -11,11 +11,13 @@ point. Local V1.1 is published as `v1.1.0` from exact commit
 commit. Local V1.2.1 is the current published V1.2 patch release, tagged
 `v1.2.1` from exact commit `04e9db33dc0de7529b1599871c58cace6ed9f9e2`.
 Local V1.2.0 remains intact as the preceding release from
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.3 is the current
-published release, tagged `v1.3.0` from exact commit
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.4 is the current
+published release, tagged `v1.4.0` with title **Second Brain Local V1.4** from
+exact commit `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. Local V1.3.0 remains
+the preceding documented recovery release from
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
-`0014_connector_refresh_schedules`, and Project export remains
-`second-brain-project-export` version 1.
+`0014_connector_refresh_schedules`, Tool Registry remains `agent-tools-v1`, and
+Project export remains `second-brain-project-export` version `1`.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
 non-authoritative CI, deterministic explained Memory search, its accessible UI,
@@ -161,8 +163,9 @@ is approved and complete after human review with inert connector persistence
 and the closed GitHub catalog. Checkpoints 90-94 are approved and complete
 after human review. Checkpoints 95-96 are approved and complete after human
 review. Checkpoint 97 release hardening is approved and complete after human
-review; candidate `v1.4.0` is ready for publication but has not been tagged or
-published.
+review. After that approval, Local V1.4 was published as `v1.4.0`, titled
+**Second Brain Local V1.4**, from exact release commit
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`.
 Checkpoint 88 completed the Windows per-user OS credential-store prerequisite
 after human review.
 Calendar and Gmail, direct Agent
