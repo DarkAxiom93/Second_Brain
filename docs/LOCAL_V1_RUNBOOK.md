@@ -138,11 +138,15 @@ any bundle identity. There is no merge, overwrite, remap, repair, or partial
 import. See [PROJECT_EXPORT_FORMAT.md](PROJECT_EXPORT_FORMAT.md).
 
 Format version 1 accepts source bundles produced at
-`0009_memory_expiration`, `0010_agent_runtime_persistence`, or
-`0011_automation_persistence` only. Current export and import targets require
-`0011_automation_persistence`. Project
+`0009_memory_expiration`, `0010_agent_runtime_persistence`,
+`0011_automation_persistence`, `0012_connector_persistence`,
+`0013_external_item_imports`, or `0014_connector_refresh_schedules`. Current
+export and import targets require `0014_connector_refresh_schedules`. Project
 bundles exclude Agent Runs, Steps, Tool invocations, Agent events, Approval
-Requests, provider payloads, hidden reasoning, and other private runtime state.
+Requests, connector accounts/sync runs/items/import provenance/schedules/
+occurrences, credential references, provider payloads, hidden reasoning, and
+other private runtime state. Imported ordinary Source/SourceDocument records
+retain the existing version-1 semantics only.
 
 ## Full database backup
 

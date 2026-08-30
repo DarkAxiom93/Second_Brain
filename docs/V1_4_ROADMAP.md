@@ -382,7 +382,7 @@ downgrades run only against the verified test database.
   exclusion, exact credential revocation evidence.
 - **Rollback:** documentation revert; `v1.3.0` remains recovery release.
 
-Checkpoint 87 starts none of Checkpoints 88-97.
+Checkpoint 87 started none of Checkpoints 88-97 by itself.
 
 Implementation status: Checkpoint 88 is approved and complete after human
 review. Checkpoint 89 is approved and complete after human review and adds only
@@ -394,7 +394,10 @@ provider calls, or new authority. Checkpoint 91 is approved and complete after
 human review; it adds only the bounded explicit manual GitHub refresh described
 above. Checkpoint 92 is approved and complete after human review; it adds only
 the bounded external-context browser and complete-run reconciliation described
-above. Checkpoints 93-97 have not started.
+above. Checkpoints 93-96 are approved and complete after human review.
+Checkpoint 97 release hardening is approved and complete after human review;
+candidate `v1.4.0` is ready for publication but has not been tagged or
+published.
 
 ## Explicitly deferred beyond V1.4
 

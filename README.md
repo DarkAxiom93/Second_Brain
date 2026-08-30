@@ -21,7 +21,7 @@ Second Brain is a local-first personal knowledge management application. It comb
 
 The core workflow keeps source material, model suggestions, reviewed knowledge, and agent activity visibly separate.
 
-| Area | Current V1.3 capabilities |
+| Area | Current Local V1 capabilities |
 | --- | --- |
 | Organize | Group knowledge into Projects and maintain structured, provenance-linked Memories. |
 | Ingest | Create Sources and ingest TXT, PDF, or JSON content into auditable documents and chunks. |
@@ -31,6 +31,7 @@ The core workflow keeps source material, model suggestions, reviewed knowledge, 
 | Move data | Export a Project to a private versioned bundle, validate an import without writing, and execute only conflict-free imports. |
 | Use Agents | Manually run bounded plans, use a read-only Research Agent, review advisory Memory Curator proposals, and inspect explicit Approvals. |
 | Automate | Define one-time, daily, or weekly Automations for fixed Daily Brief and Project Watch Agents, using safe `create_only` or explicit `automatic_read_only` execution. |
+| Use external context | Configure selected GitHub repositories with an OS-protected credential reference, refresh repository metadata/issues/pull requests through fixed GET-only reads, browse quarantined history, and explicitly import one current item into audited Sources. |
 
 Second Brain also includes explicit Memory supersession, expiration, quality refinement, embedding maintenance, local diagnostics, and maintenance audits. Provider-backed features require locally configured credentials; lexical search and the rest of the deterministic application remain available without them.
 
@@ -62,7 +63,8 @@ Second Brain treats model output and retrieved content as untrusted data. Agents
 - The Memory Curator is advisory and can create only immutable `memory.update` proposals.
 - A human explicitly approves or rejects proposed actions; V1.2 cannot execute a proposal.
 - Agents cannot write autonomously or run arbitrary shell, Python, SQL, filesystem, browser, or network operations.
-- There are no external research services, connectors, external writes, or hidden cloud services.
+- Connectors are quarantined read-only context only. Agents cannot access them,
+  and no connector can write externally or import automatically.
 - The supported deployment remains loopback-only for one trusted maintainer, with no remote or multi-user trust boundary.
 
 These are deliberate authority limits, not accidental gaps: the model cannot grant itself new tools or permissions. See the [Agent threat model](docs/AGENT_THREAT_MODEL.md) for the trust boundaries, invariants, and deterministic security gates.
@@ -105,7 +107,7 @@ Set-Location Second_Brain
 & '.\.venv\Scripts\python.exe' -m alembic check
 ```
 
-The development database must resolve both in configuration and live as `127.0.0.1:5433/second_brain`; the separate test database must be `second_brain_test`. The sole migration head is `0011_automation_persistence`. Never downgrade the development database or delete its named volume.
+The development database must resolve both in configuration and live as `127.0.0.1:5433/second_brain`; the separate test database must be `second_brain_test`. The sole migration head is `0014_connector_refresh_schedules`. Never downgrade the development database or delete its named volume.
 
 Then open two additional PowerShell terminals at the repository root:
 
@@ -146,13 +148,19 @@ V1.3 is the current published release. It adds durable local Automations and sch
 
 Release commit: [`f79d556cb8d99961aa081464ef151ef1037fe87a`](https://github.com/DarkAxiom93/Second_Brain/commit/f79d556cb8d99961aa081464ef151ef1037fe87a)
 
-Read the [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) for the detailed inventory, verification, recovery guidance, and deferred scope. No V1.4 work has begun.
+Read the [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) for its detailed inventory, verification, recovery guidance, and deferred scope.
+
+Local V1.4 is prepared as candidate tag `v1.4.0`, title **Second Brain Local
+V1.4**. It has not been tagged or published. See the
+[V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) for its exact read-only
+connector boundary and release evidence.
 
 ## Current limitations
 
 - Second Brain is a trusted, single-maintainer local application with no authentication, remote access, synchronization, or multi-user isolation.
 - Provider-backed proposal generation, embeddings, semantic/hybrid retrieval, and successful generated Answers require local provider credentials.
-- Agents remain bounded. Automatic execution is limited to explicit opt-in fixed read-only Daily Brief and Project Watch definitions; there is no startup worker, connector, autonomous Approval, external write, or proposal execution.
+- Agents remain bounded. Automatic execution is limited to explicit opt-in fixed read-only Daily Brief and Project Watch definitions; connectors grant no Agent access, autonomous Approval, external write, or proposal execution.
+- GitHub context is limited to explicitly selected repositories and repository metadata, issues, and pull requests. Credentials require operator-managed expiry, replacement, and revocation; complete provider-side PAT grants are not observable through the bounded API.
 - Answers are stateless; questions, answers, citations, and conversation history are not persisted.
 - Project bundles are sensitive and unencrypted, exclude Agent and Approval state, and support validation-first, conflict-free import only—never merge or overwrite.
 - Maintenance is explicit and advisory; there is no automatic repair, expiration processing, or re-embedding.
@@ -167,6 +175,7 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 | [Architecture](docs/ARCHITECTURE.md) | System topology, components, persistence, boundaries, and transactions. |
 | [V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md) | Release inventory, safety boundary, and recovery notes. |
 | [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) | Published Automation inventory, verification, recovery, and deferred scope. |
+| [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) | Candidate read-only connector inventory, evidence, recovery, and residual risks. |
 | [Known limitations](docs/KNOWN_LIMITATIONS.md) | Current operational and product boundaries. |
 | [Agent threat model](docs/AGENT_THREAT_MODEL.md) | Assets, trust boundaries, security invariants, and threat controls. |
 | [Verification](docs/VERIFICATION.md) | Local verification requirements and release-authoritative checks. |

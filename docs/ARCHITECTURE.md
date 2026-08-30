@@ -250,7 +250,18 @@ Checkpoint 95 is approved and complete after human review. Its code-owned C01-C1
 manifest, hostile-content/configuration corpus, credential/export/schema scans,
 PostgreSQL connector evidence, and focused frontend gate add deterministic
 release evidence without changing production behavior or authority. Checkpoint
-96 has not started.
+96 is approved and complete at
+`49f6eaa78f2a1a27bf5e48d6d845c0f082e10d6f`; its joined acceptance proves the
+credential-reference, configuration, manual refresh, quarantine/reconciliation,
+single-item import, optional scheduling, restart, failure, isolation, and UI
+journeys with fake credential and GitHub boundaries. Checkpoint 94's connector
+scheduler remains disabled by default, creates no Agent Run, and never imports.
+The stable Local V1.4 boundary remains `agent-tools-v1`, Project export
+`second-brain-project-export` version `1`, and Alembic
+`0014_connector_refresh_schedules`.
+Checkpoint 97 Local V1.4 release hardening is approved and complete after human
+review. Local V1.4 is ready for publication but remains unpublished; `v1.4.0`
+has not been tagged or released.
 
 Checkpoint 68 is complete at
 `1bc90b4339bd5466fda10e5d04711e3f025a0e01`. Its four additive Approval APIs create,

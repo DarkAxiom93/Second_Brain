@@ -160,7 +160,9 @@ existing Agents and Automations unchanged, adds no connector Tool to
 is approved and complete after human review with inert connector persistence
 and the closed GitHub catalog. Checkpoints 90-94 are approved and complete
 after human review. Checkpoints 95-96 are approved and complete after human
-review. Checkpoint 97 remains proposed and has not started.
+review. Checkpoint 97 release hardening is approved and complete after human
+review; candidate `v1.4.0` is ready for publication but has not been tagged or
+published.
 Checkpoint 88 completed the Windows per-user OS credential-store prerequisite
 after human review.
 Calendar and Gmail, direct Agent

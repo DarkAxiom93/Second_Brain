@@ -101,3 +101,9 @@ prove the complete loopback flow with fake credential and GitHub services and
 zero skips. Any unresolved critical threat blocks Checkpoint 97 and publication.
 Passing these gates does not authorize Gmail, Calendar, direct Agent connector
 Tools, external writes, automatic import, multi-user operation, or export v2.
+
+Implementation status: Checkpoints 95 and 96 are approved and complete. The
+Checkpoint 97 release audit reconfirmed the complete C01-C18 manifest, fixed
+GET-only inventory, export exclusion, credential cleanup, and the provider-side
+PAT over-grant observability residual risk. Passing release hardening does not
+expand connector authority.

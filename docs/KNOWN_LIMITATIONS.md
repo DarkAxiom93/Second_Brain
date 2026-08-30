@@ -1,4 +1,4 @@
-# Local V1.3 candidate known limitations
+# Local V1.4 candidate known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -28,7 +28,11 @@ live-provider and Agent reliability hardening is documented in
 [V1_2_1_HOTFIX_REPORT.md](V1_2_1_HOTFIX_REPORT.md). Checkpoints 75-85 completed
 the approved V1.3 Automation architecture, implementation, security gates, and
 acceptance. Checkpoint 86 release hardening is approved and complete after
-human review; V1.3 is not published.
+human review; V1.3 is published as `v1.3.0`. Checkpoints 87-96 completed the
+approved V1.4 connector architecture, implementation, security gate, and joined
+acceptance. Checkpoint 97 release hardening is approved and complete after human
+review. Candidate `v1.4.0` is ready for publication but is not tagged or
+published.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -46,8 +50,23 @@ human review; V1.3 is not published.
   one-time/daily/weekly definitions and the fixed Daily Brief v1 and Project
   Watch v1 Agents. `create_only` is default and `automatic_read_only` is opt-in.
 - Research and Memory Curator remain unschedulable. There are no arbitrary Agent
-  prompts or Tools, external/network research, connectors, automatic reviewed-
-  knowledge writes, proposal execution, or automatic Approval.
+  prompts or Tools, external/network research, direct Agent connector access,
+  automatic reviewed-knowledge writes, proposal execution, or automatic
+  Approval.
+- The only connector is GitHub, limited to explicitly selected repositories and
+  fixed GET-only repository metadata, issue, and pull-request reads. Source
+  code, diffs, Actions, repository discovery, comments, organizations/members/
+  email, packages, administration, webhooks, and every external write remain
+  unavailable.
+- Connector snapshots are quarantined and may contain sensitive private
+  repository content. Import is explicit, current-revision, and one item at a
+  time; there is no bulk or automatic import and no automatic Memory/proposal
+  creation. Scheduled refresh is optional, disabled by default, and runs only
+  through the explicit operator scheduler command.
+- GitHub's bounded API cannot prove that a fine-grained PAT lacks additional
+  provider-side repository or permission grants. Operators must select only the
+  needed repositories and read permissions, set expiry, and explicitly replace
+  or revoke credentials. There is no automatic token refresh.
 - Notifications are a local content-free inbox only. There is no webhook,
   email, push, OS notification, or other external delivery.
 - Automation, occurrence, Run, and notification history has no automatic
@@ -55,7 +74,9 @@ human review; V1.3 is not published.
 - Maintenance and diagnostics are read-only. There is no automatic
   maintenance, repair, expiration processing, or re-embedding.
 - Version 1 `.sbexport` bundles are private but not encrypted. Protect them as
-  sensitive data.
+  sensitive data. Connector accounts, snapshots, runtime/provenance, schedules,
+  occurrences, notifications, and credential references are excluded; OS
+  credentials are also outside PostgreSQL backup/export.
 - Import has no merge, overwrite, remap, repair, or partial-import behavior.
 - Answers are stateless. Questions, answers, citations, and conversation history
   are not persisted.
