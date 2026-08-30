@@ -68,4 +68,37 @@ describe("External Context", () => {
     expect(fetchMock).toHaveBeenCalledTimes(5);
     expect(storage).not.toHaveBeenCalled();
   });
+
+  it("shows safe history and requires explicit pause, resume, and cancel actions", async () => {
+    const base = { id: "723e4567-e89b-42d3-a456-426614174000", account_id: account.id, provider: "github", lifecycle: "enabled", revision: 1, schedule_revision: 0, schedule_kind: "daily", timezone_name: "UTC", local_time: "08:00:00", one_time_local_date: null, weekdays: [], interval_count: 1, nonexistent_time_policy: "first_valid_after_gap", ambiguous_time_policy: "earlier_fold", missed_run_policy: "run_once", next_occurrence_at: "2026-08-29T08:00:00Z", created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z", cancelled_at: null };
+    const occurrence = { id: "823e4567-e89b-42d3-a456-426614174000", schedule_id: base.id, account_id: account.id, provider: "github", connector_sync_run_id: "923e4567-e89b-42d3-a456-426614174000", scheduled_at: "2026-08-29T08:00:00Z", state: "failed", safe_error_code: "credential_missing", safe_disposition_code: "sync_failed", completed_at: "2026-08-29T08:00:01Z" };
+    const paused = { ...base, lifecycle: "paused", revision: 2, next_occurrence_at: null };
+    const resumed = { ...base, revision: 3 };
+    const cancelled = { ...base, lifecycle: "cancelled", revision: 4, next_occurrence_at: null, cancelled_at: "2026-08-29T09:00:00Z" };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response([account]))
+      .mockResolvedValueOnce(response(base))
+      .mockResolvedValueOnce(response([occurrence]))
+      .mockResolvedValueOnce(response(paused))
+      .mockResolvedValueOnce(response([occurrence]))
+      .mockResolvedValueOnce(response(resumed))
+      .mockResolvedValueOnce(response([occurrence]))
+      .mockResolvedValueOnce(response(cancelled))
+      .mockResolvedValueOnce(response([occurrence]));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MemoryRouter><ConnectorScheduleControls /></MemoryRouter>);
+    expect(await screen.findByText(/sync_failed/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(await screen.findByText("Schedule pause completed.")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Resume" }));
+    expect(await screen.findByText("Schedule resume completed.")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel future scheduling" }));
+    expect(await screen.findByText("Schedule cancel completed.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel future scheduling" })).not.toBeInTheDocument();
+    const actions = fetchMock.mock.calls.filter(call => (call[1] as RequestInit | undefined)?.method === "POST");
+    expect(actions.map(call => String(call[0]).split("/").pop())).toEqual(["pause", "resume", "cancel"]);
+    expect(actions.map(call => JSON.parse(String((call[1] as RequestInit).body)))).toEqual([
+      { expected_revision: 1 }, { expected_revision: 2 }, { expected_revision: 3 },
+    ]);
+  });
 });
