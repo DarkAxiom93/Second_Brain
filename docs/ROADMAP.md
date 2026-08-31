@@ -172,3 +172,17 @@ Calendar and Gmail, direct Agent
 connector access, external writes, automatic import/review/promotion,
 authentication/multi-user, generic network execution, and export redesign
 remain deferred.
+
+## Planned Local V1.5 direction
+
+Checkpoint 98 is approved and complete after human review. It selects **Local
+V1.5 - Read-only Google Calendar Context**. The dedicated
+[roadmap](V1_5_CALENDAR_ROADMAP.md) and
+[G01-G18 threat model](V1_5_CALENDAR_THREAT_MODEL.md) compare the alternatives
+and define a manual-first, one-account, exact-calendar-allowlist release with a
+privacy-minimized event projection. Import and scheduling remain separate
+decision gates; Agents and Automations remain unable to access Calendar data.
+
+Checkpoint 98 is documentation-only and does not start Checkpoint 99 or change
+the published Local V1.4 capability, schema, dependencies, Tool Registry,
+Project export, or authority boundary.

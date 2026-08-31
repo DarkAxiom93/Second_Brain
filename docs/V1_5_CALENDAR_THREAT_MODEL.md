@@ -1,0 +1,74 @@
+# Local V1.5 Google Calendar threat model
+
+Status: **Checkpoint 98 approved and complete after human review.**
+
+This register extends rather than replaces the Agent, Automation, and V1.4
+connector threat models. Calendar content, Google/OAuth responses, browser
+navigation, wall clock, network outcomes, event identities, pagination and sync
+tokens are untrusted. The trusted boundary is the local operator, closed
+application policy, OS per-user credential store, validated PostgreSQL state,
+and deterministic code-owned projections. Passing this plan authorizes no
+implementation.
+
+## Security invariants
+
+- Only one explicitly authorized account and exact immutable calendar allowlist
+  may be read, through the fixed GET-only Calendar inventory.
+- Secrets never enter PostgreSQL, exports, browser storage, observability,
+  errors, reports, prompts, or fixtures.
+- The stored event projection excludes attendees, organizer, description,
+  location, conference links, attachments, reminders, extended properties, and
+  private content.
+- Calendar content is quarantined untrusted data and unavailable to Agents and
+  Automations; it creates no import, Memory, proposal, Approval, or write.
+- Project and unassigned scopes are exact. Null never means unrestricted.
+- Partial, failed, ambiguous, or mismatched sync never infers deletion.
+- No database transaction or lock spans OAuth, credential-store, network,
+  browser, backoff, or provider latency.
+
+## G01-G18 register
+
+The future named gate is Checkpoint 106. Each row defines its prevention,
+fail-closed response, and minimum deterministic gate.
+
+| ID / threat | Prevention and fail-closed behavior | CP106 deterministic gate |
+|---|---|---|
+| G01 OAuth/token leakage | PKCE/state, ephemeral loopback callback, memory-only access token, OS-store refresh envelope, structural redaction and prohibited secret fields. Any unsafe serialization aborts; suspected leakage disables the account and requires replacement. | Synthetic canaries across callback URL/history, DB, logs, API/UI, DOM/storage, errors, diagnostics, notifications, exports, backups, prompts, reports and crash serialization; zero occurrence. |
+| G02 Excessive OAuth scope | Exact `calendar.events.readonly` request and fingerprint; reject extra/missing/changed grants and never request discovery/write/profile scopes. | Fake consent/token responses with write, CalendarList, Gmail, Drive, identity and unknown scopes; assert no credential install or Calendar call. |
+| G03 Confused deputy/account substitution | Verify one account fingerprint before configuration/use; bind credential envelope, account revision and allowlist; replacement cannot change identity silently. | Wrong signed-in browser account, swapped token, reauthorization race, stale callback/state and identity-changing refresh; zero snapshot and fenced account. |
+| G04 Calendar-scope substitution | Immutable validated calendar IDs, non-empty maximum-10 allowlist, no discovery, and per-request account/revision binding. | `primary`, crafted IDs, encoding/path traversal, calendar rename/reuse, foreign calendar response, allowlist edit during sync and hostile continuation; no widened request. |
+| G05 Cross-Project/unassigned leakage | Exact captured nullable scope, SQL ownership predicates and historical scope preservation; null is unassigned only. | Project A/B/unassigned list/detail/sync, forged IDs/cursors, scope edit/delete races and prior-revision history. |
+| G06 Hostile/prompt-injection event content | Minimized bounded plain-text projection, escaping/control filtering, external/untrusted labels, and no Agent/Tool access. Reject malformed/oversized content or render inert. | HTML/Markdown/script, bidi/control, encoded instructions, tool/secret requests and Unicode corpus; zero execution, link, prompt, Agent or protected-domain delta. |
+| G07 Attendee/privacy leakage | Do not request/store/hash/display attendees, organizer, guests, description, location, links, attachments, reminders or extended properties; private/special events use fixed labels. | Canary in every excluded field and raw payload/exception; scan DB, hashes, APIs, UI, logs, exports and reports for zero occurrence. |
+| G08 Malicious links/conference URLs | URL-bearing fields are excluded; UI creates no provider-content hyperlink and transport never follows event links/attachments. | `javascript:`, `data:`, userinfo, redirect, encoded host, meeting and attachment URL corpus; zero navigation/request/rendered anchor. |
+| G09 Recurring-event identity ambiguity | Occurrence key is immutable calendar + provider event/series + canonical original start; current times are mutable. Unknown type/time/identity fails the page/run. | Equal replay, expanded series, moved occurrence, modified exception, duplicate original start, all-day recurrence, DST fold/gap and identity collision. |
+| G10 Deletion/reconciliation mistakes | Explicit tombstone or fully complete same-window reconciliation only; partial/410/auth/ceiling failures preserve prior state and mark incomplete. | Cancelled instance/series, explicit deletion, absence on complete vs partial sync, invalid token full-resync, resurrection, out-of-order update and calendar removal. |
+| G11 Pagination/time-window amplification | Fixed calendar/window/page/item/byte/request/deadline limits, opaque bound continuation, loop detection and exact request fingerprint. | Endless/cyclic/branching/oversized tokens, huge pages/events, boundary dates, shifting pages, duplicate tokens and ceiling assertions. |
+| G12 Rate-limit/retry abuse | GET-only closed transient classes, at most two retries, capped backoff/Retry-After within run deadline, no busy polling or account switch. | 429/5xx/timeouts before/after response, malformed/extreme Retry-After, retry exhaustion, concurrent accounts and clock jumps. |
+| G13 Credential revocation/replacement races | Serialize/fence envelope generation and account revision; stale refresh cannot overwrite; revoke blocks before requests and deletes exact envelope. | Revoke vs refresh/request, two refreshes, token rotation, missing/locked store, delete failure, revoked/expired token and stale worker result. |
+| G14 Scheduler duplicate/restart/fencing | Scheduling absent by default; if approved, unique occurrence, lease/revision fencing, `skip`/`run_once`, no replay-all/AgentRun/import. | Omission assertion or enable confirmation, duplicate/restart/lease loss, long downtime, revoke/scope race and zero request while disabled. |
+| G15 Import replay/revision drift | V1.5 baseline omits import. If CP104 approves it, exact preview/revision/hash, network-free confirm and unique provenance are mandatory; never Memory/proposal/Agent. | Baseline route/UI absence and zero import rows; if approved, sequential/concurrent replay, changed revision, disconnect-after-commit and protected-table snapshots. |
+| G16 Export/backup leakage | Export v1 excludes all Calendar/OAuth tables and references; credentials never enter PostgreSQL; docs classify database/machine backup as sensitive. Export fails on inventory drift. | Exact archive inventory and secret/private canary scans, format/version compatibility, schema field inventory and OS-store exclusion documentation. |
+| G17 Configuration authority injection | Closed typed catalog has no URL/method/query/header/scope/tool/agent/import/write/executable fields; unknown fields/types reject the whole revision. | Adversarial nested JSON, confusables, arbitrary hosts/methods/scopes/fields, GraphQL, Tool/Agent/Automation/import authority and catalog downgrade/drift. |
+| G18 Unexpected provider/network/fault behavior | TLS fixed hosts, redirects off, strict schemas/content types/encodings, whole-page validation and safe error taxonomy; ambiguity preserves prior state. | DNS/connect/TLS/redirect, malformed/truncated/deep JSON, compression/byte bombs, unknown status/type, disconnect at every transaction boundary and provider clock/version anomalies. |
+
+## Detection, response, and residual risk
+
+Detection records only safe local IDs, provider code, account revision, state,
+bounded counts/duration, and code-owned error identifiers. It excludes content,
+calendar names/IDs where unnecessary, people, URLs, OAuth fields, tokens,
+headers, payloads, paths, environment values, SQL and exceptions.
+
+On credential, scope, identity, privacy, cross-Project, external-write, or audit
+failure, disable the affected account, revoke/replace authorization when needed,
+preserve safe evidence, and use reviewed forward repair. Never broaden scope,
+silently substitute identity, delete history, retry ambiguous mutation, or turn
+Calendar content into instruction.
+
+The OS credential store cannot protect an authorized token from a compromised
+operator session or process. Read-only Calendar access can still expose highly
+sensitive facts. Google may change APIs, quotas, OAuth behavior, recurrence,
+retention, and identity semantics. Local database and machine backups may contain
+minimized Calendar snapshots. These residual risks are acceptable only within
+the existing trusted single-maintainer loopback boundary, least privilege,
+minimization, explicit revocation, bounded reads, and the CP106/107 gates.

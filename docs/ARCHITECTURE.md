@@ -432,3 +432,19 @@ own commit/rollback, and shape public responses. Provider integrations isolate
 paid/external embedding and extraction calls. Ingestion and extraction helpers
 that parse, normalize, chunk, hash, or validate data remain pure where possible.
 The caller that owns the SQLAlchemy session owns the transaction.
+
+## Planned Local V1.5 boundary
+
+Checkpoint 98 plans, but does not implement, [Local V1.5 read-only Google
+Calendar context](V1_5_CALENDAR_ROADMAP.md) and its dedicated
+[threat model](V1_5_CALENDAR_THREAT_MODEL.md). The proposed increment is one
+operator-authorized account, an exact calendar allowlist, manual bounded reads,
+minimized versioned event snapshots, and accessible quarantined External
+Context. Descriptions, locations, people, meeting links, attachments, reminders,
+private contents, writes, automatic import, Agent/Automation access, generic
+Google/OAuth/network authority, and export v2 remain outside the baseline.
+
+The design preserves Local V1.4's published architecture and identities:
+Alembic `0014_connector_refresh_schedules`, Tool Registry `agent-tools-v1`, and
+Project export `second-brain-project-export` version `1`. No V1.5 production
+capability, migration, dependency, or authority change is made by Checkpoint 98.

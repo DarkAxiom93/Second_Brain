@@ -103,12 +103,20 @@ history. A dash means Alembic had not yet been introduced.
 | 95 | Connector security and evaluation gate | Complete | `0014_connector_refresh_schedules` | This commit |
 | 96 | Local V1.4 end-to-end acceptance | Complete | `0014_connector_refresh_schedules` | This commit |
 | 97 | Local V1.4 release hardening | Approved and complete after human review | `0014_connector_refresh_schedules` | This commit |
+| 98 | Local V1.5 Calendar architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0014_connector_refresh_schedules` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
 after human review and was subsequently published from exact release commit
 `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`; its completed evidence and final
 disk-stability investigation are in `checkpoint-97-report.md`.
+
+Checkpoint 98 plans [Local V1.5 read-only Google Calendar context](V1_5_CALENDAR_ROADMAP.md)
+and its [G01-G18 threat model](V1_5_CALENDAR_THREAT_MODEL.md). It adds no
+Calendar/OAuth capability, migration, dependency, Tool, import, schedule, or
+authority. Checkpoint 98 is approved and complete after human review.
+Checkpoint 99 is not started and requires its own separately reviewed
+implementation work.
 
 ## Standard lifecycle
 
