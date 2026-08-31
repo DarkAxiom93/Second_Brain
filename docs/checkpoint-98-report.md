@@ -77,10 +77,14 @@ execution, authentication/multi-user/remote/cloud operation, and export v2.
 The design follows Google's current official installed/desktop application
 guidance: authorization code with PKCE S256, fresh state/verifier, system
 browser, ephemeral `127.0.0.1` callback listener, exact callback/state handling,
-and token exchange outside database transactions. The sole Calendar scope is
-`https://www.googleapis.com/auth/calendar.events.readonly`; Calendar discovery,
-identity, Gmail, Drive, Contacts, settings, ACL, and write scopes are not
-requested.
+and token exchange outside database transactions. At CP98 approval, the sole
+Calendar scope was `https://www.googleapis.com/auth/calendar.events.readonly`;
+Calendar discovery, identity, Gmail, Drive, Contacts, settings, ACL, and write
+scopes were not requested. CP99's mandatory provider gate later proved stable
+account identity requires OpenID `sub`. A human-approved documentation amendment
+now authorizes the exact additional `openid` scope solely for validated `sub`;
+`email`, `profile`, broader Calendar scopes and userinfo remain forbidden. This
+note records the later correction without implying CP99 implementation.
 
 Access tokens are short-lived and memory-only. Refresh tokens live only in a
 versioned envelope behind the existing Windows per-user credential-store

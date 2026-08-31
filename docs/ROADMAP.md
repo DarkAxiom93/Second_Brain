@@ -183,6 +183,12 @@ and define a manual-first, one-account, exact-calendar-allowlist release with a
 privacy-minimized event projection. Import and scheduling remain separate
 decision gates; Agents and Automations remain unable to access Calendar data.
 
-Checkpoint 98 is documentation-only and does not start Checkpoint 99 or change
+Checkpoint 98 is documentation-only and did not start Checkpoint 99 or change
 the published Local V1.4 capability, schema, dependencies, Tool Registry,
-Project export, or authority boundary.
+Project export, or authority boundary. CP99's mandatory provider gate correctly
+blocked its original one-scope identity design. A human-approved documentation-
+only amendment now authorizes exactly `openid` for validated stable `sub` plus
+`calendar.events.readonly`; email/profile, userinfo and broader Calendar scopes
+remain forbidden. CP99 production implementation is still not started and may
+resume only after the amendment is reviewed, committed, pushed and CI-green.
+CP100 is not started.

@@ -115,8 +115,12 @@ Checkpoint 98 plans [Local V1.5 read-only Google Calendar context](V1_5_CALENDAR
 and its [G01-G18 threat model](V1_5_CALENDAR_THREAT_MODEL.md). It adds no
 Calendar/OAuth capability, migration, dependency, Tool, import, schedule, or
 authority. Checkpoint 98 is approved and complete after human review.
-Checkpoint 99 is not started and requires its own separately reviewed
-implementation work.
+Checkpoint 99 production implementation is not started. Its mandatory provider
+gate correctly blocked the original Calendar-only identity design. A human-
+approved documentation amendment authorizes exactly `openid` for validated
+Google `sub` plus `calendar.events.readonly`, with email/profile, userinfo and
+broader Calendar scopes still prohibited. CP99 may resume only after this
+amendment is reviewed, committed, pushed and CI-green; CP100 is not started.
 
 ## Standard lifecycle
 

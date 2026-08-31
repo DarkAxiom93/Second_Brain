@@ -9,8 +9,12 @@ external-write capability. Local V1.4 remains the published recovery boundary:
 `0014_connector_refresh_schedules`, Tool Registry `agent-tools-v1`, and Project
 export `second-brain-project-export` version `1`.
 
-Checkpoint 99 is not started. Approval of this planning checkpoint does not
-authorize or implement any later checkpoint.
+Checkpoint 99 production implementation is not started. Its provider-contract
+gate correctly blocked the original one-scope identity design. A subsequent
+human architecture decision approves the exact two-scope set and OpenID identity
+contract below; implementation may resume only after this documentation
+amendment is reviewed, committed, pushed, and CI-green. Approval of architecture
+does not implement Checkpoint 99 or authorize any later checkpoint.
 
 ## Decision and alternatives
 
@@ -92,13 +96,19 @@ port. The callback path and state are single-use, authorization expires quickly,
 and the listener closes after one success/failure. No embedded browser is used.
 OAuth and token requests occur outside database transactions and locks.
 
-The exact requested Calendar scope is
-`https://www.googleapis.com/auth/calendar.events.readonly`. Do not request
-`calendar`, `calendar.readonly`, CalendarList, settings, ACL, Gmail, Drive,
-Contacts, OpenID profile/email, or any write scope. Calendar IDs are entered by
-the operator and validated individually through the closed events-list surface;
-there is no calendar discovery. Explicit consent text states the exact scope,
-account, local retention, excluded fields, and revocation behavior.
+The exact requested OAuth scope set contains only:
+
+- `openid`, used solely to validate the stable Google Account `sub`; and
+- `https://www.googleapis.com/auth/calendar.events.readonly`, used solely for
+  the later approved events-list reads.
+
+Do not request `email`, `profile`, `calendar`, `calendar.readonly`, CalendarList,
+calendar metadata, settings, ACL, Gmail, Drive, Contacts, any generic Google
+scope, or any write scope. Calendar IDs are entered by the operator and
+validated individually through the closed events-list surface; there is no
+calendar discovery. Explicit consent text states both exact scopes, the identity-
+only purpose of `openid`, account binding, local retention, excluded fields, and
+revocation behavior.
 
 The OAuth desktop client ID is non-secret configuration. If Google issues a
 desktop client secret, treat it as public client identity rather than a security
@@ -124,16 +134,39 @@ account configuration. Revocation closes future reads, attempts exact provider
 revocation where supported, deletes the exact local envelope, and reports only
 a safe status if either step fails.
 
-Account identity verification uses an officially supported minimal response
-available under the approved Calendar scope. CP99 must prove the exact method;
-it must not silently add identity scopes. If stable account substitution cannot
-be detected without broader scope or secret persistence, that is a blocker, not
-permission to weaken the boundary.
+Account identity verification requires an ID token returned by the installed-
+app authorization-code flow. A supported Google OpenID Connect validation
+library must validate the token against the trusted Google issuer, exact
+application client audience, expiration and issued-at validity, and the fresh
+authorization-attempt nonce. The application accepts only a non-empty bounded
+`sub` as provider identity input and ignores and discards every other unapproved
+claim. It never requests or persists email/profile data, never uses email as
+identity, never persists the ID token or raw authentication response, and never
+calls userinfo, Calendar metadata, or CalendarList as an identity fallback.
 
-No token, code, client secret, cookie, verifier, state, or recoverable secret may
-enter PostgreSQL, Project export, browser storage, URLs retained after callback,
-logs, diagnostics, notifications, errors, reports, crash output, prompts, or
-fixtures. Tests use unmistakably synthetic fake credential and OAuth services.
+The application-owned stable account fingerprint is the lowercase hexadecimal
+SHA-256 digest of the exact UTF-8 byte encoding of
+`second-brain:google-account:v1:<sub>`, where `<sub>` is the validated Google
+`sub` with no transformation or delimiter insertion beyond that fixed prefix.
+The fingerprint contains no client secret, access token, refresh token, email,
+or other claim. Future persistence stores only this versioned non-secret
+fingerprint, preferably never raw `sub`. Reauthorization derives the same
+fingerprint from a fresh, fully validated ID token and must match the exact
+credential/account being replaced; a different `sub` fails closed as account
+substitution while preserving the prior valid envelope.
+
+Application code parses only the required identity claims. Unexpected ID-token
+claims must not enter persistence, the credential envelope or metadata, logs,
+diagnostics, reports, public schemas, browser storage, External Context, or
+Calendar data. If the chosen validation library requires `email`, `profile`, a
+userinfo request, or any broader authority, CP99 stops rather than widening the
+boundary.
+
+No access, refresh, or ID token; raw `sub`; raw authentication response; code;
+client secret; cookie; verifier; state; or recoverable secret may enter
+PostgreSQL, Project export, browser storage, URLs retained after callback, logs,
+diagnostics, notifications, errors, reports, crash output, prompts, or fixtures.
+Tests use unmistakably synthetic fake credential and OAuth services.
 
 ## Data and reconciliation model
 
@@ -210,8 +243,12 @@ and are outside Project export guarantees.
 
 The only provider hosts are `accounts.google.com` for interactive authorization,
 `oauth2.googleapis.com` for token/revocation operations required by the reviewed
-OAuth lifecycle, and `www.googleapis.com` for Calendar API reads. Calendar data
-requests are only `GET /calendar/v3/calendars/{allowlistedCalendarId}/events`.
+OAuth lifecycle, and `www.googleapis.com` for the fixed GET-only Google OpenID
+Connect JWK set at `/oauth2/v3/certs` and later Calendar API reads. JWK retrieval
+is code-owned, bounded, cacheable, outside database transactions, and grants no
+Calendar data authority. Arbitrary OIDC discovery, issuer configuration, JWK or
+certificate URL, and userinfo are prohibited. Calendar data requests are only
+`GET /calendar/v3/calendars/{allowlistedCalendarId}/events`.
 OAuth POSTs do not grant Calendar write authority. Redirects are disabled for
 API/token calls; any required authorization redirect remains system-browser
 navigation to the fixed authorization origin. Calendar IDs and page/sync tokens
@@ -269,14 +306,18 @@ downgrades run only on the verified test database.
 ### 99 - Google OAuth and credential prerequisite
 
 - **Dependency:** approved CP98.
-- **Goal/areas:** installed-app PKCE loopback authorization, exact scope/account
-  verification, OS-store envelope lifecycle, explicit revoke/reauthorize; OAuth
-  service, credential adapter, local operator surface and safe diagnostics.
+- **Goal/areas:** installed-app authorization-code PKCE loopback authorization;
+  the exact `openid` plus `calendar.events.readonly` scope set; validated Google
+  ID-token `sub`; versioned application-owned account fingerprint; OS-store
+  envelope lifecycle; explicit revoke/reauthorize; OAuth service, credential
+  adapter, local operator surface and safe diagnostics.
 - **Persistence/migration:** none expected; no Calendar tables or secrets.
 - **API/UI:** no Calendar data API/UI and no browser token persistence.
 - **Transactions/concurrency:** OAuth/store/network outside SQL; single-use state
   and fenced atomic token replacement.
 - **Security/tests:** synthetic OAuth server, callback/state/PKCE/account/scope,
+  issuer/audience/time/nonce/`sub` validation, forged/replayed ID tokens,
+  identity-changing reauthorization, claim minimization, fingerprint vectors,
   rotation/revocation/races and canary non-leakage.
 - **Rollback/failure:** remove inert prerequisite and named synthetic envelopes;
   any identity/scope uncertainty blocks CP100.
@@ -409,6 +450,10 @@ downgrades run only on the verified test database.
   <https://developers.google.com/identity/protocols/oauth2/native-app>
 - Google, *Choose Google Calendar API scopes* (least-privilege Calendar scopes):
   <https://developers.google.com/workspace/calendar/api/auth>
+- Google, *OpenID Connect* and its API reference (ID-token validation, `sub`,
+  issuer, audience, nonce and JWK metadata):
+  <https://developers.google.com/identity/openid-connect/openid-connect> and
+  <https://developers.google.com/identity/openid-connect/reference>
 - Google, *Events: list* (GET inventory, fields, paging, sync tokens and event
   behavior): <https://developers.google.com/calendar/api/v3/reference/events/list>
 - Google, *Synchronize resources efficiently* (full/incremental sync and invalid
