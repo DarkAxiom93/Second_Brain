@@ -119,6 +119,19 @@ never prints a secret. Credential Manager is outside Project export and
 application backups; an OS or machine backup may separately include protected
 credentials.
 
+## Google Calendar credential prerequisite
+
+Set the non-secret desktop OAuth client ID as `GOOGLE_OAUTH_CLIENT_ID`, then use
+the system-browser installed-app flow. These commands do not request Calendar
+data and never print OAuth tokens or authorization material:
+
+```powershell
+.\scripts\manage-google-calendar-credential.ps1 authorize
+.\scripts\manage-google-calendar-credential.ps1 status <credential-reference>
+.\scripts\manage-google-calendar-credential.ps1 reauthorize <credential-reference>
+.\scripts\manage-google-calendar-credential.ps1 revoke <credential-reference>
+```
+
 ## Automation scheduler
 
 `run-automation-scheduler.ps1` runs exactly one operator-started bounded tick

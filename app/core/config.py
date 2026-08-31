@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     )
 
     openai_api_key: SecretStr | None = None
+    google_oauth_client_id: NonBlankString | None = None
     embedding_provider: Literal["openai"] = "openai"
     embedding_model: NonBlankString = "text-embedding-3-small"
     embedding_dimensions: EmbeddingDimensions = 1536

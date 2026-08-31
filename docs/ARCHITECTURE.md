@@ -449,13 +449,16 @@ Alembic `0014_connector_refresh_schedules`, Tool Registry `agent-tools-v1`, and
 Project export `second-brain-project-export` version `1`. No V1.5 production
 capability, migration, dependency, or authority change is made by Checkpoint 98.
 
-Checkpoint 99 production implementation remains not started. Its mandatory
-provider-contract gate correctly rejected the original Calendar-only account-
-identity plan. The human-approved documentation remediation authorizes exactly
-`openid`, solely to validate stable Google `sub`, plus the unchanged
-`calendar.events.readonly` scope. The application-owned account fingerprint is
-lowercase SHA-256 of UTF-8 `second-brain:google-account:v1:<sub>`; raw ID tokens,
-raw `sub`, email/profile and unapproved claims do not persist. Userinfo and
-broader Calendar scopes remain prohibited. This architecture change grants no
-production, network, credential, API, UI, persistence, Agent or Automation
-capability, and CP100 is not started.
+Checkpoint 99 is approved and complete after human review. It implements only
+the Google OAuth and credential prerequisite using the system-browser installed-
+app authorization-code flow with PKCE S256, a single-use ephemeral `127.0.0.1`
+callback, and the
+exact `openid` plus `calendar.events.readonly` scope set. Signed ID tokens are
+validated against the fixed Google JWK endpoint, trusted issuer, exact client
+audience, time bounds and attempt nonce; only the derived lowercase SHA-256
+account fingerprint survives. Versioned refresh-token envelopes use the CP88
+Windows per-user credential store with generation-fenced rotation, same-account
+reauthorization and explicit two-part revocation results. Access tokens remain
+memory-only. There is no migration, Calendar request, Calendar API/UI,
+persistence, sync, import, scheduling, Agent/Automation access, registry/export
+change, or CP100 work.

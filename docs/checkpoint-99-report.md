@@ -1,152 +1,139 @@
-# Checkpoint 99 report - Google OAuth account-identity blocker
+# Checkpoint 99 report - Google OAuth and credential prerequisite
 
-Status: **Architecture gate remediated in documentation; production
-implementation not started and checkpoint not complete.**
+Status: **Approved and complete after human review.**
 
-## Outcome
+## Exact implementation boundary
 
-Checkpoint 99 stopped at its mandatory provider-contract and account-identity
-gate. No officially documented stable Google Account identity is available
-under only the approved scope:
+Checkpoint 99 adds only the local Google installed-app OAuth and credential
+prerequisite: authorization, safe status, same-account reauthorization, refresh-
+token rotation, and explicit revocation. It adds no migration, Calendar account
+or event persistence, Calendar request, public Calendar API/UI, browser
+credential storage, sync, reconciliation, import, scheduling, Agent/Automation
+access, Tool Registry/export change, or Checkpoint 100 work.
 
-`https://www.googleapis.com/auth/calendar.events.readonly`
+After `git fetch --prune origin`, clean `main`, `HEAD`, and `origin/main` were
+exactly `d9601109c3767e71a8992fe34c062660b256ad2f`. Exact push CI run
+`33377284610` for that SHA was completed/successful. Live database identities
+were `second_brain` and `second_brain_test` on `127.0.0.1:5433`. Alembic current
+and sole head were `0014_connector_refresh_schedules`; `alembic check` found no
+upgrade operations. Tool Registry remained `agent-tools-v1`; Project export
+remained `second-brain-project-export` version `1`.
 
-Google documents that scope as authority to view Calendar events. Google
-documents the stable, never-reused account identifier as the OpenID Connect ID
-token `sub` claim, and obtaining OpenID identity requires the additional
-`openid` scope. The Google `tokeninfo` endpoint is documented as an ID-token
-debugging validator, not as a production account-identity service for a
-Calendar-only access token.
+## OAuth/OIDC inventory and installed-app behavior
 
-The Calendar `calendars.get` method is not an acceptable substitute. It requires
-one of the broader Calendar scopes, including `calendar.readonly` or
-`calendar.calendars.readonly`; it does not accept the approved
-`calendar.events.readonly` scope. Calling it would also violate Checkpoint 99's
-explicit prohibition on Calendar data requests.
+The only provider endpoints are:
 
-Therefore the CP98 account-substitution invariant could not be implemented while
-simultaneously preserving the originally approved scope and the CP99 no-Calendar-
-data boundary. The gate correctly stopped implementation rather than silently
-adding `openid`, `email`, `profile`, a broader Calendar scope, or an undocumented
-identity mechanism. No implementation occurred before architecture remediation.
+- system-browser authorization:
+  `https://accounts.google.com/o/oauth2/v2/auth`;
+- bounded token exchange/refresh POST:
+  `https://oauth2.googleapis.com/token`;
+- bounded revocation POST: `https://oauth2.googleapis.com/revoke`;
+- bounded cached JWK GET: `https://www.googleapis.com/oauth2/v3/certs`.
 
-## Human-approved architecture remediation
+The requested and accepted scope set is exactly `openid` and
+`https://www.googleapis.com/auth/calendar.events.readonly`. Missing, additional,
+email/profile, userinfo, generic Google, broader Calendar, CalendarList/metadata,
+Gmail/Drive/Contacts, and write scopes fail closed. No arbitrary URL, host,
+method, header, redirect target, provider, discovery, userinfo, or raw HTTP
+escape hatch exists.
 
-The architecture is amended to authorize exactly these two OAuth scopes:
+Each attempt creates fresh cryptographic verifier, state, and nonce values. PKCE
+is S256. The system browser receives the fixed authorization origin and an OS-
+selected `127.0.0.1` port with fixed `/oauth/google/callback` path. The bounded
+listener accepts one exact `code` and `state`, rejects wrong/absolute paths,
+duplicate/extra parameters, OAuth-error ambiguity and replay, and closes on
+success, failure, timeout, cancellation, or browser failure. Provider/store
+latency occurs without SQL transactions or locks.
 
-- `openid`, solely to obtain and validate the stable Google `sub`; and
-- `https://www.googleapis.com/auth/calendar.events.readonly`, solely for the
-  later approved Calendar events-list lifecycle.
+## ID-token validation and fingerprint proof
 
-`email`, `profile`, `calendar`, `calendar.readonly`, CalendarList and calendar
-metadata scopes, Gmail, Drive, Contacts, generic Google scopes, and every write
-scope remain prohibited. This amendment authorizes no broader Calendar data
-access, profile collection, userinfo request, or production request.
+`PyJWT[crypto]==2.10.1` is the sole new direct dependency. It is the smallest
+pinned addition for RS256/JWK signature and registered-claim validation; JWK
+retrieval, endpoint/cache/bounds, issuer/audience/time/nonce policy, and claim
+minimization remain application-owned.
 
-The corrected identity gate requires an ID token from the authorization-code
-flow and a supported Google OpenID Connect validation library. Validation must
-cover the trusted Google issuer, exact application client audience, expiration
-and issued-at validity, fresh authorization-attempt nonce, and a non-empty
-bounded `sub`. Application code uses `sub` as the sole provider identity input,
-ignores and discards all unapproved claims, and never persists the ID token or
-raw provider authentication response. Email is neither requested nor used as
-identity. Userinfo, Calendar metadata and CalendarList are not authorized as
-fallbacks. A validation library that requires any such authority is an
-implementation blocker.
+Validation permits only RS256, an exact single `kid` from the fixed JWK set, a
+trusted Google issuer, exact configured audience, bounded expiration/issued-at,
+the fresh attempt nonce, and a non-empty maximum-255-character string `sub`.
+Forged, malformed, unknown-key, wrong issuer/audience/nonce/time, and invalid
+subject tokens fail with content-free errors. Only the fingerprint survives;
+raw `sub`, ID token, email, and all other claims are discarded.
 
-The version-1 stable account fingerprint is:
+The exact UTF-8 string `second-brain:google-account:v1:<sub>` is SHA-256 hashed
+to lowercase hexadecimal. The deterministic `sub = "abc"` vector is
+`b6abc4eb824ae8a436da6ff9a3264777b8232631d76de1cc70f10838b45c51cc`.
 
-1. Form the exact string `second-brain:google-account:v1:<sub>`, substituting
-   the fully validated Google `sub` without other transformation.
-2. Encode that string as UTF-8.
-3. Compute SHA-256 and serialize the digest as lowercase hexadecimal.
+## Envelope, rotation, fencing, and operator lifecycle
 
-No client secret, access token, refresh token, email, or other claim contributes
-to the fingerprint. Future persistence contains only the non-secret fingerprint,
-preferably never raw `sub`. Reauthorization requires a fresh fully validated ID
-token whose derived fingerprint exactly matches the credential/account being
-replaced. A different `sub` is account substitution and fails closed while the
-previous valid envelope is preserved.
+The CP88 non-enumerating Windows per-user store is reused. Its strict, bounded
+version-1 envelope contains only version, monotonic generation, refresh token,
+and non-secret fingerprint. Access tokens remain memory-only. Refresh performs
+provider latency outside the per-reference lock, then rereads under the lock and
+atomically replaces only if the captured generation matches. Rotated refresh
+tokens replace old tokens; stale concurrent refresh is fenced. No background
+refresh exists.
 
-Any JWK retrieval required by the selected official validation mechanism is
-limited to fixed, code-owned, bounded GET access to Google's
-`https://www.googleapis.com/oauth2/v3/certs`, outside database transactions.
-Arbitrary OIDC discovery, issuer/JWK configuration, certificate URLs and
-userinfo remain prohibited.
+Reauthorization fully repeats PKCE and ID-token validation before replacement.
+Only an identical derived fingerprint may replace the envelope; substitution
+fails while preserving the prior credential. Revocation attempts provider
+revocation and exact local deletion, reporting separate `provider_revoked` and
+`local_deleted` booleans without leaking material or falsely reporting success.
 
-## Official Google contract findings
+The operator surface is `scripts/manage-google-calendar-credential.ps1` with
+only `authorize`, `status`, `reauthorize`, and `revoke`. The non-secret desktop
+client ID uses `GOOGLE_OAUTH_CLIENT_ID`. Output is limited to safe status, opaque
+reference, fingerprint, generation, and the two revocation outcomes.
 
-- Desktop installed applications may use the system browser, authorization-code
-  flow, PKCE, and an ephemeral loopback redirect on `127.0.0.1`; Google documents
-  loopback redirects as the recommended mechanism for Windows desktop apps.
-- The reviewed authorization endpoint is
-  `https://accounts.google.com/o/oauth2/v2/auth`.
-- The reviewed token endpoint is `https://oauth2.googleapis.com/token`.
-- Google's installed-app documentation describes revocation through
-  `https://oauth2.googleapis.com/revoke`.
-- The exact approved Calendar scope permits viewing events, but it grants no
-  documented stable account identifier.
-- OpenID Connect supplies stable identity through the ID-token `sub` claim and
-  requires `openid`; the human amendment now approves only that minimal identity
-  scope alongside the unchanged Calendar events-readonly scope. Email/profile
-  claims require broader scopes that remain forbidden.
+## Tests, canaries, and verification
 
-Official sources reviewed on 2026-08-31:
+`tests/test_google_oauth.py` contains 21 zero-network tests with fake OAuth/JWK/
+token/revocation/store boundaries and synthetic RSA keys. They cover successful
+two-scope PKCE/OIDC authorization; email/profile absence; issuer, audience,
+nonce, issued-at, expiration, subject, forged/malformed/unknown-key failures;
+fingerprint determinism; same/different-account reauthorization; refresh-token
+rotation; barrier-driven stale-refresh fencing without sleeps; separate provider
+and local revocation failures; fixed JWK caching; scope drift; callback path,
+duplicate, ambiguity, absolute request, replay and timeout; envelope
+minimization; and provider-body/error secret-canary non-leakage.
 
-- <https://developers.google.com/identity/protocols/oauth2/native-app>
-- <https://developers.google.com/workspace/calendar/api/auth>
-- <https://developers.google.com/identity/openid-connect/openid-connect>
-- <https://developers.google.com/identity/openid-connect/reference>
-- <https://developers.google.com/workspace/calendar/api/v3/reference/calendars/get>
+The canary test proves provider body and exception text cannot escape the safe
+taxonomy. Envelope inspection proves access token, ID token, and email absence.
+No OAuth secret field was added to PostgreSQL, export, logs, diagnostics,
+reports, prompts, tracked fixtures, browser storage, or a public API.
 
-## Preflight evidence
+Focused verification: **21 passed, 0 failed, 0 skipped**. Required Full
+verification: **1,258 backend and 137 frontend passed, 0 failed, 0 skipped**;
+pip check, Ruff lint/format, strict mypy, frontend lint/typecheck/build, Alembic
+current/head/check, and `git diff --check` passed. A first sandboxed Full attempt
+had 1,254 passes and one environmental Windows Credential Manager lock; that
+exact test passed with OS-store access, and the final unrestricted Full run
+passed completely.
 
-- After an explicit fetch, `main`, `origin/main`, and `HEAD` were the approved
-  CP98 commit `20805905f81ef1a9056a70b14df148d155e4472e` with a clean worktree.
-- Exact push CI run `33358621056` for that SHA completed successfully.
-- Parsed and live database identities were exactly `second_brain` and
-  `second_brain_test` on `127.0.0.1:5433`.
-- Alembic current and sole head were
-  `0014_connector_refresh_schedules`; `alembic check` reported no new upgrade
-  operations.
-- Tool Registry was `agent-tools-v1`.
-- Project export was `second-brain-project-export` version `1`.
+## Exact changed paths
 
-## Change and safety inventory
-
-The original gate produced only this report. The subsequent remediation changes
-documentation only: the V1.5 roadmap and threat model, lifecycle summaries, the
-CP98 historical report amendment note, and this report. No production code,
-test, migration, dependency, configuration, credential-store behavior, API,
-frontend, browser workflow, Calendar persistence, Calendar account table, event
-API, refresh, sync, scheduling, import, Agent, Automation, Tool Registry, or
-export behavior was added or changed. Checkpoint 100 was not started.
-
-Exact changed paths for the combined blocker report and documentation-only
-remediation are:
-
+- `app/core/config.py`
+- `app/credentials/__init__.py`
+- `app/google_oauth/__init__.py`
+- `app/google_oauth/contract.py`
+- `app/google_oauth/envelope.py`
+- `app/google_oauth/identity.py`
+- `app/google_oauth/loopback.py`
+- `app/google_oauth/operator.py`
+- `app/google_oauth/service.py`
+- `app/google_oauth/transport.py`
 - `docs/ARCHITECTURE.md`
 - `docs/CHECKPOINTS.md`
 - `docs/ROADMAP.md`
 - `docs/V1_5_CALENDAR_ROADMAP.md`
-- `docs/V1_5_CALENDAR_THREAT_MODEL.md`
-- `docs/checkpoint-98-report.md`
 - `docs/checkpoint-99-report.md`
+- `pyproject.toml`
+- `scripts/README.md`
+- `scripts/manage-google-calendar-credential.ps1`
+- `tests/test_google_oauth.py`
 
-No real Google credential was read, printed, modified, or used. No OAuth,
-token, revocation, identity, Calendar, or other Google request was made. No
-Calendar data request occurred. PostgreSQL was used only for the required
-identity and Alembic preflight and contains no CP99 state.
-
-Focused and Full implementation verification were not run because the mandatory
-architecture gate stopped the checkpoint before implementation and this
-remediation is documentation-only. The preflight database, Alembic, identity,
-clean-worktree, synchronization, and exact push-CI checks passed before the
-blocker report was created. Documentation verification uses `git diff --check`
-and consistency searches. Fake OAuth and secret-canary gates remain future CP99
-implementation work.
-
-This amendment is the human-approved architecture resolution, but it does not
-complete or implement CP99. CP99 may resume only after the documentation
-amendment is reviewed, committed, pushed, and its exact push CI is green. Until
-then CP99 remains not implemented and CP100 remains not started.
+No real Google credential was read, created, printed, modified, or used. No real
+Google/OAuth/JWK/revocation/Calendar request occurred. No Calendar data request
+occurred. There is no migration, Calendar persistence/API/UI/sync/import/
+scheduling, Agent/Automation authority, registry/export change, or CP100 work.
+Checkpoint 99 is approved and complete after human review. Checkpoint 100 was
+not started.

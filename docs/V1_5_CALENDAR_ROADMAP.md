@@ -1,6 +1,6 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **Checkpoint 98 approved and complete after human review.**
+Status: **Checkpoint 99 approved and complete after human review.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -9,12 +9,9 @@ external-write capability. Local V1.4 remains the published recovery boundary:
 `0014_connector_refresh_schedules`, Tool Registry `agent-tools-v1`, and Project
 export `second-brain-project-export` version `1`.
 
-Checkpoint 99 production implementation is not started. Its provider-contract
-gate correctly blocked the original one-scope identity design. A subsequent
-human architecture decision approves the exact two-scope set and OpenID identity
-contract below; implementation may resume only after this documentation
-amendment is reviewed, committed, pushed, and CI-green. Approval of architecture
-does not implement Checkpoint 99 or authorize any later checkpoint.
+Checkpoint 99 implements only the approved exact two-scope OAuth and credential
+prerequisite and is approved and complete after human review. It does not
+authorize or start Checkpoint 100 or any later checkpoint.
 
 ## Decision and alternatives
 

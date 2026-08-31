@@ -9,6 +9,7 @@ from app.credentials.contract import (
     CredentialStoreStatus,
     CredentialStoreUnavailableError,
     clear_secret,
+    validate_credential_reference,
 )
 from app.credentials.windows import WindowsCredentialStore
 
@@ -22,4 +23,5 @@ __all__ = [
     "CredentialStoreUnavailableError",
     "WindowsCredentialStore",
     "clear_secret",
+    "validate_credential_reference",
 ]
