@@ -141,8 +141,9 @@ import. See [PROJECT_EXPORT_FORMAT.md](PROJECT_EXPORT_FORMAT.md).
 Format version 1 accepts source bundles produced at
 `0009_memory_expiration`, `0010_agent_runtime_persistence`,
 `0011_automation_persistence`, `0012_connector_persistence`,
-`0013_external_item_imports`, or `0014_connector_refresh_schedules`. Current
-export and import targets require `0014_connector_refresh_schedules`. Project
+`0013_external_item_imports`, `0014_connector_refresh_schedules`, or
+`0015_calendar_persistence`. Current export and import targets require
+`0015_calendar_persistence`. Project
 bundles exclude Agent Runs, Steps, Tool invocations, Agent events, Approval
 Requests, connector accounts/sync runs/items/import provenance/schedules/
 occurrences, credential references, provider payloads, hidden reasoning, and

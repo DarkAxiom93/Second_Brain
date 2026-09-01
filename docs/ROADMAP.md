@@ -16,7 +16,7 @@ published release, tagged `v1.4.0` with title **Second Brain Local V1.4** from
 exact commit `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. Local V1.3.0 remains
 the preceding documented recovery release from
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
-`0014_connector_refresh_schedules`, Tool Registry remains `agent-tools-v1`, and
+`0015_calendar_persistence`, Tool Registry remains `agent-tools-v1`, and
 Project export remains `second-brain-project-export` version `1`.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
@@ -189,4 +189,9 @@ PKCE flow, signed ID-token identity gate, versioned OS-store envelope, fenced re
 reauthorization and revocation introduce no Calendar data request or schema.
 Email/profile, userinfo, broader scopes, Calendar persistence/API/UI/sync/import,
 scheduling and Agent/Automation access remain absent. Tool Registry, Project
-export and Alembic identities remain unchanged. CP100 is not started.
+export and Alembic identities remained unchanged through CP99.
+Checkpoint 100 is approved and complete after human review. It implements only
+the inert provider-specific Calendar persistence
+foundation and closed catalogs at `0015_calendar_persistence`. It adds no
+Calendar network request, API/UI, executor, reconciliation, import, scheduling,
+or Agent/Automation authority. Checkpoint 101 is not started.

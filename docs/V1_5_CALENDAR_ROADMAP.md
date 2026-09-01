@@ -1,12 +1,12 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **Checkpoint 99 approved and complete after human review.**
+Status: **Checkpoint 100 approved and complete after human review.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
 external-write capability. Local V1.4 remains the published recovery boundary:
 `v1.4.0` at `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`, Alembic
-`0014_connector_refresh_schedules`, Tool Registry `agent-tools-v1`, and Project
+`0015_calendar_persistence`, Tool Registry `agent-tools-v1`, and Project
 export `second-brain-project-export` version `1`.
 
 Checkpoint 99 implements only the approved exact two-scope OAuth and credential

@@ -104,6 +104,8 @@ history. A dash means Alembic had not yet been introduced.
 | 96 | Local V1.4 end-to-end acceptance | Complete | `0014_connector_refresh_schedules` | This commit |
 | 97 | Local V1.4 release hardening | Approved and complete after human review | `0014_connector_refresh_schedules` | This commit |
 | 98 | Local V1.5 Calendar architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0014_connector_refresh_schedules` | This commit |
+| 99 | Google OAuth and credential prerequisite | Approved and complete after human review | `0014_connector_refresh_schedules` | `2779123` |
+| 100 | Inert Google Calendar persistence and closed catalogs | Approved and complete after human review | `0015_calendar_persistence` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -119,9 +121,10 @@ Checkpoint 99 is approved and complete after human review. It implements the
 narrow installed-app Google OAuth and credential prerequisite. Exact two-scope
 PKCE authorization, validated ID-token identity, minimized OS-store envelopes, fenced refresh,
 same-account reauthorization, safe status and explicit revocation are present.
-No Calendar data request, migration, Calendar API/UI/persistence/sync/import,
-scheduling, Agent/Automation authority, registry/export change, or CP100 work
-is present.
+Checkpoint 100 now adds only inert Calendar persistence and pure closed
+catalogs. No Calendar data request, API/UI, sync executor, reconciliation,
+import, scheduling, Agent/Automation authority, or registry/export-version
+change is present. Checkpoint 101 has not started.
 
 ## Standard lifecycle
 

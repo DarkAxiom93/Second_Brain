@@ -12,6 +12,12 @@ from app.models.automation import (
     AutomationNotification,
     AutomationOccurrence,
 )
+from app.models.calendar import (
+    CalendarAccountRevision,
+    CalendarEventRevision,
+    CalendarIdentity,
+    CalendarSyncRun,
+)
 from app.models.connector import ConnectorAccount, ConnectorSyncRun, ExternalItem
 from app.models.connector_schedule import (
     ConnectorRefreshNotification,
@@ -37,6 +43,10 @@ __all__ = [
     "Automation",
     "AutomationNotification",
     "AutomationOccurrence",
+    "CalendarAccountRevision",
+    "CalendarEventRevision",
+    "CalendarIdentity",
+    "CalendarSyncRun",
     "ConnectorAccount",
     "ConnectorRefreshNotification",
     "ConnectorRefreshOccurrence",

@@ -49,6 +49,10 @@ def test_metadata_contains_only_approved_tables() -> None:
         "connector_refresh_schedules",
         "connector_refresh_occurrences",
         "connector_refresh_notifications",
+        "calendar_account_revisions",
+        "calendar_identities",
+        "calendar_sync_runs",
+        "calendar_event_revisions",
     }
 
 

@@ -12,7 +12,7 @@ from sqlalchemy.engine import URL, make_url
 from app.core.config import Settings
 from app.diagnostics.models import DiagnosticCheck
 
-EXPECTED_HEAD = "0014_connector_refresh_schedules"
+EXPECTED_HEAD = "0015_calendar_persistence"
 EXPECTED_HOST = "127.0.0.1"
 EXPECTED_PORT = 5433
 MIN_POSTGRESQL_VERSION = 16
@@ -27,6 +27,10 @@ REQUIRED_TABLES = (
     "source_chunks",
     "memory_extraction_runs",
     "memory_proposals",
+    "calendar_account_revisions",
+    "calendar_identities",
+    "calendar_sync_runs",
+    "calendar_event_revisions",
     "agent_runs",
     "agent_steps",
     "tool_invocations",

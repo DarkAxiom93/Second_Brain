@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0014_connector_refresh_schedules`.
+`0015_calendar_persistence`.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
@@ -462,3 +462,10 @@ reauthorization and explicit two-part revocation results. Access tokens remain
 memory-only. There is no migration, Calendar request, Calendar API/UI,
 persistence, sync, import, scheduling, Agent/Automation access, registry/export
 change, or CP100 work.
+Checkpoint 100 adds four inert, provider-specific Google Calendar persistence
+tables: immutable account/configuration revisions, exact configured calendar
+identities, bounded sync runs, and append-only minimized event revisions. Pure
+closed event-type/field catalogs and canonical original-start occurrence keys
+fail closed. There is no Calendar transport, API, UI, sync executor,
+reconciliation, import, scheduling, or Agent/Automation authority. Project
+export remains version 1 and excludes every Calendar table.
