@@ -1,6 +1,6 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **Checkpoint 100 approved and complete after human review.**
+Status: **Checkpoint 101 approved and complete after human review.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or

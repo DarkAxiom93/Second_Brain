@@ -45,6 +45,14 @@ export type ConnectorAccount = {
   validation_status: "unvalidated" | "valid" | "invalid" | "expired" | "revoked";
   revision: number; last_validated_at: string | null; created_at: string; updated_at: string;
 };
+export type CalendarAccount = {
+  id: string; provider: "google_calendar"; account_fingerprint: string;
+  lifecycle: "disabled" | "enabled" | "revoked"; configuration_revision: number;
+  scope: { kind: "project" | "unassigned"; project_id: string | null };
+  calendar_ids: string[]; credential_status: "valid" | "missing" | "unavailable" | "revoked";
+  created_at: string; updated_at: string;
+};
+export type CalendarRevocation = { account: CalendarAccount; provider_revoked: boolean; local_deleted: boolean };
 export type ConnectorSyncRun = {
   id: string; account_id: string; account_revision: number; trigger_kind: "manual" | "scheduled";
   status: "claimed" | "running" | "succeeded" | "incomplete" | "failed" | "cancelled";
@@ -516,6 +524,25 @@ export function refreshConnectorAccount(id: string, expected_revision: number, s
 export function getConnectorSyncStatus(id: string, signal?: AbortSignal) {
   return request(`/connector-accounts/${id}/sync-status`, (value): value is ConnectorSyncRun | null => value === null || isConnectorSyncRun(value), signal);
 }
+function isCalendarAccount(value: unknown): value is CalendarAccount {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["account_fingerprint", "calendar_ids", "configuration_revision", "created_at", "credential_status", "id", "lifecycle", "provider", "scope", "updated_at"];
+  if (JSON.stringify(Object.keys(r).sort()) !== JSON.stringify(keys.sort()) || typeof r.id !== "string" || !UUID_PATTERN.test(r.id) ||
+      r.provider !== "google_calendar" || typeof r.account_fingerprint !== "string" || !/^[0-9a-f]{64}$/.test(r.account_fingerprint) ||
+      !["enabled", "disabled", "revoked"].includes(r.lifecycle as string) || !Number.isInteger(r.configuration_revision) ||
+      (r.configuration_revision as number) < 1 || !["valid", "missing", "unavailable", "revoked"].includes(r.credential_status as string) ||
+      !Array.isArray(r.calendar_ids) || r.calendar_ids.length < 1 || r.calendar_ids.length > 10 || !r.calendar_ids.every(x => typeof x === "string" && x.length >= 1 && x.length <= 1024) ||
+      !isTimestamp(r.created_at) || !isTimestamp(r.updated_at) || typeof r.scope !== "object" || r.scope === null || Array.isArray(r.scope)) return false;
+  const scope = r.scope as Record<string, unknown>;
+  return JSON.stringify(Object.keys(scope).sort()) === JSON.stringify(["kind", "project_id"]) &&
+    ((scope.kind === "unassigned" && scope.project_id === null) || (scope.kind === "project" && typeof scope.project_id === "string" && UUID_PATTERN.test(scope.project_id)));
+}
+export function listCalendarAccounts(signal?: AbortSignal) { return request("/calendar-accounts?limit=100&offset=0", (v): v is CalendarAccount[] => Array.isArray(v) && v.every(isCalendarAccount), signal); }
+export function createCalendarAccount(body: { credential_reference: string; account_fingerprint: string; scope: CalendarAccount["scope"]; calendar_ids: string[] }, signal?: AbortSignal) { return request("/calendar-accounts", isCalendarAccount, signal, { method: "POST", body }); }
+export function updateCalendarAccount(id: string, body: { expected_revision: number; scope: CalendarAccount["scope"]; calendar_ids: string[] }, signal?: AbortSignal) { return request(`/calendar-accounts/${id}`, isCalendarAccount, signal, { method: "PATCH", body }); }
+export function calendarLifecycle(id: string, action: "disable" | "re-enable", expected_revision: number, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/${action}`, isCalendarAccount, signal, { method: "POST", body: { expected_revision } }); }
+export function revokeCalendarAccount(id: string, expected_revision: number, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/revoke`, (v): v is CalendarRevocation => typeof v === "object" && v !== null && !Array.isArray(v) && JSON.stringify(Object.keys(v).sort()) === JSON.stringify(["account", "local_deleted", "provider_revoked"]) && isCalendarAccount((v as Record<string, unknown>).account) && typeof (v as Record<string, unknown>).local_deleted === "boolean" && typeof (v as Record<string, unknown>).provider_revoked === "boolean", signal, { method: "POST", body: { expected_revision } }); }
 function isConnectorRefreshSchedule(value: unknown): value is ConnectorRefreshSchedule {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;

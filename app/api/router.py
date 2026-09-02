@@ -9,6 +9,7 @@ from app.api.routes.automation_notifications import (
     router as automation_notifications_router,
 )
 from app.api.routes.automations import router as automations_router
+from app.api.routes.calendar_accounts import router as calendar_accounts_router
 from app.api.routes.connector_schedules import router as connector_schedules_router
 from app.api.routes.connectors import router as connectors_router
 from app.api.routes.health import router as health_router
@@ -27,6 +28,7 @@ api_router.include_router(approval_router)
 api_router.include_router(answers_router)
 api_router.include_router(automations_router)
 api_router.include_router(automation_notifications_router)
+api_router.include_router(calendar_accounts_router)
 api_router.include_router(connectors_router)
 api_router.include_router(connector_schedules_router)
 api_router.include_router(health_router)

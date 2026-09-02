@@ -194,4 +194,7 @@ Checkpoint 100 is approved and complete after human review. It implements only
 the inert provider-specific Calendar persistence
 foundation and closed catalogs at `0015_calendar_persistence`. It adds no
 Calendar network request, API/UI, executor, reconciliation, import, scheduling,
-or Agent/Automation authority. Checkpoint 101 is not started.
+or Agent/Automation authority. Checkpoint 101 is approved and complete after
+human review. It implements only revision-fenced
+Calendar account configuration and lifecycle metadata plus its safe Settings
+UI. Calendar data access and Checkpoint 102 remain not started.

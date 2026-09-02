@@ -124,7 +124,11 @@ same-account reauthorization, safe status and explicit revocation are present.
 Checkpoint 100 now adds only inert Calendar persistence and pure closed
 catalogs. No Calendar data request, API/UI, sync executor, reconciliation,
 import, scheduling, Agent/Automation authority, or registry/export-version
-change is present. Checkpoint 101 has not started.
+change is present. Checkpoint 101 is approved and complete after human review.
+It adds only safe Calendar account
+create/list/read/configure/disable/re-enable/revoke lifecycle API and Settings
+UI over the existing revision tables. It adds no migration and performs no
+Calendar data request. Checkpoint 102 has not started.
 
 ## Standard lifecycle
 

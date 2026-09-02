@@ -23,7 +23,7 @@ def create_app() -> FastAPI:
     ) -> Response:
         # Pydantic's normal 422 body echoes rejected input. Connector input may be
         # secret-shaped, so this boundary returns one closed content-free error.
-        if request.url.path.startswith("/connector-accounts"):
+        if request.url.path.startswith(("/connector-accounts", "/calendar-accounts")):
             return JSONResponse(
                 status_code=422,
                 content={"detail": "invalid connector account request"},

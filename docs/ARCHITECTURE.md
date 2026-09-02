@@ -469,3 +469,15 @@ closed event-type/field catalogs and canonical original-start occurrence keys
 fail closed. There is no Calendar transport, API, UI, sync executor,
 reconciliation, import, scheduling, or Agent/Automation authority. Project
 export remains version 1 and excludes every Calendar table.
+Checkpoint 101 is approved and complete after human review. It adds the
+operator-facing metadata lifecycle over that inert
+foundation. A stable application account ID is the CP100 `configuration_id`;
+every allowlist, Project/unassigned, credential-binding, disable, re-enable, or
+revoke change appends a new immutable account revision and exact calendar
+identity set. Creation and re-enable validate the exact CP99 credential
+reference and same-account fingerprint without refreshing it. Explicit revoke
+first fences future Calendar capability in a short database transaction, then
+invokes CP99 revocation outside database locks and reports provider/local
+outcomes separately. The typed loopback API and accessible Settings UI expose
+safe metadata only. There is no Calendar event request, refresh, sync,
+reconciliation, browsing, import, scheduling, or Agent/Automation authority.

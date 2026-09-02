@@ -1,0 +1,48 @@
+import { useEffect, useRef, useState } from "react";
+
+import { ApiConflictError, calendarLifecycle, createCalendarAccount, listCalendarAccounts, listProjects, revokeCalendarAccount, updateCalendarAccount, type CalendarAccount, type ProjectRead } from "./api/client";
+
+const REFERENCE = /^sbcred:v1:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const FINGERPRINT = /^[0-9a-f]{64}$/;
+
+export function CalendarAccounts() {
+  const [accounts, setAccounts] = useState<CalendarAccount[]>([]); const [projects, setProjects] = useState<ProjectRead[]>([]);
+  const [reference, setReference] = useState(""); const [fingerprint, setFingerprint] = useState(""); const [scope, setScope] = useState("unassigned"); const [calendars, setCalendars] = useState("");
+  const [editing, setEditing] = useState<CalendarAccount | null>(null); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const statusRef = useRef<HTMLParagraphElement>(null);
+  const announce = (value: string) => setMessage(value);
+  useEffect(() => { if (message) statusRef.current?.focus(); }, [message]);
+  const load = async () => { setAccounts(await listCalendarAccounts()); };
+  const loadAccounts = async () => { setBusy(true); try { await load(); announce("Calendar accounts refreshed."); } catch { announce("Calendar accounts could not be loaded safely."); } finally { setBusy(false); } };
+  const loadScopeProjects = async () => { setBusy(true); try { setProjects(await listProjects(100, 0)); announce("Projects loaded for Calendar scope selection."); } catch { announce("Projects could not be loaded safely."); } finally { setBusy(false); } };
+  const values = () => calendars.split(/\r?\n/).filter(value => value.length > 0);
+  const valid = (ids: string[]) => ids.length >= 1 && ids.length <= 10 && new Set(ids).size === ids.length && ids.every(value => value === value.trim() && value.length <= 1024) && (scope === "unassigned" || projects.some(project => project.id === scope));
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); const ids = values();
+    if (!valid(ids) || (!editing && (!REFERENCE.test(reference) || !FINGERPRINT.test(fingerprint)))) { announce("Enter the exact credential metadata, exact Project or unassigned scope, and 1 to 10 unique calendar IDs without surrounding whitespace."); return; }
+    setBusy(true); try {
+      const exactScope = scope === "unassigned" ? { kind: "unassigned" as const, project_id: null } : { kind: "project" as const, project_id: scope };
+      if (editing) await updateCalendarAccount(editing.id, { expected_revision: editing.configuration_revision, scope: exactScope, calendar_ids: ids });
+      else await createCalendarAccount({ credential_reference: reference, account_fingerprint: fingerprint, scope: exactScope, calendar_ids: ids });
+      setReference(""); setFingerprint(""); setCalendars(""); setScope("unassigned"); setEditing(null); await load(); announce(editing ? "Calendar configuration revision saved." : "Calendar account configured. Credential metadata fields were cleared.");
+    } catch (error) { setReference(""); if (error instanceof ApiConflictError) { try { await load(); announce("The Calendar account changed elsewhere. Current state was refreshed."); } catch { announce("The stale edit was rejected and refresh failed safely."); } } else announce("Calendar account configuration failed safely. Credential metadata fields were cleared."); } finally { setBusy(false); }
+  };
+  const beginEdit = (account: CalendarAccount) => { setEditing(account); setScope(account.scope.project_id ?? "unassigned"); setCalendars(account.calendar_ids.join("\n")); announce("Editing the disabled Calendar account. Saving creates a new configuration revision."); };
+  const mutate = async (account: CalendarAccount, action: "disable" | "re-enable" | "revoke") => {
+    if (action === "revoke" && !window.confirm("Revoke this exact Calendar credential? This prevents future provider access and preserves Calendar history.")) return;
+    setBusy(true); try { let note = ""; if (action === "revoke") { const result = await revokeCalendarAccount(account.id, account.configuration_revision); note = ` Provider revocation: ${result.provider_revoked ? "completed" : "not completed"}; local deletion: ${result.local_deleted ? "completed" : "not completed"}.`; } else await calendarLifecycle(account.id, action, account.configuration_revision); await load(); announce(`Calendar account ${action} completed.${note}`); }
+    catch (error) { if (error instanceof ApiConflictError) { try { await load(); announce("The Calendar account changed elsewhere. Current state was refreshed."); } catch { announce("The lifecycle conflict failed safely."); } } else announce("The Calendar lifecycle action failed safely."); } finally { setBusy(false); }
+  };
+  return <section className="panel operations-panel" aria-labelledby="calendar-account-heading"><h2 id="calendar-account-heading">Google Calendar accounts</h2>
+    <p>Authorize first with the local CP99 operator command. Enter only its opaque credential reference and safe account fingerprint—never a token, email, profile, or private OAuth value. Calendar IDs are opaque exact values and are not links.</p>
+    <div className="actions"><button type="button" disabled={busy} onClick={() => void loadAccounts()}>Load or refresh Calendar accounts</button><button type="button" disabled={busy} onClick={() => void loadScopeProjects()}>Load scope Projects</button></div>
+    <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite">{message}</p>
+    <form onSubmit={event => void submit(event)} autoComplete="off"><h3>{editing ? "Edit disabled Calendar configuration" : "Configure Calendar account"}</h3>
+      {!editing && <><label htmlFor="calendar-reference">Opaque credential reference</label><input id="calendar-reference" value={reference} onChange={event => setReference(event.target.value)} autoComplete="off" spellCheck={false} />
+      <label htmlFor="calendar-fingerprint">Safe account fingerprint</label><input id="calendar-fingerprint" value={fingerprint} onChange={event => setFingerprint(event.target.value)} maxLength={64} autoComplete="off" spellCheck={false} /></>}
+      <label htmlFor="calendar-scope">Project scope</label><select id="calendar-scope" value={scope} onChange={event => setScope(event.target.value)}><option value="unassigned">Unassigned (never all Projects)</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
+      <label htmlFor="calendar-ids">Exact calendar ID allowlist <span>(one opaque ID per line, maximum 10)</span></label><textarea id="calendar-ids" value={calendars} onChange={event => setCalendars(event.target.value)} />
+      <div className="actions"><button type="submit" disabled={busy}>{editing ? "Save new configuration revision" : "Configure enabled Calendar account"}</button>{editing && <button type="button" onClick={() => { setEditing(null); setCalendars(""); setScope("unassigned"); }}>Cancel edit</button>}</div>
+    </form>
+    {accounts.length === 0 ? <p>No Calendar accounts loaded.</p> : <ul className="connector-list">{accounts.map(account => <li key={account.id}><h3>Calendar account {account.id}</h3><p><strong>{account.lifecycle}</strong> · credential {account.credential_status} · revision {account.configuration_revision}</p><p>Safe account fingerprint: <code>{account.account_fingerprint}</code></p><p>Scope: {account.scope.kind === "unassigned" ? "Unassigned" : projects.find(project => project.id === account.scope.project_id)?.name ?? account.scope.project_id}</p><p>Calendar IDs:</p><ul>{account.calendar_ids.map(id => <li key={id}><code>{id}</code></li>)}</ul><div className="actions">{account.lifecycle === "enabled" && <button type="button" disabled={busy} onClick={() => void mutate(account, "disable")}>Disable</button>}{account.lifecycle === "disabled" && <><button type="button" disabled={busy} onClick={() => beginEdit(account)}>Edit configuration</button><button type="button" disabled={busy || account.credential_status !== "valid"} onClick={() => void mutate(account, "re-enable")}>Re-enable</button></>}{account.lifecycle !== "revoked" && <button type="button" className="danger" disabled={busy} onClick={() => void mutate(account, "revoke")}>Revoke exact credential</button>}</div></li>)}</ul>}
+  </section>;
+}
