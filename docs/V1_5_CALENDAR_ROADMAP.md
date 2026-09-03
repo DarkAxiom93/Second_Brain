@@ -1,8 +1,9 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **Checkpoint 101 approved and complete after human review. The
-Checkpoint 102 full-sync-only architecture remediation is approved after human
-review; CP102 production implementation has not started.**
+Status: **Checkpoint 101 and the first Checkpoint 102 full-sync-only
+architecture remediation and the second Checkpoint 102 tombstone-exclusion
+remediation are approved and complete after human review; CP102 production
+implementation has not started.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -53,7 +54,8 @@ The smallest useful public/stored event projection is:
 - bounded summary/title for ordinary visible events only;
 - normalized start and exclusive end, source timezone where supplied, all-day
   flag and calendar-local dates for all-day events;
-- current/stale/cancelled/deleted state, first/last seen, exact sync run,
+- current state (and future application-owned stale state), first/last seen,
+  exact sync run,
   account revision, calendar identity, and historical Project/unassigned scope.
 
 Field decisions are closed:
@@ -71,7 +73,7 @@ Field decisions are closed:
 | Attachments | Exclude; never follow or fetch |
 | Reminders | Exclude |
 | Recurrence | Store only bounded recurrence identity needed for reconciliation; do not publicly expose raw rules |
-| Cancelled/deleted | Store a minimal tombstone with identity and prior safe projection; never infer from partial sync |
+| Cancelled/deleted | CP102 requests none (`showDeleted=false`) and persists no tombstone; an unexpected cancelled or incomplete item fails the page/run closed without fabrication |
 | Private events | Store timing/status/identity only with fixed `Busy`; never store returned private content |
 | Working location, focus time, out of office, birthday and unknown event types | Store timing, safe code-owned type, and fixed label only; exclude type-specific properties; unknown types fail the page/run closed until reviewed |
 
@@ -187,13 +189,19 @@ specific assumptions are not generalized by configuration. Proposed concepts:
   mutable presentation data and never the occurrence key.
 
 Manual full sync expands occurrences only inside a fixed bounded window with
-`singleEvents=true`, `showDeleted=true`, and deterministic ordering. Expansion
+`singleEvents=true`, `showDeleted=false`, repeated code-owned `eventTypes`
+filters for `default`, `birthday`, `focusTime`, `outOfOffice`, and
+`workingLocation`, and `orderBy=startTime`. Google's current official contract
+supports repeating `eventTypes` and permits `startTime` ordering when
+`singleEvents=true`. `fromGmail` and future/unknown types are excluded. Expansion
 is provider-owned; the application does not implement arbitrary RRULE
 evaluation. A modified instance retains the series plus original-start identity.
 A moved/rescheduled instance updates its current times without changing that
-identity. A cancelled instance records a tombstone for that occurrence. A
-cancelled series or explicit deletion affects only identities explicitly
-returned or covered by a fully completed reconciliation.
+identity. CP102 does not intentionally collect or persist cancelled/deleted
+resources. If Google unexpectedly returns `status=cancelled` or any item lacks
+the complete CP100 normalization fields, the whole page/run fails closed with a
+code-owned safe failure; no values are fabricated or borrowed and prior history
+is preserved.
 
 Deterministic rules:
 
@@ -210,9 +218,13 @@ Deterministic rules:
 - V1.5 never requests, consumes, stores, hashes, exposes, or persists
   `syncToken` or `nextSyncToken`; there is no incremental or token-reset/410
   recovery workflow;
-- complete reconciliation may mark previously current in-window occurrences
-  stale only when the same immutable calendar, account revision, exact window,
-  filters, and successful terminal page prove coverage;
+- CP102 performs no reconciliation. CP103 may mark a previously stored
+  projection `stale` only when it was expected inside and not observed by a
+  fully complete refresh for the same immutable calendar, account revision,
+  exact window and filters. `stale` is application-owned observation state, not
+  a provider tombstone or proof of cancellation/deletion; it preserves prior
+  provider provenance. Partial/failed runs infer nothing, outside-window events
+  are unchanged, and moved-outside-window ambiguity remains uncertainty/stale;
 - timezone conversion uses IANA zones and timezone-aware instants. Ambiguous or
   nonexistent local times fail closed; all-day dates remain dates. DST changes
   never change occurrence identity derived from provider original start.
@@ -255,14 +267,20 @@ API/token calls; any required authorization redirect remains system-browser
 navigation to the fixed authorization origin. Calendar IDs and ephemeral page
 tokens are encoded as values, never accepted as hosts or paths.
 
-CP102 must verify its final exact `events.list` parameter inventory against the
-current official Google Calendar documentation and stop on any contract conflict
-rather than widen authority. Required maxima are: 10 allowlisted calendars, a
+CP102 verified the current official `events.list` contract: `eventTypes` may be
+repeated for the exact five CP100-approved provider values, and `startTime`
+ordering is compatible with `singleEvents=true`. Its fixed inventory is
+`singleEvents=true`, `showDeleted=false`, fixed `timeMin`/`timeMax`,
+`maxResults=250`, `orderBy=startTime`, the five repeated `eventTypes`, fixed
+minimized `fields`, and a validated ephemeral `pageToken` only after a prior
+page. Any later contract conflict stops implementation rather than widening
+authority. Required maxima are: 10 allowlisted calendars, a
 90-day window (30 days past/60 future), 250
 items per page, 10 pages per calendar, 1,000 accepted events per calendar and
 5,000 per run, 1 MiB per response and 10 MiB per run, 50 Calendar requests per
 run, and 60 seconds wall clock. Field projection requests only collection
-pagination metadata and the approved event fields. No `syncToken`,
+pagination metadata and the approved event fields. No tombstone is requested or
+persisted. No `syncToken`,
 `nextSyncToken`, `q`, CalendarList,
 free/busy, batch, watch/webhook, instances endpoint, arbitrary query, or generic
 URL is available.
@@ -377,14 +395,16 @@ downgrades run only on the verified test database.
 
 - **Dependency:** approved CP102.
 - **Goal/areas:** accessible scoped list/detail projections and deterministic
-  current/stale/cancelled/deleted reconciliation based only on a fully complete
-  exact-window full-sync run.
+  application-owned current/stale observation state based only on a fully
+  complete exact-window full-sync run. Absence never derives provider
+  cancelled/deleted state.
 - **Persistence/migration:** none expected.
 - **API/UI:** read-only External Context, fixed private/special labels, no links.
 - **Transactions/concurrency:** SQL scope/order/pagination; sync-revision fencing;
-  events outside the exact rolling window are not made stale/deleted by absence.
+  events outside the exact rolling window are unchanged by absence.
 - **Security/tests:** Project A/B/unassigned isolation, XSS/injection corpus,
-  equal/change/move/exception/cancel/delete/full-vs-partial matrices.
+  equal/change/move/exception, moved-outside-window uncertainty, unexpected
+  cancellation fail-closed, and complete-vs-partial matrices.
 - **Rollback/failure:** hide Calendar browsing and disable refresh; history is
   preserved and no reviewed knowledge changes.
 

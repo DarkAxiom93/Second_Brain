@@ -488,7 +488,15 @@ removes incremental Calendar sync: each future explicit refresh is one bounded
 full `events.list` sync over the fixed 30-day-past/60-day-future window. Only a
 bounded loop-detected `nextPageToken` may exist ephemerally during that request;
 `syncToken` and `nextSyncToken` are absent from requests, persistence, public
-schemas, logs, diagnostics, and export. CP102 production implementation and
-CP103 remain not started; Alembic remains `0015_calendar_persistence`. This
-documentation-only remediation is approved after human review; production work
-remains gated on its commit, push, and successful exact push CI.
+schemas, logs, diagnostics, and export. A second pre-implementation gate found
+that Google's documented cancelled/deleted resources can contain only identity
+fields and cannot satisfy CP100's complete revision shape without fabrication.
+The approved second remediation therefore fixes `singleEvents=true`,
+`showDeleted=false`, and repeated code-owned `eventTypes` filters for only
+`default`, `birthday`, `focusTime`, `outOfOffice`, and `workingLocation`.
+CP102 does not intentionally collect or persist tombstones; an unexpected
+cancelled or incomplete item fails its page/run closed. CP103 may later derive
+only application-owned `stale` from absence in a fully complete exact-window
+run, never provider cancellation or deletion. CP102 production implementation
+and CP103 remain not started; Alembic remains `0015_calendar_persistence`. Both
+CP102 architecture remediations are approved and complete after human review.

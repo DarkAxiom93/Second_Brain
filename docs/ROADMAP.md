@@ -204,5 +204,15 @@ full syncs. V1.5 has no incremental sync, persisted provider continuation,
 `syncToken`, `nextSyncToken`, incremental request fingerprint, or captured
 credential generation. Ephemeral `nextPageToken` pagination remains bounded and
 loop-detected for one active refresh. This amendment is approved after human
-review; CP102 may resume only after it is committed, pushed, and its exact push
-CI is green. CP103 has not started and no `0016` migration is authorized.
+review. A second documentation-only gate records that first-seen Google
+cancelled/deleted tombstones may contain only identity fields and cannot be
+represented by CP100's complete revision schema without fabrication. The
+approved second remediation further narrows CP102 to `singleEvents=true`,
+`showDeleted=false`, and repeated filters for the five CP100-approved event
+types; unexpected cancelled or incomplete items fail the page/run closed.
+CP103 may later infer only local `stale` observation state from absence in a
+fully complete exact-window refresh, never provider cancellation or deletion.
+CP102 production implementation and CP103 have not started, and no `0016`
+migration is authorized.
+Both CP102 architecture remediations are approved and complete after human
+review.

@@ -202,3 +202,21 @@ remove it from the active projection. Alembic remains
 The documentation-only CP102 architecture remediation was subsequently approved
 after human review; CP102 production implementation and CP103 remain not
 started.
+
+## Postscript - second CP102 architecture gate
+
+Official Google documentation later confirmed that a cancelled recurring
+exception is guaranteed only `id`, `recurringEventId`, and `originalStartTime`,
+while another cancelled/deleted resource is guaranteed only `id`. A first-seen
+tombstone therefore cannot satisfy CP100's required provider metadata and
+complete display/temporal shape without fabrication or schema change.
+
+The approved second documentation-only remediation preserves CP100 unchanged and
+narrows future CP102 to `singleEvents=true`, `showDeleted=false`, with no
+tombstone ingestion. CP100's `cancelled` and `deleted` values remain reserved
+schema capacity and CP102 must not manufacture them. Unexpected cancelled or
+incomplete items fail the page/run closed. CP103 may later derive only local
+`stale` observation state from a fully complete exact-window run, never provider
+cancellation/deletion. No `0016` is authorized; CP102 production implementation
+and CP103 remain not started. Both CP102 architecture remediations are approved
+and complete after human review.

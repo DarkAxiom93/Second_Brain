@@ -1,6 +1,7 @@
 # Checkpoint 102 architecture-gate remediation report
 
-Status: **Approved after human review; documentation only.**
+Status: **Both architecture remediations approved and complete after human
+review; documentation only. CP102 production implementation has not started.**
 
 ## Preflight and implementation stop
 
@@ -29,7 +30,8 @@ inventory against current official Google Calendar documentation and stop on a
 contract conflict rather than widen scope.
 
 The code-owned window is exactly 30 days past and 60 days future, never more
-than 90 days. Full-sync requests use `singleEvents=true`, `showDeleted=true`, a
+than 90 days. The first remediation initially proposed `singleEvents=true` and
+`showDeleted=true`, a
 maximum 250 items per page, 10 pages and 1,000 accepted events per calendar,
 5,000 accepted events and 50 Calendar requests per run, 1 MiB per response,
 10 MiB cumulatively, and 60 seconds wall clock. Operators cannot provide a
@@ -69,15 +71,77 @@ configuration fencing, fail-closed unexpected 4xx behavior, and zero Calendar
 write or generic-provider authority. The future CP106 gate must prove these
 properties without expanding authority.
 
+## Second implementation stop: cancellation/deletion shapes
+
+Production implementation was attempted again only after the first remediation
+was committed and its exact push CI succeeded. Preflight passed on clean,
+synchronized `main` with `HEAD` and `origin/main` exactly
+`d804f104f92bc8f126953990bda60ad1d43f16d2`; exact push CI run `33730295478`
+was completed/successful for that SHA. Both live database identities passed.
+Alembic current and sole head were `0015_calendar_persistence`, `alembic check`
+was clean, Tool Registry was `agent-tools-v1`, and Project export remained
+`second-brain-project-export` version `1`.
+
+The current official Google `events.list` and Event resource documentation was
+reviewed before coding. Google guarantees only `id`, `recurringEventId`, and
+`originalStartTime` for a cancelled recurring exception, and only `id` for
+other deleted/cancelled events. CP100 requires a complete normalized revision,
+including non-null provider `etag`/`updated`, event type, display label, and
+complete all-day or timed bounds. A first-seen minimal tombstone has neither a
+safe prior projection nor the provider fields required to satisfy that schema.
+Representing it would require fabricated provider data, weakened provenance, or
+a schema change. Implementation therefore correctly stopped with zero changed
+files, credential access, or Calendar data requests.
+
+## Human-approved remediation: exclude tombstones
+
+The second architecture decision narrows CP102 again. It fixes the request to
+`singleEvents=true` and `showDeleted=false`; CP102 intentionally requests and
+persists no cancelled/deleted tombstone. CP100's `cancelled` and `deleted`
+states remain reserved schema capacity and are not manufactured. Even with the
+filter, an unexpected `status=cancelled` item or any item lacking complete CP100
+normalization fields fails its whole page/run closed with a code-owned safe
+failure. No missing value is fabricated or borrowed, no tombstone revision is
+created, prior history is preserved, no absence is inferred, and no raw body is
+exposed.
+
+The official `events.list` contract permits repeated `eventTypes` parameters
+and supports exactly `birthday`, `default`, `focusTime`, `fromGmail`,
+`outOfOffice`, and `workingLocation`. CP102 freezes repeated code-owned filters
+for only the five CP100-approved values: `default`, `birthday`, `focusTime`,
+`outOfOffice`, and `workingLocation`. `fromGmail` and any future/unknown type are
+excluded. Because `singleEvents=true`, the documented deterministic
+`orderBy=startTime` is compatible. The remaining inventory is fixed
+`timeMin`, `timeMax`, `maxResults=250`, minimized `fields`, and a validated
+ephemeral `pageToken`. `showDeleted=true`, `updatedMin`, `q`, `syncToken`, and
+collection of `nextSyncToken` are prohibited.
+
+CP102 still performs no reconciliation. CP103 may later derive only `stale`, an
+application-owned observation state meaning that a previously stored projection
+expected within the exact evaluated window was not observed in a fully complete
+calendar/configuration/window refresh. It is not a provider tombstone or proof
+of cancellation/deletion and preserves prior provider provenance. Incomplete,
+partial, or failed runs infer nothing; events outside the exact window remain
+unchanged; moved-outside-window ambiguity remains uncertainty/staleness. CP103
+must never derive `cancelled` or `deleted` from absence.
+
+Threat entries G09, G10, G11, and G18 now cover approved event-type filtering,
+zero tombstone ingestion/fabrication, defensive cancelled/minimal-item failure,
+`showDeleted=false`, ephemeral pagination with no sync-token state, and the
+complete-run-only local stale boundary. G01-G08 and G12-G17 retain their prior
+controls without new authority. CP106 must prove all these properties plus zero
+Calendar write and zero generic-provider authority.
+
 ## Boundary and next step
 
-CP100 and CP101 remain approved and complete. The CP102 architecture blocker
+CP100 and CP101 remain approved and complete. The first CP102 architecture blocker
 correctly stopped production implementation, and this full-sync-only
-documentation remediation is approved after human review. Published Local V1.4, Tool
+documentation remediation is approved after human review. The second remediation
+is also approved and complete after human review. Published Local V1.4, Tool
 Registry `agent-tools-v1`, Project export `second-brain-project-export` version
 `1`, and Alembic `0015_calendar_persistence` are unchanged. CP102 production
 implementation and CP103 have not started. CP102 may resume only after this
-amendment is committed, pushed, and its exact push CI is successful.
+approved amendment is committed, pushed, and its exact push CI is successful.
 
 No files are staged or committed by this remediation.
 
@@ -94,17 +158,34 @@ Exact changed paths:
 - `docs/checkpoint-102-report.md`
 
 Focused Calendar regression verification passed **20 backend tests**, zero
-failed and zero skipped. The authoritative Full run passed **1,278 backend** and
-**142 frontend** tests, zero failed and zero skipped. `pip check`, Ruff lint and
-format check, strict mypy over 199 production files, frontend ESLint, TypeScript
-checking, production build, and `git diff --check` passed. Both database
-identities passed. Alembic current and sole head were
-`0015_calendar_persistence`, and `alembic check` reported no new upgrade
-operations.
+failed and zero skipped. The initial sandboxed Full attempt collected 1,278
+backend tests and reported **1,277 passed, 1 failed, 0 skipped**; the sole
+failure was the known environmental Windows Credential Manager lock in the
+existing real-adapter round-trip test, not a product or documentation assertion.
 
-The remediation used no real Google credential and made zero Google, OAuth, or
-Calendar request. It introduced no production implementation, migration,
-dependency, API, UI, Calendar write, generic provider authority, reconciliation,
-browser, import, scheduling, or Agent/Automation authority. It is approved after
-human review as a documentation-only architecture amendment; implementation
-remains gated on commit, push, and successful exact push CI.
+After explicit authorization limited to that established deterministic test
+path, the authoritative Full rerun passed **1,278 backend and 142 frontend
+tests, zero failed and zero skipped**. Credential-store access created a fresh
+random `SecondBrain/connector/v1/<UUID>` target containing only the test constant
+`cp88-obviously-fake-test-secret`, read it, replaced it with the synthetic test
+replacement, verified it, revoked it, verified absence, and retained `finally`
+cleanup fencing. The availability probe likewise used a fresh random application
+target and synthetic capability-probe bytes with cleanup. The adapter is
+non-enumerating, so no unrelated target or real Google credential was read,
+modified, or displayed.
+
+`pip check`, Ruff lint/format, strict mypy over 199 production files, frontend
+ESLint/typecheck/build, and `git diff --check` passed. Both database identities
+passed. Alembic current and sole head were `0015_calendar_persistence`, and
+`alembic check` reported no new upgrade operations. Tool Registry remained
+`agent-tools-v1`; Project export remained `second-brain-project-export` version
+`1`.
+
+The remediation used no real Google credential and made zero OAuth or Calendar
+API request. Official Google developer documentation was read to verify the
+contract; no Calendar data endpoint was called. It introduced no production
+implementation, migration, dependency, API, UI, Calendar write, generic provider
+authority, reconciliation, browser, import, scheduling, or Agent/Automation
+authority. Both documentation-only remediations are approved and complete after
+human review. Production implementation remains gated on this commit, push, and
+successful exact push CI.

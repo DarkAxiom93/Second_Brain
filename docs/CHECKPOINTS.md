@@ -134,9 +134,15 @@ Calendar data request. Checkpoint 102 production implementation has not started.
 Its documentation-only architecture gate removes incremental sync from V1.5:
 future explicit refreshes are independent bounded full syncs, page tokens are
 ephemeral, and sync tokens are never requested or persisted. No `0016`
-migration is authorized. The remediation is approved after human review; CP102
-may resume only after commit, push, and successful exact push CI of this
-amendment. CP103 has not started.
+migration is authorized. The first remediation is approved after human review.
+A second documentation-only gate is approved and complete after human review:
+because Google's
+minimal cancellation/deletion shapes cannot satisfy CP100 without fabricated
+data, CP102 will use `showDeleted=false`, request only the five approved event
+types, persist no tombstone, and fail closed on any unexpected cancelled or
+incomplete item. Only CP103 may later derive local `stale` from absence in a
+fully complete exact-window run; absence never proves cancellation/deletion.
+CP102 production implementation and CP103 have not started.
 
 ## Standard lifecycle
 
