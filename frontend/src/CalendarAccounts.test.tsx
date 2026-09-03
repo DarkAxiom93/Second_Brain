@@ -43,4 +43,16 @@ describe("Calendar account Settings UI", () => {
   it("has explicit labels, status announcements, and no token entry fields", () => {
     render(<CalendarAccounts />); expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite"); expect(screen.getByLabelText("Opaque credential reference")).toHaveAttribute("autocomplete", "off"); expect(screen.queryByLabelText(/access token|refresh token|id token|email|client secret/i)).not.toBeInTheDocument();
   });
+
+  it("runs only an explicit account refresh and renders safe per-calendar status", async () => {
+    const run = { id: "223e4567-e89b-42d3-a456-426614174000", calendar_id: "primary", configuration_revision: 1, window_start: "2026-08-04T10:00:00Z", window_end: "2026-11-02T10:00:00Z", trigger_kind: "manual", status: "succeeded", completeness: "complete", items_seen: 2, items_written: 1, items_unchanged: 1, safe_failure_code: null, created_at: "2026-09-03T10:00:00Z", started_at: "2026-09-03T10:00:01Z", completed_at: "2026-09-03T10:00:02Z" };
+    const fetchMock = vi.fn().mockResolvedValueOnce(response([account()])).mockResolvedValueOnce(response([run]));
+    vi.stubGlobal("fetch", fetchMock); render(<CalendarAccounts />);
+    await userEvent.click(screen.getByRole("button", { name: "Load or refresh Calendar accounts" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Refresh all allowlisted calendars" }));
+    expect(await screen.findByLabelText(`Calendar sync history for account ${id}`)).toHaveTextContent(/primary.*succeeded.*seen 2.*written 1.*unchanged 1/);
+    expect(String(fetchMock.mock.calls[1][0])).toContain(`/calendar-accounts/${id}/refresh`);
+    expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe("POST");
+    expect(window.localStorage).toHaveLength(0); expect(window.sessionStorage).toHaveLength(0);
+  });
 });

@@ -10,7 +10,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
-from app.calendar.dependencies import calendar_credential_dependency
+from app.calendar.dependencies import (
+    calendar_credential_dependency,
+    calendar_transport_factory_dependency,
+)
+from app.calendar.google import CalendarPage, FakeCalendarTransport
 from app.credentials import CredentialReference
 from app.db.session import get_engine
 from app.google_oauth.service import RevocationResult
@@ -50,6 +54,9 @@ class FakeBoundary:
     def revoke(self, reference: CredentialReference) -> RevocationResult:
         self.revoked.append(str(reference))
         return self.revocation
+
+    def refresh(self, reference: CredentialReference) -> str:
+        return "obviously-fake-access-token"
 
 
 @pytest.fixture(autouse=True)
@@ -114,6 +121,50 @@ def test_create_list_read_safe_projection_and_hostile_ids(
     assert "sbcred:" not in response.text
     assert http.get(f"/calendar-accounts/{account['id']}").json() == account
     assert http.get("/calendar-accounts").json() == [account]
+
+
+def test_manual_full_refresh_persists_minimized_pages_and_safe_history(
+    client: tuple[TestClient, FakeBoundary, FastAPI],
+) -> None:
+    http, _, app = client
+    created = http.post(
+        "/calendar-accounts", json=payload(calendar_ids=["z-calendar", "a-calendar"])
+    ).json()
+    event = {
+        "id": "event-1",
+        "status": "confirmed",
+        "eventType": "default",
+        "summary": "Planning",
+        "visibility": "default",
+        "etag": '"one"',
+        "updated": "2026-09-03T10:00:00Z",
+        "start": {"dateTime": "2026-09-04T10:00:00+03:00"},
+        "end": {"dateTime": "2026-09-04T11:00:00+03:00"},
+    }
+    transport = FakeCalendarTransport(
+        [CalendarPage([event], None), CalendarPage([], None)]
+    )
+    app.dependency_overrides[calendar_transport_factory_dependency] = lambda: (
+        lambda: transport
+    )
+    response = http.post(
+        f"/calendar-accounts/{created['id']}/refresh",
+        json={"expected_revision": 1},
+    )
+    assert response.status_code == 200, response.text
+    assert [call.calendar_id for call in transport.calls] == [
+        "a-calendar",
+        "z-calendar",
+    ]
+    assert [run["status"] for run in response.json()] == ["succeeded", "succeeded"]
+    assert sum(run["items_written"] for run in response.json()) == 1
+    history = http.get(f"/calendar-accounts/{created['id']}/sync-runs").json()
+    assert len(history) == 2
+    with Session(get_engine()) as session:
+        stored = session.scalars(select(CalendarEventRevision)).all()
+        assert len(stored) == 1
+        assert stored[0].title == "Planning"
+        assert stored[0].state == "current"
 
 
 def test_exact_project_and_unassigned_are_distinct(

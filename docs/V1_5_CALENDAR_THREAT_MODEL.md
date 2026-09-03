@@ -1,8 +1,8 @@
 # Local V1.5 Google Calendar threat model
 
 Status: **Checkpoint 98 and both CP102 architecture remediations are approved
-and complete after human review. CP102 production implementation has not
-started.**
+and complete after human review. CP102 production implementation is also
+approved and complete after human review.**
 
 This register extends rather than replaces the Agent, Automation, and V1.4
 connector threat models. Calendar content, Google/OAuth responses, browser

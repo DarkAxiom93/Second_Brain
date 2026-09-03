@@ -1,7 +1,7 @@
-# Checkpoint 102 architecture-gate remediation report
+# Checkpoint 102 implementation report
 
-Status: **Both architecture remediations approved and complete after human
-review; documentation only. CP102 production implementation has not started.**
+Status: **Production implementation approved and complete after human review.
+Both historical architecture remediations remain approved and complete.**
 
 ## Preflight and implementation stop
 
@@ -189,3 +189,115 @@ authority, reconciliation, browser, import, scheduling, or Agent/Automation
 authority. Both documentation-only remediations are approved and complete after
 human review. Production implementation remains gated on this commit, push, and
 successful exact push CI.
+
+## Production implementation evidence
+
+The resumed preflight passed on clean synchronized `main` at exact approved
+remediation commit `cf31b06f236f9c51bfdd3ef111facbebe69fd4fe`. Exact push CI
+run `33738463838` was completed/successful for that SHA. Development and test
+database identities passed; Alembic current and sole head were
+`0015_calendar_persistence`, and `alembic check` was clean. Tool Registry was
+`agent-tools-v1`; Project export was `second-brain-project-export` version `1`.
+
+Current official Google `events.list` and Event documentation was verified
+before coding. The production transport can express only GET against
+`https://www.googleapis.com/calendar/v3/calendars/{encodedCalendarId}/events`.
+The exact query inventory is `singleEvents=true`, `showDeleted=false`,
+`orderBy=startTime`, captured `timeMin`/`timeMax`, `maxResults=250`, repeated
+`eventTypes` values `default`, `birthday`, `focusTime`, `outOfOffice`, and
+`workingLocation`, fixed `fields`, and a validated ephemeral `pageToken` only
+after a prior page. The field projection is `nextPageToken` plus item `id`,
+`status`, `eventType`, `summary`, `visibility`, `etag`, `updated`,
+`recurringEventId`, `originalStartTime(date,dateTime,timeZone)`,
+`start(date,dateTime,timeZone)`, and `end(date,dateTime,timeZone)`.
+
+One UTC anchor supplies the exact 30-day-past/60-day-future window for every
+calendar in an account refresh. Limits are 10 calendars, 250 items per page,
+10 pages and 1,000 accepted events per calendar, 5,000 accepted events per
+account refresh, 1 MiB per response while streaming, 10 MiB cumulatively, 50
+requests including retries, and 60 seconds. Pagination tokens are opaque,
+4-KiB bounded, loop-detected, memory-only, and discarded. `syncToken` is never
+requested; `nextSyncToken` was removed from the active catalog and is rejected
+rather than collected, stored, hashed, logged, or exposed.
+
+All per-calendar run claims are created in one short caller-owned transaction
+before credential or network work. CP99 credential status must match the
+captured fingerprint before memory-only access-token refresh. The exact latest
+enabled/configured revision, Project or explicit-unassigned scope, credential
+reference, account fingerprint, calendar identity, and allowlist membership are
+revalidated before every page write and terminal success. OAuth, credential
+store access, network work, retry sleep, and provider latency span no SQL
+transaction or lock. Each complete page is normalized before its short commit;
+a later failure preserves earlier page history but leaves the affected and
+unstarted runs incomplete/failed.
+
+Standalone identity uses provider event ID. Recurring identity uses series ID
+plus canonical `originalStartTime`, so moved occurrence start/end values do not
+redefine identity. Timed and all-day shapes remain distinct, timed values are
+timezone-aware, and ambiguous/nonexistent timezone-only local instants fail
+closed. Private events use `Busy`; special events use the fixed CP100 labels.
+An ordinary non-private blank/absent summary is rejected because the approved
+architecture has no ordinary-title fallback. Equal normalized content is
+unchanged even if provider provenance changes; changed normalized content
+appends the next application revision. No RRULE is requested or evaluated.
+
+`status=cancelled`, minimal resources, malformed fields/JSON, unknown or
+`fromGmail` event types, duplicate occurrence identities within a page, unsafe
+temporal shapes, redirects, unexpected 4xx including 410, and auth/scope faults
+fail closed with bounded code-owned failure identifiers. No row from an invalid
+page is persisted. There is no retry for those failures. Connect/read timeout,
+429, and selected 500/502/503/504 responses receive at most two additional
+attempts with capped delay inside the shared request/deadline ceilings.
+
+The loopback API adds only `POST /calendar-accounts/{account_id}/refresh` and
+bounded `GET /calendar-accounts/{account_id}/sync-runs`. Settings adds explicit
+refresh/history buttons, polite status announcements, and safe per-calendar
+status/count/failure text. It adds no event list/detail, provider-content link,
+polling, browser persistence, or secret field.
+
+The first Full verification attempt passed dependency, Ruff, format and mypy
+gates and then reported 1,286 passed, two failed, zero skipped. Both failures
+were expected-route inventories missing the two newly approved Calendar paths;
+the inventories were updated. Final authoritative totals are recorded below
+after the clean rerun.
+
+The clean authoritative Full rerun passed 1,288 backend tests and 143 frontend
+tests, zero failed and zero skipped. `pip check`, Ruff lint/format, strict mypy
+over 201 production files, frontend ESLint/typecheck/build, and
+`git diff --check` passed. Alembic current and sole head were
+`0015_calendar_persistence`; `alembic check` reported no new upgrade operations.
+Focused Calendar verification passed 23 backend tests and six frontend tests,
+zero failed and zero skipped. All Calendar tests used deterministic fake CP99
+credential and Calendar boundaries and made zero real Google request.
+
+Exact changed paths are:
+
+- `app/api/routes/calendar_accounts.py`
+- `app/calendar/catalog.py`
+- `app/calendar/dependencies.py`
+- `app/calendar/google.py`
+- `app/calendar/sync.py`
+- `app/repositories/calendar.py`
+- `app/schemas/calendar.py`
+- `docs/ARCHITECTURE.md`
+- `docs/CHECKPOINTS.md`
+- `docs/ROADMAP.md`
+- `docs/V1_5_CALENDAR_ROADMAP.md`
+- `docs/V1_5_CALENDAR_THREAT_MODEL.md`
+- `docs/checkpoint-102-report.md`
+- `frontend/src/CalendarAccounts.test.tsx`
+- `frontend/src/CalendarAccounts.tsx`
+- `frontend/src/api/client.ts`
+- `tests/integration/test_calendar_account_api.py`
+- `tests/test_calendar_sync.py`
+- `tests/test_memory_routes.py`
+- `tests/test_project_routes.py`
+
+There is no migration or dependency change. Tool Registry remains
+`agent-tools-v1`; Project export remains `second-brain-project-export` version
+`1`. Production Calendar authority is fixed GET-only `events.list` with
+`showDeleted=false`. There are zero Calendar writes, incremental sync tokens,
+tombstones, or absence-based reconciliation. CP103 browsing/reconciliation,
+import, scheduling, and Agent/Automation Calendar authority were not started.
+CP102 production implementation is approved and complete after human review.
+CP103 remains not started.

@@ -212,7 +212,10 @@ approved second remediation further narrows CP102 to `singleEvents=true`,
 types; unexpected cancelled or incomplete items fail the page/run closed.
 CP103 may later infer only local `stale` observation state from absence in a
 fully complete exact-window refresh, never provider cancellation or deletion.
-CP102 production implementation and CP103 have not started, and no `0016`
-migration is authorized.
-Both CP102 architecture remediations are approved and complete after human
-review.
+CP102 production implementation is approved and complete after human review. It adds
+only explicit account-level refresh, the fixed GET-only `events.list`
+transport, minimized append-only event revisions, and safe per-calendar run
+history. Claims and page writes use short fenced transactions; credential,
+OAuth, retry sleep, and provider latency remain outside SQL. CP103 has not
+started, and no `0016` migration is authorized. Both preceding CP102
+architecture remediations remain approved and complete after human review.

@@ -35,7 +35,7 @@ APPROVED_EVENT_FIELDS = frozenset(
         "end.timeZone",
     }
 )
-APPROVED_COLLECTION_FIELDS = frozenset({"items", "nextPageToken", "nextSyncToken"})
+APPROVED_COLLECTION_FIELDS = frozenset({"items", "nextPageToken"})
 
 
 def event_label(event_type: str, *, private: bool, ordinary_title: str) -> str:

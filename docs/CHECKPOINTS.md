@@ -108,6 +108,7 @@ history. A dash means Alembic had not yet been introduced.
 | 100 | Inert Google Calendar persistence and closed catalogs | Approved and complete after human review | `0015_calendar_persistence` | This commit |
 | 101 | Calendar account lifecycle and safe UI | Approved and complete after human review | `0015_calendar_persistence` | `3c9bdf6` |
 | 102 gate | Full-sync-only Calendar architecture remediation | Approved after human review; documentation only | `0015_calendar_persistence` | This commit |
+| 102 | Bounded Calendar read transport and manual full sync | Approved and complete after human review | `0015_calendar_persistence` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -130,7 +131,8 @@ change is present. Checkpoint 101 is approved and complete after human review.
 It adds only safe Calendar account
 create/list/read/configure/disable/re-enable/revoke lifecycle API and Settings
 UI over the existing revision tables. It adds no migration and performs no
-Calendar data request. Checkpoint 102 production implementation has not started.
+Calendar data request. Checkpoint 102 production implementation is approved and
+complete after human review.
 Its documentation-only architecture gate removes incremental sync from V1.5:
 future explicit refreshes are independent bounded full syncs, page tokens are
 ephemeral, and sync tokens are never requested or persisted. No `0016`
@@ -142,7 +144,8 @@ data, CP102 will use `showDeleted=false`, request only the five approved event
 types, persist no tombstone, and fail closed on any unexpected cancelled or
 incomplete item. Only CP103 may later derive local `stale` from absence in a
 fully complete exact-window run; absence never proves cancellation/deletion.
-CP102 production implementation and CP103 have not started.
+CP102 production implementation is approved and complete after human review.
+CP103 has not started.
 
 ## Standard lifecycle
 

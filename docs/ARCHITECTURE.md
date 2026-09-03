@@ -498,5 +498,11 @@ CP102 does not intentionally collect or persist tombstones; an unexpected
 cancelled or incomplete item fails its page/run closed. CP103 may later derive
 only application-owned `stale` from absence in a fully complete exact-window
 run, never provider cancellation or deletion. CP102 production implementation
-and CP103 remain not started; Alembic remains `0015_calendar_persistence`. Both
-CP102 architecture remediations are approved and complete after human review.
+now adds explicit account-level manual full refresh with fixed GET-only
+`events.list`, the 30-day-past/60-day-future window, minimized append-only event
+revisions, short fenced page transactions, and safe per-calendar run history.
+There is no incremental token state, tombstone ingestion, absence
+reconciliation, event browsing/import, scheduling, Calendar write, or
+Agent/Automation authority. CP103 remains not started; Alembic remains
+`0015_calendar_persistence`. Both CP102 architecture remediations remain
+approved and complete after human review.

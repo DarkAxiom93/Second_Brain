@@ -75,3 +75,23 @@ class CalendarAccountRead(ClosedModel):
     credential_status: Literal["valid", "missing", "unavailable", "revoked"]
     created_at: datetime
     updated_at: datetime
+
+
+class CalendarSyncRunRead(ClosedModel):
+    id: uuid.UUID
+    calendar_id: str
+    configuration_revision: int
+    window_start: datetime
+    window_end: datetime
+    trigger_kind: Literal["manual"]
+    status: Literal[
+        "claimed", "running", "succeeded", "incomplete", "failed", "cancelled"
+    ]
+    completeness: Literal["unknown", "complete", "incomplete"]
+    items_seen: int
+    items_written: int
+    items_unchanged: int
+    safe_failure_code: str | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None

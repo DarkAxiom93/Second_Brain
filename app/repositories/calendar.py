@@ -120,7 +120,6 @@ def record_event_revision(
         select(CalendarEventRevision).where(
             CalendarEventRevision.calendar_identity_id == event.calendar_identity_id,
             CalendarEventRevision.occurrence_key == event.occurrence_key,
-            CalendarEventRevision.provider_etag == event.provider_etag,
             CalendarEventRevision.content_hash == event.content_hash,
         )
     )

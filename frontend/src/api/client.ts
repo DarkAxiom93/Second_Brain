@@ -53,6 +53,14 @@ export type CalendarAccount = {
   created_at: string; updated_at: string;
 };
 export type CalendarRevocation = { account: CalendarAccount; provider_revoked: boolean; local_deleted: boolean };
+export type CalendarSyncRun = {
+  id: string; calendar_id: string; configuration_revision: number;
+  window_start: string; window_end: string; trigger_kind: "manual";
+  status: "claimed" | "running" | "succeeded" | "incomplete" | "failed" | "cancelled";
+  completeness: "unknown" | "complete" | "incomplete";
+  items_seen: number; items_written: number; items_unchanged: number;
+  safe_failure_code: string | null; created_at: string; started_at: string | null; completed_at: string | null;
+};
 export type ConnectorSyncRun = {
   id: string; account_id: string; account_revision: number; trigger_kind: "manual" | "scheduled";
   status: "claimed" | "running" | "succeeded" | "incomplete" | "failed" | "cancelled";
@@ -543,6 +551,14 @@ export function createCalendarAccount(body: { credential_reference: string; acco
 export function updateCalendarAccount(id: string, body: { expected_revision: number; scope: CalendarAccount["scope"]; calendar_ids: string[] }, signal?: AbortSignal) { return request(`/calendar-accounts/${id}`, isCalendarAccount, signal, { method: "PATCH", body }); }
 export function calendarLifecycle(id: string, action: "disable" | "re-enable", expected_revision: number, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/${action}`, isCalendarAccount, signal, { method: "POST", body: { expected_revision } }); }
 export function revokeCalendarAccount(id: string, expected_revision: number, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/revoke`, (v): v is CalendarRevocation => typeof v === "object" && v !== null && !Array.isArray(v) && JSON.stringify(Object.keys(v).sort()) === JSON.stringify(["account", "local_deleted", "provider_revoked"]) && isCalendarAccount((v as Record<string, unknown>).account) && typeof (v as Record<string, unknown>).local_deleted === "boolean" && typeof (v as Record<string, unknown>).provider_revoked === "boolean", signal, { method: "POST", body: { expected_revision } }); }
+function isCalendarSyncRun(value: unknown): value is CalendarSyncRun {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const r = value as Record<string, unknown>;
+  const keys = ["calendar_id", "completed_at", "completeness", "configuration_revision", "created_at", "id", "items_seen", "items_unchanged", "items_written", "safe_failure_code", "started_at", "status", "trigger_kind", "window_end", "window_start"];
+  return JSON.stringify(Object.keys(r).sort()) === JSON.stringify(keys.sort()) && typeof r.id === "string" && UUID_PATTERN.test(r.id) && typeof r.calendar_id === "string" && r.calendar_id.length > 0 && Number.isInteger(r.configuration_revision) && r.trigger_kind === "manual" && ["claimed", "running", "succeeded", "incomplete", "failed", "cancelled"].includes(r.status as string) && ["unknown", "complete", "incomplete"].includes(r.completeness as string) && isCount(r.items_seen) && isCount(r.items_written) && isCount(r.items_unchanged) && (r.safe_failure_code === null || (typeof r.safe_failure_code === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(r.safe_failure_code))) && isTimestamp(r.created_at) && isTimestamp(r.window_start) && isTimestamp(r.window_end) && (r.started_at === null || isTimestamp(r.started_at)) && (r.completed_at === null || isTimestamp(r.completed_at));
+}
+export function refreshCalendarAccount(id: string, expected_revision: number, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/refresh`, (v): v is CalendarSyncRun[] => Array.isArray(v) && v.every(isCalendarSyncRun), signal, { method: "POST", body: { expected_revision } }, undefined, false, false, CONNECTOR_REFRESH_TIMEOUT_MS); }
+export function listCalendarSyncRuns(id: string, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/sync-runs?limit=50`, (v): v is CalendarSyncRun[] => Array.isArray(v) && v.every(isCalendarSyncRun), signal); }
 function isConnectorRefreshSchedule(value: unknown): value is ConnectorRefreshSchedule {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;
