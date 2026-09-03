@@ -182,3 +182,23 @@ occurred. There is no remaining verification uncertainty.
 
 Checkpoint 100 is approved and complete after human review. CP101 was not
 started.
+
+## Postscript - CP102 architecture-gate remediation
+
+The later CP102 preflight confirmed that this intentionally inert schema has no
+provider sync-token, immutable incremental-request-fingerprint, or captured
+credential-generation column. Implementation correctly stopped before any
+production change. A subsequent human architecture decision removed
+incremental sync from the Local V1.5 baseline rather than authorizing a new
+migration for an optimization.
+
+Future V1.5 Calendar refresh is independent bounded manual full-sync only.
+`nextPageToken` may exist only as bounded, loop-detected in-memory continuation
+for one executing refresh. `syncToken` and `nextSyncToken` are never requested,
+consumed, stored, hashed, exposed, or persisted. The historical CP100 catalog
+did include `nextSyncToken` as an inert reviewed collection field, but CP102 may
+remove it from the active projection. Alembic remains
+`0015_calendar_persistence`; CP100's approved status is unchanged.
+The documentation-only CP102 architecture remediation was subsequently approved
+after human review; CP102 production implementation and CP103 remain not
+started.

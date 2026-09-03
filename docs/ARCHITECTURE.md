@@ -481,3 +481,14 @@ invokes CP99 revocation outside database locks and reports provider/local
 outcomes separately. The typed loopback API and accessible Settings UI expose
 safe metadata only. There is no Calendar event request, refresh, sync,
 reconciliation, browsing, import, scheduling, or Agent/Automation authority.
+The documentation-only Checkpoint 102 architecture gate records that CP100
+intentionally has no durable sync-token, incremental-request-fingerprint, or
+credential-generation fields. The human-approved V1.5 simplification therefore
+removes incremental Calendar sync: each future explicit refresh is one bounded
+full `events.list` sync over the fixed 30-day-past/60-day-future window. Only a
+bounded loop-detected `nextPageToken` may exist ephemerally during that request;
+`syncToken` and `nextSyncToken` are absent from requests, persistence, public
+schemas, logs, diagnostics, and export. CP102 production implementation and
+CP103 remain not started; Alembic remains `0015_calendar_persistence`. This
+documentation-only remediation is approved after human review; production work
+remains gated on its commit, push, and successful exact push CI.

@@ -1,6 +1,8 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **Checkpoint 101 approved and complete after human review.**
+Status: **Checkpoint 101 approved and complete after human review. The
+Checkpoint 102 full-sync-only architecture remediation is approved after human
+review; CP102 production implementation has not started.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -175,7 +177,7 @@ specific assumptions are not generalized by configuration. Proposed concepts:
   allowlist, exact Project/unassigned scope, and lifecycle;
 - immutable calendar identity rows, separate from mutable display metadata;
 - one bounded sync run capturing account revision, date window, limits, trigger,
-  completeness, safe counts/error, and sync-token generation;
+  completeness, and safe counts/error;
 - versioned normalized event snapshots keyed by account + calendar ID + provider
   event ID + occurrence identity; provider `etag`/`updated` identifies provider
   version while a monotonic application revision identifies accepted local
@@ -199,13 +201,15 @@ Deterministic rules:
 - any validated changed provider identity/hash appends/advances one application
   revision while preserving provenance used by prior local artifacts;
 - older/out-of-order provider versions cannot replace a newer accepted revision;
-- every accepted page is validated completely before a short transaction;
-  run success and the new sync token commit only after all pages complete;
-- partial page, missing page, ceiling, timeout, ambiguous 404/410, token reset,
-  schema error, or scope/revision drift marks the run incomplete and never
-  infers deletion;
-- an invalid sync token triggers a later bounded full-resync requirement; it
-  does not wipe local history or mark absence deleted;
+- every explicit refresh is an independent bounded full sync; every accepted
+  page is validated completely before a short transaction and run success
+  commits only after all pages complete;
+- partial page, missing page, ceiling, timeout, unexpected provider 4xx, schema
+  error, or scope/revision drift marks the run incomplete and never infers
+  deletion or starts another refresh;
+- V1.5 never requests, consumes, stores, hashes, exposes, or persists
+  `syncToken` or `nextSyncToken`; there is no incremental or token-reset/410
+  recovery workflow;
 - complete reconciliation may mark previously current in-window occurrences
   stale only when the same immutable calendar, account revision, exact window,
   filters, and successful terminal page prove coverage;
@@ -248,15 +252,18 @@ certificate URL, and userinfo are prohibited. Calendar data requests are only
 `GET /calendar/v3/calendars/{allowlistedCalendarId}/events`.
 OAuth POSTs do not grant Calendar write authority. Redirects are disabled for
 API/token calls; any required authorization redirect remains system-browser
-navigation to the fixed authorization origin. Calendar IDs and page/sync tokens
-are encoded as values, never accepted as hosts or paths.
+navigation to the fixed authorization origin. Calendar IDs and ephemeral page
+tokens are encoded as values, never accepted as hosts or paths.
 
-CP102 must freeze exact numeric ceilings before implementation. Required maxima
-are: 10 allowlisted calendars, a 90-day window (30 days past/60 future), 250
+CP102 must verify its final exact `events.list` parameter inventory against the
+current official Google Calendar documentation and stop on any contract conflict
+rather than widen authority. Required maxima are: 10 allowlisted calendars, a
+90-day window (30 days past/60 future), 250
 items per page, 10 pages per calendar, 1,000 accepted events per calendar and
 5,000 per run, 1 MiB per response and 10 MiB per run, 50 Calendar requests per
 run, and 60 seconds wall clock. Field projection requests only collection
-pagination/sync metadata and the approved event fields. No `q`, CalendarList,
+pagination metadata and the approved event fields. No `syncToken`,
+`nextSyncToken`, `q`, CalendarList,
 free/busy, batch, watch/webhook, instances endpoint, arbitrary query, or generic
 URL is available.
 
@@ -265,8 +272,11 @@ timeout before a complete response, 429, and selected 5xx responses, within the
 same request/deadline budget. Backoff and `Retry-After` are capped. There is no
 retry for auth/scope/identity/schema/redirect/limit/4xx ambiguity. Continuation
 tokens are opaque, length-bounded, tied to the exact request fingerprint, loop-
-detected, and accepted only from the validated response field. No database lock
-or transaction spans browser, credential-store, OAuth, sleep, or network time.
+detected, and accepted only from the validated response field. A page token is
+in-memory state tied to the exact current request, is never persisted or
+publicly projected, and disappears when that refresh terminates. No database
+lock or transaction spans browser, credential-store, OAuth, sleep, or network
+time.
 
 ## Agent, Automation, scheduling, and authority
 
@@ -346,17 +356,20 @@ downgrades run only on the verified test database.
   scope isolation, accessibility and zero browser secret storage.
 - **Rollback/failure:** disable/revoke account; no external snapshot exists.
 
-### 102 - Bounded Calendar read transport and manual sync
+### 102 - Bounded Calendar read transport and manual full sync
 
 - **Dependency:** approved CP101.
-- **Goal/areas:** exact GET inventory, minimized projection, manual bounded full/
-  incremental sync with fake transport acceptance.
+- **Goal/areas:** exact GET inventory, minimized projection, and independent
+  manual bounded full syncs with fake transport acceptance. Incremental sync is
+  outside V1.5.
 - **Persistence/migration:** none expected beyond CP100.
 - **API/UI:** explicit manual refresh and safe run status only.
 - **Transactions/concurrency:** committed claim before credential/network work;
   validated short page commits; no locks across latency.
-- **Security/tests:** hosts/methods/fields/limits/retries, token revocation,
-  partial pages, 410, DST, recurrence and zero excluded-field persistence.
+- **Security/tests:** hosts/methods/fields/limits/retries, ephemeral page-token
+  bounds/loops, absence of sync-token requests or persistence, credential and
+  configuration drift, partial pages, DST, recurrence and zero excluded-field
+  persistence.
 - **Rollback/failure:** disable transport/account; preserve prior snapshots and
   mark incomplete without deletion inference.
 
@@ -364,10 +377,12 @@ downgrades run only on the verified test database.
 
 - **Dependency:** approved CP102.
 - **Goal/areas:** accessible scoped list/detail projections and deterministic
-  current/stale/cancelled/deleted reconciliation.
+  current/stale/cancelled/deleted reconciliation based only on a fully complete
+  exact-window full-sync run.
 - **Persistence/migration:** none expected.
 - **API/UI:** read-only External Context, fixed private/special labels, no links.
-- **Transactions/concurrency:** SQL scope/order/pagination; sync-revision fencing.
+- **Transactions/concurrency:** SQL scope/order/pagination; sync-revision fencing;
+  events outside the exact rolling window are not made stale/deleted by absence.
 - **Security/tests:** Project A/B/unassigned isolation, XSS/injection corpus,
   equal/change/move/exception/cancel/delete/full-vs-partial matrices.
 - **Rollback/failure:** hide Calendar browsing and disable refresh; history is
@@ -451,7 +466,10 @@ downgrades run only on the verified test database.
   issuer, audience, nonce and JWK metadata):
   <https://developers.google.com/identity/openid-connect/openid-connect> and
   <https://developers.google.com/identity/openid-connect/reference>
-- Google, *Events: list* (GET inventory, fields, paging, sync tokens and event
-  behavior): <https://developers.google.com/calendar/api/v3/reference/events/list>
-- Google, *Synchronize resources efficiently* (full/incremental sync and invalid
-  token behavior): <https://developers.google.com/workspace/calendar/api/guides/sync>
+- Google, *Events: list* (GET inventory, fields, bounded full-sync parameters,
+  pagination and event behavior):
+  <https://developers.google.com/calendar/api/v3/reference/events/list>
+- Google, *Synchronize resources efficiently* was part of CP98's alternatives
+  review; the later full-sync-only amendment does not adopt its incremental
+  sync-token workflow:
+  <https://developers.google.com/workspace/calendar/api/guides/sync>

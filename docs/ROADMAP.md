@@ -198,3 +198,11 @@ or Agent/Automation authority. Checkpoint 101 is approved and complete after
 human review. It implements only revision-fenced
 Calendar account configuration and lifecycle metadata plus its safe Settings
 UI. Calendar data access and Checkpoint 102 remain not started.
+The documentation-only CP102 architecture-gate remediation resolves the CP100
+schema mismatch by intentionally narrowing V1.5 to independent bounded manual
+full syncs. V1.5 has no incremental sync, persisted provider continuation,
+`syncToken`, `nextSyncToken`, incremental request fingerprint, or captured
+credential generation. Ephemeral `nextPageToken` pagination remains bounded and
+loop-detected for one active refresh. This amendment is approved after human
+review; CP102 may resume only after it is committed, pushed, and its exact push
+CI is green. CP103 has not started and no `0016` migration is authorized.

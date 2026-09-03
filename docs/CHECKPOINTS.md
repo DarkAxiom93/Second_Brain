@@ -106,6 +106,8 @@ history. A dash means Alembic had not yet been introduced.
 | 98 | Local V1.5 Calendar architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0014_connector_refresh_schedules` | This commit |
 | 99 | Google OAuth and credential prerequisite | Approved and complete after human review | `0014_connector_refresh_schedules` | `2779123` |
 | 100 | Inert Google Calendar persistence and closed catalogs | Approved and complete after human review | `0015_calendar_persistence` | This commit |
+| 101 | Calendar account lifecycle and safe UI | Approved and complete after human review | `0015_calendar_persistence` | `3c9bdf6` |
+| 102 gate | Full-sync-only Calendar architecture remediation | Approved after human review; documentation only | `0015_calendar_persistence` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -128,7 +130,13 @@ change is present. Checkpoint 101 is approved and complete after human review.
 It adds only safe Calendar account
 create/list/read/configure/disable/re-enable/revoke lifecycle API and Settings
 UI over the existing revision tables. It adds no migration and performs no
-Calendar data request. Checkpoint 102 has not started.
+Calendar data request. Checkpoint 102 production implementation has not started.
+Its documentation-only architecture gate removes incremental sync from V1.5:
+future explicit refreshes are independent bounded full syncs, page tokens are
+ephemeral, and sync tokens are never requested or persisted. No `0016`
+migration is authorized. The remediation is approved after human review; CP102
+may resume only after commit, push, and successful exact push CI of this
+amendment. CP103 has not started.
 
 ## Standard lifecycle
 
