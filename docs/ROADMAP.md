@@ -216,6 +216,19 @@ CP102 production implementation is approved and complete after human review. It 
 only explicit account-level refresh, the fixed GET-only `events.list`
 transport, minimized append-only event revisions, and safe per-calendar run
 history. Claims and page writes use short fenced transactions; credential,
-OAuth, retry sleep, and provider latency remain outside SQL. CP103 has not
-started, and no `0016` migration is authorized. Both preceding CP102
-architecture remediations remain approved and complete after human review.
+OAuth, retry sleep, and provider latency remain outside SQL. The CP103
+architecture gate correctly stopped before implementation because an equal
+CP102 replay reuses its historical event revision: a new successful run retains
+only aggregate counts and has no durable exact observed-occurrence set. The
+documentation-only remediation, approved after human review, authorizes future
+additive migration
+`0016_calendar_event_observations`, but does not create it. That future schema
+will separate immutable provider/content revision history from provider-
+content-free per-run observation evidence, require an explicit nullable closed
+evidence-version manifest (including zero-item runs), and leave every historical
+CP102 run unmarked without backfill. Effective `current`/`stale` will be derived
+only from later fully complete, versioned, internally complete, exact-lineage,
+exact-window evidence; absence never derives `cancelled` or `deleted`. CP103
+production implementation remains gated on commit, push, and successful exact
+push CI. CP104 has not started. Both preceding CP102 architecture
+remediations remain approved and complete after human review.

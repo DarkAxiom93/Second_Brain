@@ -506,3 +506,35 @@ reconciliation, event browsing/import, scheduling, Calendar write, or
 Agent/Automation authority. CP103 remains not started; Alembic remains
 `0015_calendar_persistence`. Both CP102 architecture remediations remain
 approved and complete after human review.
+
+The documentation-only Checkpoint 103 architecture gate found that CP102's
+approved equal-content replay reuses the historical `CalendarEventRevision`.
+Its original `sync_run_id` therefore remains unchanged, while the new run
+stores only aggregate `items_seen`/`items_unchanged` counts. The current schema
+cannot prove which unchanged occurrence identities a particular completed run
+observed, so counts, timestamps, and assumptions cannot authorize negative
+absence evidence. The implementation stop was correct and CP104 was not
+started.
+
+The human-approved remediation authorizes a future additive
+`0016_calendar_event_observations` migration for CP103 production work only.
+It will add a provider-content-free run-to-occurrence observation relation and
+an explicit nullable code-owned evidence version such as
+`calendar-observations-v1` on each observation-aware sync run. Historical CP102
+runs remain unmarked and receive no backfill. Each accepted page must atomically
+record or reuse the immutable content revision and insert exactly one
+run/occurrence observation pointing to it. Terminal success becomes
+reconciliation-eligible only after exact run/calendar/account-revision lineage,
+distinct occurrence ownership, and observation count equal to accepted-item
+accounting are verified; a versioned zero-item manifest remains explicit proof.
+
+Provider `CalendarEventRevision` rows remain immutable provider-observation
+history. CP103 will derive effective application state instead of fabricating a
+new provider revision: positive eligible observation is `current`; a later
+eligible complete run supplies `stale` only when its exact window covered the
+prior projection and its exact observed-identity set omitted the occurrence; a
+later positive observation restores `current`. Incomplete, failed, partial,
+unversioned, cross-calendar, cross-configuration, cross-scope, and non-covering
+runs infer nothing. Absence never produces provider `cancelled` or `deleted`.
+This remediation creates no migration or production capability; CP103 remains
+gated on review, commit, push, and successful exact push CI.

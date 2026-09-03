@@ -109,6 +109,7 @@ history. A dash means Alembic had not yet been introduced.
 | 101 | Calendar account lifecycle and safe UI | Approved and complete after human review | `0015_calendar_persistence` | `3c9bdf6` |
 | 102 gate | Full-sync-only Calendar architecture remediation | Approved after human review; documentation only | `0015_calendar_persistence` | This commit |
 | 102 | Bounded Calendar read transport and manual full sync | Approved and complete after human review | `0015_calendar_persistence` | This commit |
+| 103 gate | Exact Calendar observation-evidence architecture remediation | Approved after human review; documentation only | `0015_calendar_persistence` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -145,7 +146,18 @@ types, persist no tombstone, and fail closed on any unexpected cancelled or
 incomplete item. Only CP103 may later derive local `stale` from absence in a
 fully complete exact-window run; absence never proves cancellation/deletion.
 CP102 production implementation is approved and complete after human review.
-CP103 has not started.
+The CP103 architecture gate then correctly stopped before changes: equal CP102
+replays reuse the historical event revision and retain its original run ID, so
+new successful runs have only aggregate counters and no exact durable observed
+occurrence set. The documentation-only remediation authorizes a future
+`0016_calendar_event_observations` migration with an exact run/occurrence/event-
+revision relation and a nullable closed evidence-version manifest. Historical
+runs remain unmarked and are never backfilled. Effective current/stale state
+will be application-derived only from eligible complete exact-window evidence;
+absence never manufactures cancellation or deletion. CP103 production
+implementation remains gated on commit, push, and successful exact push CI.
+The remediation is approved after human review; those lifecycle steps remain
+pending. CP104 has not started.
 
 ## Standard lifecycle
 

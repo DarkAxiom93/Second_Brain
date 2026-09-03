@@ -2,7 +2,8 @@
 
 Status: **Checkpoint 101 and both Checkpoint 102 architecture remediations are
 approved and complete after human review; CP102 production implementation is
-also approved and complete after human review.**
+also approved and complete after human review. The documentation-only CP103
+architecture remediation is approved after human review.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -397,10 +398,54 @@ downgrades run only on the verified test database.
   application-owned current/stale observation state based only on a fully
   complete exact-window full-sync run. Absence never derives provider
   cancelled/deleted state.
-- **Persistence/migration:** none expected.
+- **Architecture gate:** CP102 equal/unchanged replay intentionally reuses the
+  historical `CalendarEventRevision`, whose original `sync_run_id` remains
+  unchanged. A new run stores only aggregate counters, so the current schema
+  cannot distinguish positive unchanged observation from absence. Counts,
+  timestamps, and assumptions are not evidence. The stop was mandatory.
+- **Persistence/migration:** after this approved remediation is committed,
+  pushed, and its exact push CI succeeds, CP103 may create the one approved
+  additive migration `0016_calendar_event_observations`. It must add a minimal
+  provider-content-free relation from the exact run and occurrence identity to
+  the exact reused-or-created event revision. It stores no event content,
+  provider payload, token, OAuth field, email, URL, or secret.
+- **Ownership and uniqueness:** one run has at most one observation per
+  occurrence. Composite foreign keys and unique ownership keys must bind run,
+  account/configuration revision, calendar, occurrence, and event revision.
+  The exact nullable Project scope is derived through the immutable account
+  revision and run; it must not be independently substitutable. Cross-calendar,
+  cross-account, cross-configuration, cross-scope, and duplicate observations
+  fail closed.
+- **Evidence manifest:** add an explicit nullable closed code-owned evidence
+  version such as `calendar-observations-v1` to each observation-aware run (or
+  an equivalent one-to-one manifest). Historical CP102 runs stay null and no
+  backfill invents identities. Page transactions atomically record/reuse the
+  event revision and insert its observation. Before terminal success becomes
+  reconciliation-eligible, the exact distinct observation set must match the
+  run's accepted-item accounting. A zero-item run still requires the explicit
+  versioned manifest; zero rows alone prove nothing.
+- **Replay/state:** equal normalized content creates no duplicate event
+  revision but gains a new observation pointing to the historical revision;
+  changed content appends a revision and new content creates revision 1.
+  Provider revisions remain immutable. Effective state is application-derived:
+  eligible positive evidence means `current`; a later eligible covering run
+  without the identity means `stale`; a later positive means `current` again.
+  The latest applicable evidence wins idempotently. No stale provider revision
+  is fabricated and absence never creates `cancelled` or `deleted`.
+- **Exact-window predicate:** for a timed prior projection, a run covers it only
+  when `end_instant > window_start` and `start_instant < window_end`, matching
+  the exclusive `timeMin` event-end and `timeMax` event-start boundaries. For
+  an all-day projection, use the corresponding half-open date interval after
+  deterministic conversion with its persisted safe source timezone; without
+  enough timezone evidence to prove that conversion, infer no negative state.
+  Moved-outside-window ambiguity may yield only local stale when the prior
+  projection was covered, never deletion/cancellation. A non-covering run has
+  no effect.
 - **API/UI:** read-only External Context, fixed private/special labels, no links.
 - **Transactions/concurrency:** SQL scope/order/pagination; sync-revision fencing;
-  events outside the exact rolling window are unchanged by absence.
+  exact calendar/account-revision/historical Project-or-unassigned lineage;
+  events outside the exact rolling window are unchanged by absence. Null means
+  unassigned only, never all Projects.
 - **Security/tests:** Project A/B/unassigned isolation, XSS/injection corpus,
   equal/change/move/exception, moved-outside-window uncertainty, unexpected
   cancellation fail-closed, and complete-vs-partial matrices.
