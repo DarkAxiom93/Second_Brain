@@ -21,6 +21,7 @@ from app.google_oauth.service import RevocationResult
 from app.main import create_app
 from app.models.calendar import (
     CalendarAccountRevision,
+    CalendarEventObservation,
     CalendarEventRevision,
     CalendarIdentity,
     CalendarSyncRun,
@@ -67,6 +68,7 @@ def clean_calendar(
 
     def clean() -> None:
         with Session(get_engine()) as session:
+            session.execute(delete(CalendarEventObservation))
             session.execute(delete(CalendarEventRevision))
             session.execute(delete(CalendarSyncRun))
             session.execute(delete(CalendarIdentity))
@@ -165,6 +167,13 @@ def test_manual_full_refresh_persists_minimized_pages_and_safe_history(
         assert len(stored) == 1
         assert stored[0].title == "Planning"
         assert stored[0].state == "current"
+        observations = list(session.scalars(select(CalendarEventObservation)))
+        assert len(observations) == 1
+        runs = list(session.scalars(select(CalendarSyncRun)))
+        assert all(
+            run.observation_evidence_version == "calendar-observations-v1"
+            for run in runs
+        )
 
 
 def test_exact_project_and_unassigned_are_distinct(
@@ -380,3 +389,150 @@ def test_zero_calendar_data_or_protected_domain_calls(
             for name in tables
         }
     assert before == after
+
+
+def test_observation_equal_replay_stale_resurrection_and_local_browsing(
+    client: tuple[TestClient, FakeBoundary, FastAPI],
+) -> None:
+    http, _, app = client
+    created = http.post(
+        "/calendar-accounts", json=payload(calendar_ids=["calendar-one"])
+    ).json()
+    event = {
+        "id": "event-1",
+        "status": "confirmed",
+        "eventType": "default",
+        "summary": "<script>alert(1)</script> [link](javascript:bad) \u202e",
+        "visibility": "default",
+        "etag": '"one"',
+        "updated": "2026-09-03T10:00:00Z",
+        "start": {
+            "dateTime": "2026-09-04T10:00:00+03:00",
+            "timeZone": "Asia/Jerusalem",
+        },
+        "end": {
+            "dateTime": "2026-09-04T11:00:00+03:00",
+            "timeZone": "Asia/Jerusalem",
+        },
+    }
+    pages = [[event], [event], [], [event]]
+    transports: list[FakeCalendarTransport] = []
+
+    def factory() -> FakeCalendarTransport:
+        transport = FakeCalendarTransport([CalendarPage(pages.pop(0), None)])
+        transports.append(transport)
+        return transport
+
+    app.dependency_overrides[calendar_transport_factory_dependency] = lambda: factory
+    for expected_state in ("current", "current", "stale", "current"):
+        response = http.post(
+            f"/calendar-accounts/{created['id']}/refresh",
+            json={"expected_revision": 1},
+        )
+        assert response.status_code == 200
+        calls_before_browse = sum(len(value.calls) for value in transports)
+        listed = http.get("/calendar-events", params={"scope": "unassigned"})
+        assert listed.status_code == 200, listed.text
+        body = listed.json()
+        assert len(body["items"]) == 1
+        item = body["items"][0]
+        assert item["effective_state"] == expected_state
+        assert item["title"] == event["summary"]
+        assert item["provider"] == "google_calendar"
+        assert item["source_label"] == "Calendar"
+        assert item["trust"] == "external_untrusted"
+        assert not {
+            "provider_event_id",
+            "provider_etag",
+            "provider_updated_at",
+            "calendar_identity_id",
+            "sync_run_id",
+            "description",
+            "location",
+            "attendees",
+            "url",
+        } & set(item)
+        detail = http.get(
+            f"/calendar-events/{item['id']}", params={"scope": "unassigned"}
+        )
+        assert detail.json() == item
+        assert sum(len(value.calls) for value in transports) == calls_before_browse
+
+    with Session(get_engine()) as session:
+        revisions = list(session.scalars(select(CalendarEventRevision)))
+        observations = list(session.scalars(select(CalendarEventObservation)))
+        assert len(revisions) == 1
+        assert len(observations) == 3
+        assert {value.event_revision_id for value in observations} == {revisions[0].id}
+        assert not {value.occurrence_key for value in observations} - {
+            revisions[0].occurrence_key
+        }
+        assert not {value.state for value in revisions} - {"current"}
+
+
+def test_unversioned_and_all_day_timezone_uncertainty_infer_no_stale(
+    client: tuple[TestClient, FakeBoundary, FastAPI],
+) -> None:
+    http, _, app = client
+    created = http.post(
+        "/calendar-accounts", json=payload(calendar_ids=["calendar-one"])
+    ).json()
+    event = {
+        "id": "all-day",
+        "status": "confirmed",
+        "eventType": "birthday",
+        "summary": "must-not-be-used",
+        "visibility": "default",
+        "etag": '"all-day"',
+        "updated": "2026-09-03T10:00:00Z",
+        "start": {"date": "2026-09-04"},
+        "end": {"date": "2026-09-05"},
+    }
+    pages = [[event], []]
+    app.dependency_overrides[calendar_transport_factory_dependency] = lambda: (
+        lambda: FakeCalendarTransport([CalendarPage(pages.pop(0), None)])
+    )
+    assert (
+        http.post(
+            f"/calendar-accounts/{created['id']}/refresh",
+            json={"expected_revision": 1},
+        ).status_code
+        == 200
+    )
+    with Session(get_engine()) as session:
+        run = session.scalar(
+            select(CalendarSyncRun).order_by(CalendarSyncRun.created_at)
+        )
+        assert run is not None
+        run.observation_evidence_version = None
+        session.commit()
+    assert http.get("/calendar-events", params={"scope": "unassigned"}).json() == {
+        "items": [],
+        "next_cursor": None,
+    }
+    with Session(get_engine()) as session:
+        run = session.scalar(
+            select(CalendarSyncRun).order_by(CalendarSyncRun.created_at)
+        )
+        assert run is not None
+        run.observation_evidence_version = "calendar-observations-v1"
+        session.commit()
+    assert (
+        http.post(
+            f"/calendar-accounts/{created['id']}/refresh",
+            json={"expected_revision": 1},
+        ).status_code
+        == 200
+    )
+    item = http.get("/calendar-events", params={"scope": "unassigned"}).json()["items"][
+        0
+    ]
+    assert item["title"] == "Birthday"
+    assert item["source_timezone"] is None
+    assert item["effective_state"] == "current"
+    assert (
+        http.get(
+            f"/calendar-events/{item['id']}", params={"scope": str(uuid.uuid4())}
+        ).status_code
+        == 404
+    )

@@ -15,6 +15,7 @@ from app.calendar.identity import occurrence_identity
 from app.db.session import get_engine
 from app.models.calendar import (
     CalendarAccountRevision,
+    CalendarEventObservation,
     CalendarEventRevision,
     CalendarIdentity,
     CalendarSyncRun,
@@ -23,10 +24,13 @@ from app.models.project import Project
 from app.project_export.models import CURRENT_DATABASE_REVISION
 from app.project_export.service import export_project
 from app.repositories.calendar import (
+    CalendarObservationError,
     CalendarOwnershipError,
     create_account_revision,
     create_calendar_identity,
     create_sync_run,
+    mark_observation_evidence_complete,
+    record_event_observation,
     record_event_revision,
 )
 from tests.integration.conftest import verify_connected_test_database
@@ -39,6 +43,7 @@ def clean_calendar_tables(
     verify_connected_test_database(test_database_url)
     with Session(get_engine()) as session:
         for model in (
+            CalendarEventObservation,
             CalendarEventRevision,
             CalendarSyncRun,
             CalendarIdentity,
@@ -233,6 +238,33 @@ def test_private_special_temporal_and_unknown_type_fail_closed() -> None:
                     event_type="future_type",
                 ),
                 seen_at=datetime.now(UTC),
+            )
+
+
+def test_observation_uniqueness_and_cross_lineage_substitution_fail_closed() -> None:
+    with Session(get_engine()) as session:
+        _, _, run = _graph(session)
+        event, _ = record_event_revision(
+            session, _event(run), seen_at=datetime.now(UTC)
+        )
+        record_event_observation(session, run, event, observed_at=datetime.now(UTC))
+        with pytest.raises(CalendarObservationError):
+            record_event_observation(session, run, event, observed_at=datetime.now(UTC))
+        run.items_seen = 2
+        with pytest.raises(CalendarObservationError):
+            mark_observation_evidence_complete(session, run)
+        assert run.observation_evidence_version is None
+        session.rollback()
+
+    with Session(get_engine()) as session:
+        _, _, first_run = _graph(session)
+        first_event, _ = record_event_revision(
+            session, _event(first_run), seen_at=datetime.now(UTC)
+        )
+        _, _, other_run = _graph(session, account_fingerprint="c" * 64)
+        with pytest.raises(CalendarOwnershipError):
+            record_event_observation(
+                session, other_run, first_event, observed_at=datetime.now(UTC)
             )
 
 

@@ -53,6 +53,7 @@ def test_metadata_contains_only_approved_tables() -> None:
         "calendar_identities",
         "calendar_sync_runs",
         "calendar_event_revisions",
+        "calendar_event_observations",
     }
 
 

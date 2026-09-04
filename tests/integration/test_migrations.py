@@ -13,7 +13,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0015_calendar_persistence"
+    assert revision == "0016_calendar_event_observations"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -65,6 +65,7 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "calendar_identities",
         "calendar_sync_runs",
         "calendar_event_revisions",
+        "calendar_event_observations",
     }
     unique_columns = {
         tuple(value["column_names"])
@@ -79,6 +80,37 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         (("external_item_id",), "external_items"),
         (("source_document_id",), "source_documents"),
     }
+    evidence_column = next(
+        value
+        for value in inspector.get_columns("calendar_sync_runs")
+        if value["name"] == "observation_evidence_version"
+    )
+    assert evidence_column["nullable"] is True
+    assert evidence_column["default"] is None
+    observation_uniques = {
+        tuple(value["column_names"])
+        for value in inspector.get_unique_constraints("calendar_event_observations")
+    }
+    assert observation_uniques == {("sync_run_id", "occurrence_key")}
+    observation_fks = {
+        (tuple(value["constrained_columns"]), value["referred_table"])
+        for value in inspector.get_foreign_keys("calendar_event_observations")
+    }
+    assert observation_fks == {
+        (
+            ("sync_run_id", "calendar_identity_id", "account_revision_id"),
+            "calendar_sync_runs",
+        ),
+        (
+            (
+                "event_revision_id",
+                "account_revision_id",
+                "calendar_identity_id",
+                "occurrence_key",
+            ),
+            "calendar_event_revisions",
+        ),
+    }
 
 
 def test_migration_graph_has_expected_single_head(
@@ -86,7 +118,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0015_calendar_persistence"]
+    assert script.get_heads() == ["0016_calendar_event_observations"]
+    assert script.get_revision("0016_calendar_event_observations").down_revision == (
+        "0015_calendar_persistence"
+    )
     assert script.get_revision("0015_calendar_persistence").down_revision == (
         "0014_connector_refresh_schedules"
     )

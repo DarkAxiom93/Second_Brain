@@ -16,7 +16,7 @@ published release, tagged `v1.4.0` with title **Second Brain Local V1.4** from
 exact commit `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. Local V1.3.0 remains
 the preceding documented recovery release from
 `f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
-`0015_calendar_persistence`, Tool Registry remains `agent-tools-v1`, and
+`0016_calendar_event_observations`, Tool Registry remains `agent-tools-v1`, and
 Project export remains `second-brain-project-export` version `1`.
 
 V1.1 adds the patched frontend dependency graph, least-privilege

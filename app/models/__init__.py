@@ -14,6 +14,7 @@ from app.models.automation import (
 )
 from app.models.calendar import (
     CalendarAccountRevision,
+    CalendarEventObservation,
     CalendarEventRevision,
     CalendarIdentity,
     CalendarSyncRun,
@@ -44,6 +45,7 @@ __all__ = [
     "AutomationNotification",
     "AutomationOccurrence",
     "CalendarAccountRevision",
+    "CalendarEventObservation",
     "CalendarEventRevision",
     "CalendarIdentity",
     "CalendarSyncRun",

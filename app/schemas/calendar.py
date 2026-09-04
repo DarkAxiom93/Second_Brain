@@ -1,7 +1,7 @@
 """Safe public contracts for Calendar account metadata management."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
@@ -95,3 +95,30 @@ class CalendarSyncRunRead(ClosedModel):
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+
+
+class CalendarEventRead(ClosedModel):
+    id: uuid.UUID
+    occurrence_id: str
+    provider: Literal["google_calendar"] = "google_calendar"
+    source_label: Literal["Calendar"] = "Calendar"
+    scope: CalendarScope
+    application_revision: int
+    event_type: Literal[
+        "default", "focus_time", "out_of_office", "working_location", "birthday"
+    ]
+    title: str
+    all_day: bool
+    start_date: date | None
+    end_date: date | None
+    start_instant: datetime | None
+    end_instant: datetime | None
+    source_timezone: str | None
+    effective_state: Literal["current", "stale"]
+    last_evidence_at: datetime
+    trust: Literal["external_untrusted"] = "external_untrusted"
+
+
+class CalendarEventPage(ClosedModel):
+    items: list[CalendarEventRead]
+    next_cursor: str | None

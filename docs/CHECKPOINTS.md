@@ -156,8 +156,12 @@ runs remain unmarked and are never backfilled. Effective current/stale state
 will be application-derived only from eligible complete exact-window evidence;
 absence never manufactures cancellation or deletion. CP103 production
 implementation remains gated on commit, push, and successful exact push CI.
-The remediation is approved after human review; those lifecycle steps remain
-pending. CP104 has not started.
+The remediation is approved after human review; those lifecycle steps are now
+complete. CP103 production implementation adds exact versioned observation
+evidence, write-free effective current/stale reconciliation, and a scoped
+read-only Calendar External Context browser at
+`0016_calendar_event_observations`. The production implementation is approved
+and complete after human review. CP104 has not started.
 
 ## Standard lifecycle
 

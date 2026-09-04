@@ -390,6 +390,8 @@ def _finish(
         return
     current.status = status
     current.completeness = "complete" if status == "succeeded" else "incomplete"
+    if status != "succeeded":
+        current.observation_evidence_version = None
     current.safe_failure_code = code
     current.completed_at = datetime.now(UTC)
 
@@ -471,8 +473,11 @@ def refresh(
                     assert current is not None
                     written = 0
                     for event in normalized:
-                        _, created = repository.record_event_revision(
+                        stored, created = repository.record_event_revision(
                             session, event, seen_at=now
+                        )
+                        repository.record_event_observation(
+                            session, current, stored, observed_at=now
                         )
                         written += int(created)
                     current.items_seen += len(normalized)
@@ -490,6 +495,9 @@ def refresh(
                     raise CalendarTransportError("calendar_page_ceiling")
             with session.begin():
                 _fence(session, configuration_id, captured, calendar)
+                current = session.get(CalendarSyncRun, run_id)
+                assert current is not None
+                repository.mark_observation_evidence_complete(session, current)
                 _finish(session, current, status="succeeded", code=None)
         return [
             cast(CalendarSyncRun, session.get(CalendarSyncRun, run.id)) for run in runs
@@ -498,6 +506,8 @@ def refresh(
         code = getattr(exc, "code", "calendar_credential_failed")
     except CalendarTransportError as exc:
         code = exc.code
+    except (repository.CalendarObservationError, IntegrityError):
+        code = "calendar_observation_evidence_invalid"
     session.rollback()
     status = "incomplete" if code in _CEILING_CODES else "failed"
     with session.begin():

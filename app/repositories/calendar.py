@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.calendar.catalog import event_label
@@ -10,6 +10,7 @@ from app.calendar.identity import occurrence_identity
 from app.credentials import validate_credential_reference
 from app.models.calendar import (
     CalendarAccountRevision,
+    CalendarEventObservation,
     CalendarEventRevision,
     CalendarIdentity,
     CalendarSyncRun,
@@ -18,6 +19,10 @@ from app.models.calendar import (
 
 class CalendarOwnershipError(Exception):
     """A child does not belong to the exact captured owner and scope."""
+
+
+class CalendarObservationError(Exception):
+    """Observation evidence is duplicate, mismatched, or incomplete."""
 
 
 def create_account_revision(
@@ -144,3 +149,48 @@ def record_event_revision(
     session.flush()
     session.refresh(event)
     return event, True
+
+
+def record_event_observation(
+    session: Session,
+    run: CalendarSyncRun,
+    event: CalendarEventRevision,
+    *,
+    observed_at: datetime,
+) -> CalendarEventObservation:
+    if (
+        event.account_revision_id,
+        event.calendar_identity_id,
+    ) != (run.account_revision_id, run.calendar_identity_id):
+        raise CalendarOwnershipError
+    existing = session.scalar(
+        select(CalendarEventObservation.id).where(
+            CalendarEventObservation.sync_run_id == run.id,
+            CalendarEventObservation.occurrence_key == event.occurrence_key,
+        )
+    )
+    if existing is not None:
+        raise CalendarObservationError("duplicate run occurrence observation")
+    observation = CalendarEventObservation(
+        sync_run_id=run.id,
+        account_revision_id=run.account_revision_id,
+        calendar_identity_id=run.calendar_identity_id,
+        occurrence_key=event.occurrence_key,
+        event_revision_id=event.id,
+        observed_at=observed_at,
+    )
+    session.add(observation)
+    session.flush()
+    return observation
+
+
+def mark_observation_evidence_complete(session: Session, run: CalendarSyncRun) -> None:
+    observed = session.scalar(
+        select(func.count(CalendarEventObservation.id)).where(
+            CalendarEventObservation.sync_run_id == run.id
+        )
+    )
+    if observed != run.items_seen:
+        raise CalendarObservationError("observation evidence count mismatch")
+    run.observation_evidence_version = "calendar-observations-v1"
+    session.flush()

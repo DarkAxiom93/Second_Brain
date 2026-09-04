@@ -169,3 +169,132 @@ No migration was created. Outside the isolated synthetic credential-store
 verification required by the existing Full suite, this remediation performed
 zero credential access and made zero OAuth, Google, or Calendar request. It is
 documentation-only and safe for human review.
+
+## Production implementation (2026-09-03)
+
+Status: **CP103 production implementation approved and complete after human
+review. CP104 has not started.**
+
+Production preflight passed on clean synchronized `main` at exact approved
+architecture-remediation commit
+`3035152910dbb535609fbe2f28770b79c1ea4206`; freshly fetched `origin/main`
+matched and exact push CI run `33783128054` completed successfully. Development
+and test identities were `127.0.0.1:5433/second_brain` and
+`127.0.0.1:5433/second_brain_test`. Alembic current/head was
+`0015_calendar_persistence` with a clean check. Tool Registry remained
+`agent-tools-v1`; Project export remained `second-brain-project-export` version
+`1`.
+
+The additive `0016_calendar_event_observations` migration adds a provider-
+content-free observation relation, a nullable closed
+`calendar-observations-v1` run marker, and composite ownership constraints.
+Each observation is unique by run and occurrence and must reference both the
+exact run account/calendar lineage and an event revision with the same account,
+calendar, and occurrence. Scope remains inherited from the immutable account
+revision; there is no caller-controlled observation scope. Historical runs are
+not backfilled and remain unversioned.
+
+CP102 page persistence now records the created or reused event revision and its
+observation atomically. Equal normalized replay still creates no content
+revision, but does create new evidence pointing to the historical revision.
+The terminal marker is written only after the durable observation count equals
+accepted-item accounting; explicit zero-item success is versioned only after
+the same zero-count proof. Failed, incomplete, unversioned, or inconsistent
+runs infer nothing.
+
+Calendar External Context derives one latest positive projection per exact
+account revision, calendar, and occurrence, then scans eligible run evidence in
+deterministic completion order. A positive observation yields `current`; a
+later covering omission yields application-local `stale`; later positive
+evidence restores `current`. Reconciliation is PostgreSQL-only and write-free.
+Timed coverage uses exact half-open overlap. All-day negative evidence requires
+safe persisted timezone conversion; insufficient timezone evidence produces no
+negative conclusion. Absence never creates a provider cancellation, deletion,
+or fabricated revision.
+
+The new exact-scope list/detail API and accessible UI accept one Project or
+explicit unassigned scope, use bounded filter-bound keyset pagination, render
+hostile titles as inert text, and disclose only reviewed local metadata. They
+expose no provider identifiers, etags, raw update values, run/observation
+internals, payloads, credentials, emails, attendees, descriptions, locations,
+conference/link data, or Google hyperlink/action. Browsing makes no provider
+request. Project export/import stays version `1` and has no Calendar data or
+mutation path; Tool Registry, Agent, Automation, OAuth, and CP102 GET-only
+authority are unchanged.
+
+Production changed paths and final verification evidence are recorded in the
+handoff for this working tree. No dependency changed. All work is unstaged and
+uncommitted for the approved lifecycle commit.
+
+Focused verification passed **99 backend tests** and **6 frontend tests**, zero
+failed and zero skipped. The first Full attempt passed all CP103/product checks
+but reported the known host-context Windows Credential Manager lock: **1,290
+passed, 1 environmental failure, 0 skipped**. The authoritative rerun in the
+normal Windows user context used only the existing test's fresh random target
+and synthetic bytes with cleanup. It passed **1,291 backend tests** and **145
+frontend tests**, zero failed and zero skipped. `pip check`, Ruff lint/format,
+strict mypy over 203 production files, frontend lint/typecheck/build, and
+`git diff --check` passed. Alembic current and sole head were
+`0016_calendar_event_observations`; `alembic check` reported no new upgrade
+operations. Both database identities passed. Tool Registry remained
+`agent-tools-v1`; Project export remained `second-brain-project-export` version
+`1`.
+
+Exact production changed paths:
+
+- `migrations/versions/0016_calendar_event_observations.py`
+- `app/models/calendar.py`
+- `app/models/__init__.py`
+- `app/repositories/calendar.py`
+- `app/calendar/sync.py`
+- `app/calendar/query.py`
+- `app/api/routes/calendar_events.py`
+- `app/api/router.py`
+- `app/schemas/calendar.py`
+- `app/diagnostics/service.py`
+- `app/project_export/models.py`
+- `frontend/src/api/client.ts`
+- `frontend/src/ExternalContext.tsx`
+- `frontend/src/ExternalContext.test.tsx`
+- `frontend/src/App.tsx`
+- `tests/integration/test_calendar_account_api.py`
+- `tests/integration/test_calendar_persistence.py`
+- `tests/integration/test_migrations.py`
+- `tests/integration/test_project_memory_migration.py`
+- `tests/test_memory_routes.py`
+- `tests/test_models.py`
+- `tests/test_operations_routes.py`
+- `tests/test_project_routes.py`
+- `docs/ARCHITECTURE.md`
+- `docs/CHECKPOINTS.md`
+- `docs/LOCAL_V1_RUNBOOK.md`
+- `docs/ROADMAP.md`
+- `docs/checkpoint-103-report.md`
+
+No dependency, Tool Registry, export-format, OAuth, provider-authority, import,
+scheduling, Agent, or Automation change was made. No Calendar write was added;
+CP103 browsing and reconciliation make zero Google requests. CP104 was not
+started. CP103 is approved and complete after human review.
+
+### Post-commit authoritative revalidation (2026-09-04)
+
+The final integrity audit corrected the two ORM observation-ownership composite
+foreign-key names in `app/models/calendar.py` so they exactly match migration
+`0016_calendar_event_observations`:
+`fk_calendar_observations_run_owner` and
+`fk_calendar_observations_event_owner`. No schema or behavioral contract
+changed. After that correction, focused model, migration, persistence,
+ownership, and equal-replay verification passed **56 backend tests**, zero
+failed and zero skipped; Ruff, format, strict mypy, Alembic current/head/check,
+and the exact ORM-to-migration name audit also passed.
+
+A fresh authoritative Full run was then executed against exact committed CP103
+production code containing the corrected ORM definitions. It passed **1,291
+backend tests** and **145 frontend tests**, zero failed and zero skipped. Both
+database identities, `pip check`, Ruff lint/format, strict mypy over 203
+production files, frontend lint/typecheck/tests/build, and `git diff --check`
+passed. Alembic current and sole head remained
+`0016_calendar_event_observations`, with no new upgrade operations. Tool
+Registry remained `agent-tools-v1`; Project export remained
+`second-brain-project-export` version `1`. Verification used deterministic
+fake/synthetic provider boundaries and made no real Google or Calendar request.

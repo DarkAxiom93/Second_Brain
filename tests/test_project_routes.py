@@ -270,6 +270,8 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/calendar-accounts/{account_id}/refresh",
         "/calendar-accounts/{account_id}/revoke",
         "/calendar-accounts/{account_id}/sync-runs",
+        "/calendar-events",
+        "/calendar-events/{event_id}",
         "/health",
         "/ready",
         "/projects",

@@ -528,6 +528,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/calendar-accounts/{account_id}/refresh",
         "/calendar-accounts/{account_id}/revoke",
         "/calendar-accounts/{account_id}/sync-runs",
+        "/calendar-events",
+        "/calendar-events/{event_id}",
         "/health",
         "/ready",
         "/projects",

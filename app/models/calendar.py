@@ -188,6 +188,11 @@ class CalendarSyncRun(Base):
             name="ck_calendar_sync_complete_status",
         ),
         CheckConstraint(
+            "observation_evidence_version IS NULL OR "
+            "observation_evidence_version = 'calendar-observations-v1'",
+            name="ck_calendar_sync_observation_evidence_version",
+        ),
+        CheckConstraint(
             "started_at IS NULL OR started_at >= created_at",
             name="ck_calendar_sync_started",
         ),
@@ -246,6 +251,9 @@ class CalendarSyncRun(Base):
         Integer, nullable=False, default=0, server_default="0"
     )
     safe_failure_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    observation_evidence_version: Mapped[str | None] = mapped_column(
+        String(32), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -342,6 +350,13 @@ class CalendarEventRevision(Base):
             "content_hash",
             name="uq_calendar_events_replay",
         ),
+        UniqueConstraint(
+            "id",
+            "account_revision_id",
+            "calendar_identity_id",
+            "occurrence_key",
+            name="uq_calendar_events_observation_owner",
+        ),
         Index(
             "ix_calendar_events_identity_revision",
             "calendar_identity_id",
@@ -397,6 +412,70 @@ class CalendarEventRevision(Base):
         DateTime(timezone=True), nullable=False
     )
     last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class CalendarEventObservation(Base):
+    __tablename__ = "calendar_event_observations"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["sync_run_id", "calendar_identity_id", "account_revision_id"],
+            [
+                "calendar_sync_runs.id",
+                "calendar_sync_runs.calendar_identity_id",
+                "calendar_sync_runs.account_revision_id",
+            ],
+            name="fk_calendar_observations_run_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            [
+                "event_revision_id",
+                "account_revision_id",
+                "calendar_identity_id",
+                "occurrence_key",
+            ],
+            [
+                "calendar_event_revisions.id",
+                "calendar_event_revisions.account_revision_id",
+                "calendar_event_revisions.calendar_identity_id",
+                "calendar_event_revisions.occurrence_key",
+            ],
+            name="fk_calendar_observations_event_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "sync_run_id",
+            "occurrence_key",
+            name="uq_calendar_observations_run_occurrence",
+        ),
+        Index(
+            "ix_calendar_observations_lineage_occurrence",
+            "account_revision_id",
+            "calendar_identity_id",
+            "occurrence_key",
+            "sync_run_id",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    sync_run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    account_revision_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    calendar_identity_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    occurrence_key: Mapped[str] = mapped_column(String(2200), nullable=False)
+    event_revision_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    observed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(

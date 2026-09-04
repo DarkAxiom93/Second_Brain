@@ -61,6 +61,15 @@ export type CalendarSyncRun = {
   items_seen: number; items_written: number; items_unchanged: number;
   safe_failure_code: string | null; created_at: string; started_at: string | null; completed_at: string | null;
 };
+export type CalendarEvent = {
+  id: string; occurrence_id: string; provider: "google_calendar"; source_label: "Calendar";
+  scope: { kind: "project" | "unassigned"; project_id: string | null };
+  application_revision: number; event_type: "default" | "focus_time" | "out_of_office" | "working_location" | "birthday";
+  title: string; all_day: boolean; start_date: string | null; end_date: string | null;
+  start_instant: string | null; end_instant: string | null; source_timezone: string | null;
+  effective_state: "current" | "stale"; last_evidence_at: string; trust: "external_untrusted";
+};
+export type CalendarEventPage = { items: CalendarEvent[]; next_cursor: string | null };
 export type ConnectorSyncRun = {
   id: string; account_id: string; account_revision: number; trigger_kind: "manual" | "scheduled";
   status: "claimed" | "running" | "succeeded" | "incomplete" | "failed" | "cancelled";
@@ -559,6 +568,20 @@ function isCalendarSyncRun(value: unknown): value is CalendarSyncRun {
 }
 export function refreshCalendarAccount(id: string, expected_revision: number, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/refresh`, (v): v is CalendarSyncRun[] => Array.isArray(v) && v.every(isCalendarSyncRun), signal, { method: "POST", body: { expected_revision } }, undefined, false, false, CONNECTOR_REFRESH_TIMEOUT_MS); }
 export function listCalendarSyncRuns(id: string, signal?: AbortSignal) { return request(`/calendar-accounts/${id}/sync-runs?limit=50`, (v): v is CalendarSyncRun[] => Array.isArray(v) && v.every(isCalendarSyncRun), signal); }
+function isCalendarEvent(value: unknown): value is CalendarEvent {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return Object.keys(v).sort().join() === "all_day,application_revision,effective_state,end_date,end_instant,event_type,id,last_evidence_at,occurrence_id,provider,scope,source_label,source_timezone,start_date,start_instant,title,trust"
+    && v.provider === "google_calendar" && v.source_label === "Calendar" && v.trust === "external_untrusted"
+    && typeof v.id === "string" && typeof v.occurrence_id === "string" && typeof v.title === "string"
+    && typeof v.application_revision === "number" && typeof v.all_day === "boolean"
+    && (v.effective_state === "current" || v.effective_state === "stale") && typeof v.last_evidence_at === "string";
+}
+export function listCalendarEvents(scope: string, cursor?: string, signal?: AbortSignal) {
+  const query = new URLSearchParams({ scope, limit: "25" }); if (cursor) query.set("cursor", cursor);
+  return request(`/calendar-events?${query}`, (v): v is CalendarEventPage => typeof v === "object" && v !== null && !Array.isArray(v) && Object.keys(v).sort().join() === "items,next_cursor" && Array.isArray((v as CalendarEventPage).items) && (v as CalendarEventPage).items.every(isCalendarEvent) && ((v as CalendarEventPage).next_cursor === null || typeof (v as CalendarEventPage).next_cursor === "string"), signal);
+}
+export function getCalendarEvent(id: string, scope: string, signal?: AbortSignal) { return request(`/calendar-events/${id}?scope=${encodeURIComponent(scope)}`, isCalendarEvent, signal); }
 function isConnectorRefreshSchedule(value: unknown): value is ConnectorRefreshSchedule {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;

@@ -8,13 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 FORMAT_NAME = "second-brain-project-export"
 FORMAT_VERSION = 1
-CURRENT_DATABASE_REVISION = "0015_calendar_persistence"
+CURRENT_DATABASE_REVISION = "0016_calendar_event_observations"
 SUPPORTED_SOURCE_REVISIONS = frozenset(
     {
         "0009_memory_expiration",
         "0010_agent_runtime_persistence",
         "0011_automation_persistence",
         "0014_connector_refresh_schedules",
+        "0015_calendar_persistence",
         CURRENT_DATABASE_REVISION,
     }
 )
