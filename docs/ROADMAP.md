@@ -229,6 +229,18 @@ evidence-version manifest (including zero-item runs), and leave every historical
 CP102 run unmarked without backfill. Effective `current`/`stale` will be derived
 only from later fully complete, versioned, internally complete, exact-lineage,
 exact-window evidence; absence never derives `cancelled` or `deleted`. CP103
-production implementation remains gated on commit, push, and successful exact
-push CI. CP104 has not started. Both preceding CP102 architecture
-remediations remain approved and complete after human review.
+production implementation is approved and complete after human review at
+`ce068cd321b00a4e076b4f8363fc63d0afc56ee3`.
+
+Checkpoint 104 is approved and complete after human review as a documentation-
+only omission decision. Local V1.5 intentionally has no Calendar event import.
+CP103 scoped read-only
+External Context browsing adequately serves the release goal without turning
+mutable temporal context, stale projections, recurring/moved occurrences, or
+privacy-minimized fixed labels into durable searchable documents. There is no
+Calendar import API/UI, Source/SourceDocument/chunk or Memory/proposal/Approval
+path, automatic import, Agent/Automation authority, migration, export-v1
+change, provider write, or OAuth widening. Import is omitted unless a concrete
+future workflow proves the need in a separate beyond-V1.5 architecture review.
+CP105 has not started. Both preceding CP102 architecture remediations remain
+approved and complete after human review.

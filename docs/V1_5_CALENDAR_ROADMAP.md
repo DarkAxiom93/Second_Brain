@@ -1,9 +1,8 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **Checkpoint 101 and both Checkpoint 102 architecture remediations are
-approved and complete after human review; CP102 production implementation is
-also approved and complete after human review. The documentation-only CP103
-architecture remediation is approved after human review.**
+Status: **CP99-CP104 are approved and complete after human review. Checkpoint
+104 is a documentation-only Calendar-import omission decision. CP105 has not
+started.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -77,13 +76,25 @@ Field decisions are closed:
 | Private events | Store timing/status/identity only with fixed `Busy`; never store returned private content |
 | Working location, focus time, out of office, birthday and unknown event types | Store timing, safe code-owned type, and fixed label only; exclude type-specific properties; unknown types fail the page/run closed until reviewed |
 
-No automatic import is planned. Explicit single-event import is also **omitted
-from the V1.5 baseline**: the minimized projection is useful as time context but
-is not a sufficient audited document, and the existing Checkpoint 93 import
-path must be proven provider-neutral before reuse. Checkpoint 104 is a decision
-gate only; adding import requires separate approval and, if needed, an additive
-provider-neutral provenance migration. No event may create Memory, a proposal,
-Approval, Agent Run, or local reviewed fact.
+No automatic import is planned. Checkpoint 104 confirms that explicit
+single-event import is also **intentionally omitted from Local V1.5**. CP103's
+scoped current/stale External Context browser already serves the release's
+time-context workflow. The minimized projection is not a sufficient durable
+document: it may later become stale, a recurring occurrence may move while
+retaining identity, and private/special events contain fixed labels rather than
+durable knowledge. Import would preserve a local snapshot beyond provider state
+and place it in generic Source/chunk search and potentially Agent evidence
+pathways. The GitHub-specific Checkpoint 93 provenance and canonical-link model
+is not provider-neutral and Calendar deliberately exposes no provider-content
+links. There is therefore no Calendar import endpoint or UI action, no Calendar-
+to-Source/SourceDocument/chunk or Memory/proposal/Approval path, and no
+automatic, Agent, or Automation import authority. No event creates a local
+reviewed fact.
+
+Calendar import is intentionally omitted unless a concrete user workflow later
+proves that CP103 browsing is inadequate. Such a capability is beyond V1.5 and
+would require a new, separately reviewed architecture and authority decision;
+this roadmap reserves no speculative schema or production scaffolding for it.
 
 Scheduled refresh is also optional and excluded until Checkpoint 105 is
 separately approved. Manual refresh must be accepted first.
@@ -455,17 +466,24 @@ downgrades run only on the verified test database.
 ### 104 - Explicit event-import decision gate
 
 - **Dependency:** approved CP103.
-- **Goal/areas:** prove omission remains correct or separately propose a single-
-  revision preview/confirm import with provider-neutral provenance.
-- **Persistence/migration:** none when omitted; any schema change requires an
-  explicit additive migration and approval in this checkpoint.
-- **API/UI:** baseline has no import action.
-- **Transactions/concurrency:** if later approved, confirmation is network-free,
-  revision-exact, idempotent and creates only Source/SourceDocument.
-- **Security/tests:** no automatic import, Memory, proposal, Agent or schedule;
-  revision-drift/replay tests if capability is approved.
-- **Rollback/failure:** omission is the default; a rejected design leaves CP103
-  read-only browsing intact.
+- **Status/decision:** approved and complete after human review as a
+  documentation-only omission decision. Local V1.5 intentionally has no
+  Calendar event import.
+- **Value:** CP103 browsing covers current temporal context without making a
+  permanent knowledge claim. No concrete V1.5 workflow justifies additional
+  permanence, privacy, provenance, and authority complexity.
+- **Persistence/migration/export:** none; export remains
+  `second-brain-project-export` version `1` and continues to exclude Calendar.
+- **API/UI:** no Calendar import endpoint or import action.
+- **Data paths:** no Calendar-to-Source/SourceDocument/chunk and no Calendar-to-
+  Memory/proposal/Approval path.
+- **Authority:** no automatic import, Agent/Automation import authority,
+  provider write, OAuth widening, or generic provider transport.
+- **Future treatment:** omitted unless a concrete workflow later proves the
+  need; any future capability is beyond V1.5 and requires a separate reviewed
+  architecture decision. No speculative production scaffolding is authorized.
+- **Rollback/failure:** documentation revert only; CP103 read-only browsing and
+  reconciliation remain the complete Calendar-context surface.
 
 ### 105 - Optional Calendar refresh scheduling decision
 

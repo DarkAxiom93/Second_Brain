@@ -538,3 +538,28 @@ unversioned, cross-calendar, cross-configuration, cross-scope, and non-covering
 runs infer nothing. Absence never produces provider `cancelled` or `deleted`.
 This remediation creates no migration or production capability; CP103 remains
 gated on review, commit, push, and successful exact push CI.
+
+Checkpoint 103 production implementation is approved and complete after human
+review at `ce068cd321b00a4e076b4f8363fc63d0afc56ee3`. Checkpoint 104 is approved
+and complete after human review as a documentation-only omission decision:
+Local V1.5
+intentionally has no Calendar event import. The complete Calendar-context
+surface remains CP103's scoped, read-only, application-reconciled External
+Context list/detail browser. There is no Calendar import endpoint or UI action,
+no Calendar-to-Source, SourceDocument, chunk, Memory, proposal, or Approval
+path, and no automatic, Agent, or Automation import authority.
+
+This omission preserves the semantic boundary between mutable temporal
+provider context and durable local knowledge. A Calendar occurrence can become
+locally stale after a later complete refresh, can move while retaining its
+recurrence identity, and can expose only `Busy` or another fixed special label;
+persisting any of those projections as a generic document would outlive later
+provider state and enter existing Source/chunk search and Agent read pathways.
+GitHub's CP93 import does not justify that expansion: it relies on GitHub-
+specific provenance and canonical URLs, while Calendar deliberately exposes no
+provider-content links. Project export remains version 1 and excludes Calendar;
+provider authority remains the CP99 read-only scope and CP102 GET-only
+transport. Calendar import is intentionally omitted unless a concrete future
+workflow proves the need and passes a separate architecture and authority
+review beyond V1.5. No speculative import schema or production scaffolding is
+reserved.

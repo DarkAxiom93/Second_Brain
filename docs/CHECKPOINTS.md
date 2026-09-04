@@ -161,7 +161,16 @@ complete. CP103 production implementation adds exact versioned observation
 evidence, write-free effective current/stale reconciliation, and a scoped
 read-only Calendar External Context browser at
 `0016_calendar_event_observations`. The production implementation is approved
-and complete after human review. CP104 has not started.
+and complete after human review. Checkpoint 104 is approved and complete after
+human review as a documentation-only omission decision. Local V1.5
+intentionally adds no
+Calendar import endpoint, UI action, Source/SourceDocument/chunk path,
+Memory/proposal/Approval path, automatic import, or Agent/Automation import
+authority. CP103 browsing/reconciliation remains the complete Calendar-context
+surface. There is no migration, export-format change, provider write, OAuth
+scope change, or production import scaffolding. Calendar import is omitted
+unless a concrete future workflow proves the need and receives a separate
+beyond-V1.5 architecture review. CP105 has not started.
 
 ## Standard lifecycle
 
