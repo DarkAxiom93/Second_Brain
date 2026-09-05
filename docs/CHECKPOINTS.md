@@ -115,7 +115,7 @@ history. A dash means Alembic had not yet been introduced.
 | 105 | Calendar scheduling decision | Approved and complete after human review; manual refresh only | `0016_calendar_event_observations` | `4d8c0f5` |
 | 106 | Calendar security and evaluation gate | Approved and complete after human review; G01-G18 green | `0016_calendar_event_observations` | `f5eddec` |
 | 107 | Local V1.5 end-to-end acceptance | Approved and complete after human review | `0016_calendar_event_observations` | This commit |
-| 108 | Local V1.5 release hardening | Not started | `0016_calendar_event_observations` | - |
+| 108 | Local V1.5 release hardening | Blocked pending dependency remediation commit/push/CI | `0016_calendar_event_observations` | - |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -192,8 +192,11 @@ Calendar-write authority changes. The gate is green. CP107 is approved and
 complete after human review. Its joined fake-boundary acceptance proves exact
 authorization, Project/unassigned configuration and isolation, manual refresh,
 versioned observation evidence, browse/reconcile, replay/change/stale/recovery,
-revocation, privacy minimization, and UI/omission boundaries. CP108 has not
-started.
+revocation, privacy minimization, and UI/omission boundaries. CP108 started and
+stopped at its clean-install dependency audit. Its bounded PyJWT/pypdf security
+remediation is approved and complete after human review. CP108 release
+hardening remains blocked until the remediation is committed, pushed, and its
+exact push CI succeeds; release hardening has not resumed.
 
 ## Standard lifecycle
 

@@ -269,5 +269,7 @@ while exercising real application routes and PostgreSQL persistence. Project
 and unassigned isolation, minimized content, replay/change/observation history,
 stale/resurrection, failure/restart/revision/revoke recovery, UI behavior, and
 all import/scheduling/Agent/Automation/write omissions pass. G01-G18 remains
-green; Tool Registry and Project export identities remain unchanged. CP108 has
-not started.
+green; Tool Registry and Project export identities remain unchanged. CP108
+stopped on its dependency audit. A two-pin PyJWT/pypdf remediation is prepared,
+approved, and complete after human review, but CP108 remains blocked until that
+remediation is committed, pushed, and its exact push CI succeeds.

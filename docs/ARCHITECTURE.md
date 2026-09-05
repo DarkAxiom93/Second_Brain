@@ -612,4 +612,7 @@ evidence, equal replay, change, effective stale/resurrection, partial failure,
 restart, configuration-revision fencing, revocation, hostile-content rendering,
 and the unchanged import/scheduling/Agent/Automation/write omissions. It adds no
 production code, migration, dependency, provider authority, or export/registry
-version. CP108 has not started.
+version. CP108 stopped on its dependency audit; its bounded PyJWT/pypdf
+security remediation is approved and complete after human review and does not
+change architecture. CP108 release hardening remains blocked until the
+remediation is committed, pushed, and its exact push CI succeeds.

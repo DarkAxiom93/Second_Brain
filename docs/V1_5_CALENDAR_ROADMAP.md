@@ -3,7 +3,10 @@
 Status: **CP99-CP106 are approved and complete after human review. Checkpoint
 105 is a documentation-only manual-refresh decision. CP106's test-only
 deterministic G01-G18 release gate is green. CP107 is approved and complete
-after human review. CP108 has not started.**
+after human review. CP108 stopped on its dependency audit; its two-pin security
+remediation is approved and complete after human review. CP108 release
+hardening remains blocked until that remediation is committed, pushed, and its
+exact push CI succeeds.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -560,6 +563,11 @@ downgrades run only on the verified test database.
 ### 108 - Local V1.5 release hardening
 
 - **Dependency:** approved CP107.
+- **Status:** blocked after the clean-install audit found vulnerable shipped
+  PyJWT 2.10.1 and pypdf 6.15.0. The bounded remediation updates only
+  `PyJWT[crypto]` to 2.13.0 and `pypdf` to 6.16.1 and is approved and complete
+  after human review. CP108 may not resume until that remediation is committed,
+  pushed, and its exact push CI succeeds.
 - **Goal/areas:** stable docs, consent/revoke/recovery guidance, inventories,
   compatibility, dependency/privacy audit and release evidence only.
 - **Persistence/migration:** verify sole approved head; no new migration.
