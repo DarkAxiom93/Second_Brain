@@ -601,3 +601,15 @@ and drift in the stable Alembic, Tool Registry, Project export, manual-refresh,
 import-omission, or scheduling-omission boundaries. The bounded corpus uses only
 synthetic OAuth, provider, hostile-content, privacy, recurrence, pagination,
 retry, race, and transaction-fault evidence. It adds no production capability.
+
+Checkpoint 107 is approved and complete after human review. Its acceptance-only
+joined journey uses synthetic OAuth plus fake Calendar/credential boundaries
+through the real loopback routes, schemas, repositories, SQLAlchemy/PostgreSQL
+persistence, export service, and frontend components. It proves exact Project
+and explicit-unassigned isolation, minimized timed/all-day/recurring/private/
+special projections, immutable content revisions and per-run observation
+evidence, equal replay, change, effective stale/resurrection, partial failure,
+restart, configuration-revision fencing, revocation, hostile-content rendering,
+and the unchanged import/scheduling/Agent/Automation/write omissions. It adds no
+production code, migration, dependency, provider authority, or export/registry
+version. CP108 has not started.

@@ -260,5 +260,14 @@ manifest mapping 37 unique nodes,
 and its synthetic corpus proves the OAuth, scope, identity, isolation, hostile
 content, privacy, recurrence, reconciliation, bounds, retry, race, omission,
 export, configuration, and provider/fault boundaries without production
-changes. The gate is green and CP107 has not started. Both preceding CP102 architecture remediations
+changes. The gate is green. Both preceding CP102 architecture remediations
 remain approved and complete after human review.
+
+Checkpoint 107 is approved and complete after human review. Its joined Local V1.5
+acceptance uses only synthetic/fake OAuth, credential, and Calendar boundaries
+while exercising real application routes and PostgreSQL persistence. Project
+and unassigned isolation, minimized content, replay/change/observation history,
+stale/resurrection, failure/restart/revision/revoke recovery, UI behavior, and
+all import/scheduling/Agent/Automation/write omissions pass. G01-G18 remains
+green; Tool Registry and Project export identities remain unchanged. CP108 has
+not started.

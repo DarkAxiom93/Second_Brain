@@ -2,7 +2,8 @@
 
 Status: **CP99-CP106 are approved and complete after human review. Checkpoint
 105 is a documentation-only manual-refresh decision. CP106's test-only
-deterministic G01-G18 release gate is green. CP107 has not started.**
+deterministic G01-G18 release gate is green. CP107 is approved and complete
+after human review. CP108 has not started.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -542,6 +543,7 @@ downgrades run only on the verified test database.
 ### 107 - Local V1.5 end-to-end acceptance
 
 - **Dependency:** approved CP106.
+- **Status:** approved and complete after human review; CP108 has not started.
 - **Goal/areas:** joined authorize/configure/manual refresh/browse/reconcile/
   revoke journey using fake Google services.
 - **Persistence/migration:** no new migration intended.
@@ -549,7 +551,10 @@ downgrades run only on the verified test database.
 - **Transactions/concurrency:** replay, partial sync, restart, revision and revoke
   drills on the verified test database.
 - **Security/tests:** zero real credential/network/write, excluded-field leak,
-  Agent access, import side effect, or cross-scope leak; Full verification.
+  Agent access, import side effect, or cross-scope leak; G01-G18 remains green.
+  Focused acceptance passes 104 backend and 15 frontend tests; authoritative
+  Full passes 1,341 backend and 148 frontend tests, all with zero skips, plus
+  the production build.
 - **Rollback/failure:** disable Calendar and preserve V1.4 recovery boundary.
 
 ### 108 - Local V1.5 release hardening

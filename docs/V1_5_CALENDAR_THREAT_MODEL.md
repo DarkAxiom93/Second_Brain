@@ -2,7 +2,9 @@
 
 Status: **CP99-CP106 are approved and complete after human review. Checkpoint
 105 is a documentation-only manual-refresh decision. CP106's test-only
-deterministic G01-G18 release gate is green. CP107 has not started.**
+deterministic G01-G18 release gate is green. CP107 acceptance is approved and
+complete after human review; CP108 has not started. G01-G18 meaning is
+unchanged.**
 
 This register extends rather than replaces the Agent, Automation, and V1.4
 connector threat models. Calendar content, Google/OAuth responses, browser

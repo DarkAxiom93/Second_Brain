@@ -39,6 +39,19 @@ describe("External Context", () => {
     expect(screen.queryByRole("link", { name: /Google/i })).not.toBeInTheDocument();
   });
 
+  it("keeps fixed private and special labels while showing current state", async () => {
+    const privateItem = { ...calendarItem, id: "923e4567-e89b-42d3-a456-426614174107", title: "Busy", effective_state: "current" };
+    const specialItem = { ...calendarItem, id: "923e4567-e89b-42d3-a456-426614174108", title: "Focus time", event_type: "focus_time", effective_state: "current" };
+    const fetchMock = vi.fn().mockResolvedValueOnce(response([])).mockResolvedValueOnce(response({ items: [privateItem, specialItem], next_cursor: null }));
+    vi.stubGlobal("fetch", fetchMock); render(<MemoryRouter><CalendarContext /></MemoryRouter>);
+    await screen.findByRole("heading", { name: "Calendar context" });
+    await userEvent.click(screen.getByRole("button", { name: "Load Calendar context" }));
+    expect(await screen.findByText("Busy")).toBeInTheDocument();
+    expect(screen.getByText("Focus time")).toBeInTheDocument();
+    expect(screen.getAllByText(/External \/ Untrusted .* current/)).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /import|schedule|provider|write/i })).not.toBeInTheDocument();
+  });
+
   it("loads only on explicit action and renders hostile content as inert text", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(response([account])).mockResolvedValueOnce(response([])).mockResolvedValueOnce(response({ items: [item], next_cursor: null }));
     vi.stubGlobal("fetch", fetchMock);

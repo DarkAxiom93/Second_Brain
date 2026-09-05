@@ -55,4 +55,28 @@ describe("Calendar account Settings UI", () => {
     expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe("POST");
     expect(window.localStorage).toHaveLength(0); expect(window.sessionStorage).toHaveLength(0);
   });
+
+  it("makes Project versus unassigned scope explicit across recovery states", async () => {
+    const projectId = "223e4567-e89b-42d3-a456-426614174107";
+    const disabled = account({ lifecycle: "disabled", credential_status: "missing" });
+    const project = { id: projectId, name: "CP107 project", description: null, created_at: "2026-09-05T10:00:00Z", updated_at: "2026-09-05T10:00:00Z" };
+    const fetchMock = vi.fn().mockResolvedValueOnce(response([project])).mockResolvedValueOnce(response([disabled]));
+    vi.stubGlobal("fetch", fetchMock); render(<CalendarAccounts />);
+    expect(screen.getByRole("option", { name: "Unassigned (never all Projects)" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load scope Projects" }));
+    expect(await screen.findByRole("option", { name: "CP107 project" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load or refresh Calendar accounts" }));
+    expect(await screen.findByText("disabled")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent?.includes("credential missing") === true)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Re-enable" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit configuration" })).toBeInTheDocument();
+  });
+
+  it("exposes no Calendar import, schedule, provider action, or write control", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response([account()]))); render(<CalendarAccounts />);
+    await userEvent.click(screen.getByRole("button", { name: "Load or refresh Calendar accounts" }));
+    await screen.findByText(/Calendar account 123/);
+    expect(screen.queryByRole("button", { name: /import|schedule|create event|update event|open google/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /google calendar/i })).not.toBeInTheDocument();
+  });
 });

@@ -110,6 +110,12 @@ history. A dash means Alembic had not yet been introduced.
 | 102 gate | Full-sync-only Calendar architecture remediation | Approved after human review; documentation only | `0015_calendar_persistence` | This commit |
 | 102 | Bounded Calendar read transport and manual full sync | Approved and complete after human review | `0015_calendar_persistence` | This commit |
 | 103 gate | Exact Calendar observation-evidence architecture remediation | Approved after human review; documentation only | `0015_calendar_persistence` | This commit |
+| 103 | Calendar External Context and observation reconciliation | Approved and complete after human review | `0016_calendar_event_observations` | `ce068cd` |
+| 104 | Calendar import decision | Approved and complete after human review; intentionally omitted | `0016_calendar_event_observations` | `6524bd8` |
+| 105 | Calendar scheduling decision | Approved and complete after human review; manual refresh only | `0016_calendar_event_observations` | `4d8c0f5` |
+| 106 | Calendar security and evaluation gate | Approved and complete after human review; G01-G18 green | `0016_calendar_event_observations` | `f5eddec` |
+| 107 | Local V1.5 end-to-end acceptance | Approved and complete after human review | `0016_calendar_event_observations` | This commit |
+| 108 | Local V1.5 release hardening | Not started | `0016_calendar_event_observations` | - |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -182,7 +188,12 @@ security/evaluation gate contains
 37 unique mapped test nodes plus bounded synthetic adversarial corpora and
 executable CP104 import/CP105 scheduling omission proofs. No production,
 migration, dependency, provider, import, scheduling, Agent, Automation, or
-Calendar-write authority changes. The gate is green. CP107 has not started.
+Calendar-write authority changes. The gate is green. CP107 is approved and
+complete after human review. Its joined fake-boundary acceptance proves exact
+authorization, Project/unassigned configuration and isolation, manual refresh,
+versioned observation evidence, browse/reconcile, replay/change/stale/recovery,
+revocation, privacy minimization, and UI/omission boundaries. CP108 has not
+started.
 
 ## Standard lifecycle
 
