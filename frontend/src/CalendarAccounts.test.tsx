@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,7 +16,7 @@ describe("Calendar account Settings UI", () => {
   it("configures exact safe metadata, clears credential fields, and uses no browser storage", async () => {
     const storage = vi.spyOn(Storage.prototype, "setItem");
     const fetchMock = vi.fn().mockResolvedValueOnce(response(account(), 201)).mockResolvedValueOnce(response([account()])); vi.stubGlobal("fetch", fetchMock); render(<CalendarAccounts />);
-    await userEvent.type(screen.getByLabelText("Opaque credential reference"), reference); await userEvent.type(screen.getByLabelText("Safe account fingerprint"), fingerprint); await userEvent.type(screen.getByLabelText(/Exact calendar ID allowlist/), "primary"); await userEvent.click(screen.getByRole("button", { name: "Configure enabled Calendar account" }));
+    fireEvent.change(screen.getByLabelText("Opaque credential reference"), { target: { value: reference } }); fireEvent.change(screen.getByLabelText("Safe account fingerprint"), { target: { value: fingerprint } }); fireEvent.change(screen.getByLabelText(/Exact calendar ID allowlist/), { target: { value: "primary" } }); await userEvent.click(screen.getByRole("button", { name: "Configure enabled Calendar account" }));
     expect(await screen.findByText(/Calendar account configured/)).toHaveFocus(); expect(screen.getByLabelText("Opaque credential reference")).toHaveValue(""); expect(screen.getByLabelText("Safe account fingerprint")).toHaveValue(""); expect(storage).not.toHaveBeenCalled();
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string); expect(body).toEqual({ credential_reference: reference, account_fingerprint: fingerprint, scope: { kind: "unassigned", project_id: null }, calendar_ids: ["primary"] });
   });
@@ -36,7 +36,7 @@ describe("Calendar account Settings UI", () => {
   it("allows revision-fenced edits only while disabled and refreshes stale conflicts", async () => {
     const disabled = account({ lifecycle: "disabled", configuration_revision: 2 }); const updated = account({ lifecycle: "disabled", configuration_revision: 3, calendar_ids: ["changed"] });
     const fetchMock = vi.fn().mockResolvedValueOnce(response([disabled])).mockResolvedValueOnce(response(updated)).mockResolvedValueOnce(response([updated])); vi.stubGlobal("fetch", fetchMock); render(<CalendarAccounts />); await userEvent.click(screen.getByRole("button", { name: "Load or refresh Calendar accounts" })); await userEvent.click(await screen.findByRole("button", { name: "Edit configuration" }));
-    const input = screen.getByLabelText(/Exact calendar ID allowlist/); await userEvent.clear(input); await userEvent.type(input, "changed"); await userEvent.click(screen.getByRole("button", { name: "Save new configuration revision" })); await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const save = screen.getByRole("button", { name: "Save new configuration revision" }); const input = screen.getByLabelText(/Exact calendar ID allowlist/); fireEvent.change(input, { target: { value: "changed" } }); await userEvent.click(save); expect(await screen.findByText("Calendar configuration revision saved.")).toHaveFocus(); await waitFor(() => expect(screen.getByText(/revision 3/)).toBeInTheDocument()); expect(fetchMock).toHaveBeenCalledTimes(3);
     const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string); expect(body.expected_revision).toBe(2); expect(body.calendar_ids).toEqual(["changed"]);
   });
 

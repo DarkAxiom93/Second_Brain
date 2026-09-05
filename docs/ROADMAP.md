@@ -254,5 +254,11 @@ unchanged. No concrete single-maintainer V1.5 workflow justifies adding a
 Calendar-owned lifecycle for credential, revision/allowlist, concurrency,
 restart, missed-run, provider-backoff, and notification recovery. Future
 Calendar scheduling requires a separate reviewed capability beyond V1.5.
-CP106 has not started. Both preceding CP102 architecture remediations remain
-approved and complete after human review.
+Checkpoint 106 is approved and complete after human review. Its deterministic
+executable G01-G18 Calendar security/evaluation gate has an ordered code-owned
+manifest mapping 37 unique nodes,
+and its synthetic corpus proves the OAuth, scope, identity, isolation, hostile
+content, privacy, recurrence, reconciliation, bounds, retry, race, omission,
+export, configuration, and provider/fault boundaries without production
+changes. The gate is green and CP107 has not started. Both preceding CP102 architecture remediations
+remain approved and complete after human review.

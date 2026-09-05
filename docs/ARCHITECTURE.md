@@ -591,3 +591,13 @@ manual refresh, no new credential authority, no import or Calendar write, and
 no Agent/Automation Calendar authority. Any future Calendar scheduling is a
 new capability beyond V1.5 and requires a separate human-reviewed architecture;
 no speculative scaffolding is reserved.
+
+Checkpoint 106 is approved and complete after human review. Its executable,
+test-only Calendar security/evaluation release gate uses one code-owned ordered
+manifest mapping exactly G01-G18 to 37 unique
+deterministic pytest/UI node selectors. Its meta-tests reject missing or renamed
+nodes, duplicate cross-threat reuse, skipped/xfail/conditional security tests,
+and drift in the stable Alembic, Tool Registry, Project export, manual-refresh,
+import-omission, or scheduling-omission boundaries. The bounded corpus uses only
+synthetic OAuth, provider, hostile-content, privacy, recurrence, pagination,
+retry, race, and transaction-fault evidence. It adds no production capability.

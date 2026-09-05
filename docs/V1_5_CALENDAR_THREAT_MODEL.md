@@ -1,8 +1,8 @@
 # Local V1.5 Google Calendar threat model
 
-Status: **CP99-CP105 are approved and complete after human review. Checkpoint
-105 is a documentation-only manual-refresh decision.
-CP106 has not started.**
+Status: **CP99-CP106 are approved and complete after human review. Checkpoint
+105 is a documentation-only manual-refresh decision. CP106's test-only
+deterministic G01-G18 release gate is green. CP107 has not started.**
 
 This register extends rather than replaces the Agent, Automation, and V1.4
 connector threat models. Calendar content, Google/OAuth responses, browser
@@ -37,8 +37,11 @@ implementation.
 
 ## G01-G18 register
 
-The future named gate is Checkpoint 106. Each row defines its prevention,
-fail-closed response, and minimum deterministic gate.
+The named gate is Checkpoint 106. `tests/test_calendar_security_evaluation.py`
+is the code-owned source of truth: its ordered manifest contains exactly
+G01-G18 and 37 unique mapped deterministic nodes. Meta-tests fail on threat,
+node, assertion, skip/xfail, omission-boundary, and stable-identity drift. Each
+row below defines its prevention, fail-closed response, and deterministic gate.
 
 | ID / threat | Prevention and fail-closed behavior | CP106 deterministic gate |
 |---|---|---|

@@ -176,7 +176,13 @@ persistence/API/UI, automatic or API-startup refresh, Agent Automation table or
 `AgentRun` use, new credential authority, migration, schema, or dependency.
 CP102 manual refresh remains the sole trigger, CP103 browsing/reconciliation and
 the V1.4 connector scheduler remain unchanged, and future Calendar scheduling
-requires a separate reviewed capability beyond V1.5. CP106 has not started.
+requires a separate reviewed capability beyond V1.5. Checkpoint 106 is approved
+and complete after human review. Its deterministic executable G01-G18 Calendar
+security/evaluation gate contains
+37 unique mapped test nodes plus bounded synthetic adversarial corpora and
+executable CP104 import/CP105 scheduling omission proofs. No production,
+migration, dependency, provider, import, scheduling, Agent, Automation, or
+Calendar-write authority changes. The gate is green. CP107 has not started.
 
 ## Standard lifecycle
 

@@ -1,8 +1,8 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **CP99-CP105 are approved and complete after human review. Checkpoint
-105 is a documentation-only manual-refresh decision.
-CP106 has not started.**
+Status: **CP99-CP106 are approved and complete after human review. Checkpoint
+105 is a documentation-only manual-refresh decision. CP106's test-only
+deterministic G01-G18 release gate is green. CP107 has not started.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -491,7 +491,8 @@ downgrades run only on the verified test database.
 ### 105 - Optional Calendar refresh scheduling decision
 
 - **Dependency/status:** approved CP104; approved and complete after human
-  review as a documentation-only manual-refresh decision. CP106 has not started.
+  review as a documentation-only manual-refresh decision. CP106 subsequently
+  completed its approved deterministic gate.
 - **Decision/value:** omit Calendar scheduling from Local V1.5. One local
   maintainer gains freshness from an explicit CP102 refresh before browsing;
   daily/weekly execution does not solve a demonstrated workflow that reasonably
@@ -526,8 +527,12 @@ downgrades run only on the verified test database.
 
 - **Dependency:** approved implemented scope through CP105, including explicit
   omission decisions.
+- **Status:** approved and complete after human review; G01-G18 green. A narrow
+  deterministic synchronization correction removed two pre-existing Calendar
+  Settings test races without changing production behavior or gate expectations.
 - **Goal/areas:** executable G01-G18 manifest, adversarial OAuth/transport/data/
-  concurrency corpus and secret scanners.
+  concurrency corpus and secret scanners. The ordered manifest contains 37
+  unique deterministic nodes and rejects missing/renamed/conditional evidence.
 - **Persistence/migration:** none.
 - **API/UI:** tests only; no authority expansion.
 - **Transactions/concurrency:** verified-test-database races/faults only.
