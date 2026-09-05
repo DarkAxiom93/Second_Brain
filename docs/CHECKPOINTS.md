@@ -170,7 +170,13 @@ authority. CP103 browsing/reconciliation remains the complete Calendar-context
 surface. There is no migration, export-format change, provider write, OAuth
 scope change, or production import scaffolding. Calendar import is omitted
 unless a concrete future workflow proves the need and receives a separate
-beyond-V1.5 architecture review. CP105 has not started.
+beyond-V1.5 architecture review. CP105 is approved and complete after human
+review as a documentation-only manual-refresh decision. It adds no Calendar schedule
+persistence/API/UI, automatic or API-startup refresh, Agent Automation table or
+`AgentRun` use, new credential authority, migration, schema, or dependency.
+CP102 manual refresh remains the sole trigger, CP103 browsing/reconciliation and
+the V1.4 connector scheduler remain unchanged, and future Calendar scheduling
+requires a separate reviewed capability beyond V1.5. CP106 has not started.
 
 ## Standard lifecycle
 

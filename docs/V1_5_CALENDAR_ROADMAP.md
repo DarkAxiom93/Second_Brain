@@ -1,8 +1,8 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **CP99-CP104 are approved and complete after human review. Checkpoint
-104 is a documentation-only Calendar-import omission decision. CP105 has not
-started.**
+Status: **CP99-CP105 are approved and complete after human review. Checkpoint
+105 is a documentation-only manual-refresh decision.
+CP106 has not started.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -96,8 +96,11 @@ proves that CP103 browsing is inadequate. Such a capability is beyond V1.5 and
 would require a new, separately reviewed architecture and authority decision;
 this roadmap reserves no speculative schema or production scaffolding for it.
 
-Scheduled refresh is also optional and excluded until Checkpoint 105 is
-separately approved. Manual refresh must be accepted first.
+Local V1.5 intentionally keeps Calendar refresh manual. CP102 explicit bounded
+refresh is the sole trigger; there is no Calendar schedule persistence, API/UI,
+automatic/background/API-startup refresh, scheduler-triggered `AgentRun`, or
+new credential authority. Future Calendar scheduling requires a separately
+reviewed capability beyond V1.5.
 
 ## OAuth and credential architecture
 
@@ -487,17 +490,37 @@ downgrades run only on the verified test database.
 
 ### 105 - Optional Calendar refresh scheduling decision
 
-- **Dependency:** approved CP104 and explicit approval to include scheduling.
-- **Goal/areas:** decide and, only if authorized, add disabled-by-default
-  Calendar-specific bounded scheduling.
-- **Persistence/migration:** additive only if reviewed representation cannot
-  safely reuse existing scheduler primitives.
-- **API/UI:** explicit enable/pause/history; no credential consent or import.
-- **Transactions/concurrency:** unique occurrence, lease/revision fencing,
-  `skip`/`run_once`, no replay-all or AgentRun.
-- **Security/tests:** duplicate/restart/revocation/scope-race and zero request
-  while disabled.
-- **Rollback/failure:** keep disabled or omit; manual refresh remains.
+- **Dependency/status:** approved CP104; approved and complete after human
+  review as a documentation-only manual-refresh decision. CP106 has not started.
+- **Decision/value:** omit Calendar scheduling from Local V1.5. One local
+  maintainer gains freshness from an explicit CP102 refresh before browsing;
+  daily/weekly execution does not solve a demonstrated workflow that reasonably
+  requires automation, while forgotten refresh remains recoverable by the same
+  bounded manual action.
+- **Existing schedulers:** V1.3 Automation persistence is Agent/`AgentRun` owned
+  and cannot be reused without granting forbidden authority. V1.4 connector
+  scheduling has reusable code-level cadence, occurrence, lease, restart, and
+  missed-run concepts, but its tables and tick are connector-account/sync owned
+  and remain unchanged; they cannot safely own Calendar work or become a generic
+  network executor.
+- **Persistence/migration/dependencies:** none. No existing non-Agent scheduler
+  persistence safely represents exact Calendar account/configuration/calendar
+  ownership. A future proposal would require separately reviewed Calendar-owned
+  additive persistence, but CP105 authorizes neither it nor scaffolding.
+- **API/UI/execution:** no Calendar schedule API/UI or enable/pause/cancel
+  lifecycle; no automatic/background/API-startup Calendar work. CP102 explicit
+  manual refresh remains the sole trigger and CP103 browsing/reconciliation is
+  unchanged.
+- **Credentials/lifecycle:** no scheduled credential-store reads and therefore
+  no new revoked/expired/reauthorization, revision/scope/allowlist drift,
+  provider backoff, history, notification, or operator-recovery lifecycle.
+- **Concurrency/recovery:** no manual/scheduled race, scheduled duplicate,
+  lease/generation, restart/crash, DST, missed-run, or replay policy is added.
+- **Authority/security:** zero import, Calendar write, AgentRun, Agent/Automation
+  Calendar authority, generic Google transport, OAuth-scope widening, and zero
+  Calendar request unless the operator explicitly invokes CP102 refresh.
+- **Future treatment:** Calendar scheduling is beyond V1.5 and requires a
+  separate human-reviewed capability. Documentation revert is the only rollback.
 
 ### 106 - Calendar deterministic security/evaluation gate
 

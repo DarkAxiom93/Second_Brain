@@ -242,5 +242,17 @@ Calendar import API/UI, Source/SourceDocument/chunk or Memory/proposal/Approval
 path, automatic import, Agent/Automation authority, migration, export-v1
 change, provider write, or OAuth widening. Import is omitted unless a concrete
 future workflow proves the need in a separate beyond-V1.5 architecture review.
-CP105 has not started. Both preceding CP102 architecture remediations remain
+Checkpoint 105 is approved and complete after human review as a documentation-
+only decision keeping Calendar refresh explicitly manual. CP102 manual bounded
+refresh remains the sole trigger; CP103 browsing/reconciliation is unchanged.
+There is no Calendar schedule persistence/API/UI, background or API-startup
+refresh, scheduler-triggered `AgentRun`, new credential authority, migration,
+schema, dependency, import, or write change. The V1.3 Agent Automation scheduler
+is authority-incompatible, while the V1.4 connector scheduler's reusable
+code-level cadence/occurrence/lease concepts remain connector-owned and
+unchanged. No concrete single-maintainer V1.5 workflow justifies adding a
+Calendar-owned lifecycle for credential, revision/allowlist, concurrency,
+restart, missed-run, provider-backoff, and notification recovery. Future
+Calendar scheduling requires a separate reviewed capability beyond V1.5.
+CP106 has not started. Both preceding CP102 architecture remediations remain
 approved and complete after human review.

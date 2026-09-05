@@ -563,3 +563,31 @@ transport. Calendar import is intentionally omitted unless a concrete future
 workflow proves the need and passes a separate architecture and authority
 review beyond V1.5. No speculative import schema or production scaffolding is
 reserved.
+
+Checkpoint 105 is approved and complete after human review as a documentation-
+only decision retaining **manual-only Calendar refresh**. CP102's explicit bounded
+account refresh remains the sole Calendar refresh trigger, and CP103 browsing
+and reconciliation remain unchanged. Local V1.5 intentionally has no Calendar
+schedule persistence, API, UI, automatic/background refresh, API-startup work,
+or scheduler-triggered `AgentRun`.
+
+The V1.3 Automation scheduler cannot safely represent Calendar work because its
+definitions and occurrences own Agent identity, execution mode, and linked
+`AgentRun` authority. The V1.4 connector scheduler has closer code-level
+primitives--typed cadence calculation, unique occurrences, generation-fenced
+leases, bounded `skip`/`run_once`, and an operator-started tick--but its
+persistence and execution are connector-account/connector-sync owned. Reusing
+those tables would confuse ownership and widen the connector tick into another
+credential-backed provider executor. No existing scheduler representation can
+safely persist Calendar scheduling without a separately reviewed Calendar-owned
+additive model, and no such model is justified or authorized in V1.5.
+
+Omission avoids scheduled credential-store access, revoked or reauthorization-
+required token handling, configuration-revision and allowlist races, concurrent
+manual/scheduled refresh arbitration, duplicate/restart recovery, DST and
+missed-run policy, provider backoff, and new bounded history/notification
+lifecycle. It preserves zero Calendar request when the operator does not invoke
+manual refresh, no new credential authority, no import or Calendar write, and
+no Agent/Automation Calendar authority. Any future Calendar scheduling is a
+new capability beyond V1.5 and requires a separate human-reviewed architecture;
+no speculative scaffolding is reserved.
