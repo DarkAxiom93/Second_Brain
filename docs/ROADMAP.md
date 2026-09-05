@@ -270,6 +270,8 @@ and unassigned isolation, minimized content, replay/change/observation history,
 stale/resurrection, failure/restart/revision/revoke recovery, UI behavior, and
 all import/scheduling/Agent/Automation/write omissions pass. G01-G18 remains
 green; Tool Registry and Project export identities remain unchanged. CP108
-stopped on its dependency audit. A two-pin PyJWT/pypdf remediation is prepared,
-approved, and complete after human review, but CP108 remains blocked until that
-remediation is committed, pushed, and its exact push CI succeeds.
+stopped on its dependency audit. The approved two-pin PyJWT/pypdf remediation
+is committed on `origin/main` and exact push CI succeeded. CP108 release
+hardening is approved and complete after human review, and Local V1.5 is
+publication-ready. Candidate `v1.5.0` has not been tagged or published;
+published `v1.4.0` remains the recovery release until publication.

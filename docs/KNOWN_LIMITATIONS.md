@@ -69,6 +69,18 @@ release; `v1.3.0` remains the preceding documented recovery release.
   provider-side repository or permission grants. Operators must select only the
   needed repositories and read permissions, set expiry, and explicitly replace
   or revoke credentials. There is no automatic token refresh.
+- Google Calendar support is read-only and manually refreshed. Authorization
+  requests exactly `openid` and
+  `https://www.googleapis.com/auth/calendar.events.readonly`; exact calendar
+  IDs must be entered by the operator. Stored/displayed events are minimized,
+  private and special events use fixed labels, and attendee, organizer,
+  description, location, conference, attachment, reminder, extended-property,
+  and provider-link fields are excluded.
+- Calendar has no import, scheduling, background refresh, sync-token workflow,
+  write operation, or Agent/Automation authority. Revocation or a
+  reauthorization-required state blocks refresh while preserving minimized
+  historical local evidence. Database/machine backups may still contain that
+  sensitive minimized history and must be protected.
 - Notifications are a local content-free inbox only. There is no webhook,
   email, push, OS notification, or other external delivery.
 - Automation, occurrence, Run, and notification history has no automatic

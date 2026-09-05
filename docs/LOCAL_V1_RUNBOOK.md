@@ -42,7 +42,7 @@ Rolldown native binary open and `npm ci` will fail with `EPERM ... unlink`.
 The parsed and live development identity must both be
 `127.0.0.1:5433/second_brain`; the separate test database must be
 `second_brain_test`. `alembic current` and the sole head must be
-`0011_automation_persistence`, and `alembic check` must report no upgrade operations.
+`0016_calendar_event_observations`, and `alembic check` must report no upgrade operations.
 Never downgrade the development database.
 
 ## Start FastAPI and Vite

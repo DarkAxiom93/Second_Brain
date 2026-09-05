@@ -3,10 +3,11 @@
 Status: **CP99-CP106 are approved and complete after human review. Checkpoint
 105 is a documentation-only manual-refresh decision. CP106's test-only
 deterministic G01-G18 release gate is green. CP107 is approved and complete
-after human review. CP108 stopped on its dependency audit; its two-pin security
-remediation is approved and complete after human review. CP108 release
-hardening remains blocked until that remediation is committed, pushed, and its
-exact push CI succeeds.**
+after human review. CP108's two-pin security remediation is approved and
+complete after human review, committed on `origin/main`, and its exact push CI
+succeeded. CP108 release hardening is approved and complete after human review,
+and Local V1.5 is publication-ready. Candidate `v1.5.0` remains untagged and
+unpublished.**
 
 Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
@@ -546,7 +547,8 @@ downgrades run only on the verified test database.
 ### 107 - Local V1.5 end-to-end acceptance
 
 - **Dependency:** approved CP106.
-- **Status:** approved and complete after human review; CP108 has not started.
+- **Status:** approved and complete after human review; CP108 is separately
+  approved and complete.
 - **Goal/areas:** joined authorize/configure/manual refresh/browse/reconcile/
   revoke journey using fake Google services.
 - **Persistence/migration:** no new migration intended.
@@ -563,11 +565,11 @@ downgrades run only on the verified test database.
 ### 108 - Local V1.5 release hardening
 
 - **Dependency:** approved CP107.
-- **Status:** blocked after the clean-install audit found vulnerable shipped
-  PyJWT 2.10.1 and pypdf 6.15.0. The bounded remediation updates only
-  `PyJWT[crypto]` to 2.13.0 and `pypdf` to 6.16.1 and is approved and complete
-  after human review. CP108 may not resume until that remediation is committed,
-  pushed, and its exact push CI succeeds.
+- **Status:** approved and complete after human review; Local V1.5 is
+  publication-ready, with no tag or release created yet. The approved
+  remediation pins
+  `PyJWT[crypto]==2.13.0` and `pypdf==6.16.1`; commit `05e74db5` is on
+  `origin/main` and exact push CI run `33973369749` succeeded.
 - **Goal/areas:** stable docs, consent/revoke/recovery guidance, inventories,
   compatibility, dependency/privacy audit and release evidence only.
 - **Persistence/migration:** verify sole approved head; no new migration.

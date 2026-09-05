@@ -32,6 +32,7 @@ The core workflow keeps source material, model suggestions, reviewed knowledge, 
 | Use Agents | Manually run bounded plans, use a read-only Research Agent, review advisory Memory Curator proposals, and inspect explicit Approvals. |
 | Automate | Define one-time, daily, or weekly Automations for fixed Daily Brief and Project Watch Agents, using safe `create_only` or explicit `automatic_read_only` execution. |
 | Use external context | Configure selected GitHub repositories with an OS-protected credential reference, refresh repository metadata/issues/pull requests through fixed GET-only reads, browse quarantined history, and explicitly import one current item into audited Sources. |
+| Review Calendar context | Authorize one Google account with exactly OpenID identity and read-only event scopes, allowlist exact calendars, manually refresh bounded minimized event snapshots, and browse current/stale history without Calendar writes, imports, scheduling, or Agent access. |
 
 Second Brain also includes explicit Memory supersession, expiration, quality refinement, embedding maintenance, local diagnostics, and maintenance audits. Provider-backed features require locally configured credentials; lexical search and the rest of the deterministic application remain available without them.
 

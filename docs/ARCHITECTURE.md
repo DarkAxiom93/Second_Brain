@@ -614,5 +614,8 @@ and the unchanged import/scheduling/Agent/Automation/write omissions. It adds no
 production code, migration, dependency, provider authority, or export/registry
 version. CP108 stopped on its dependency audit; its bounded PyJWT/pypdf
 security remediation is approved and complete after human review and does not
-change architecture. CP108 release hardening remains blocked until the
-remediation is committed, pushed, and its exact push CI succeeds.
+change architecture. The remediation commit is on `origin/main` and exact push
+CI succeeded. CP108 release hardening is approved and complete after human
+review. Local V1.5 is publication-ready, with `v1.5.0` still only the approved
+candidate; no tag or GitHub Release exists yet and no production authority
+changed. Published `v1.4.0` remains the recovery release until publication.
