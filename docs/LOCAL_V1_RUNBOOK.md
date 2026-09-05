@@ -1,9 +1,9 @@
-# Local V1.4 runbook
+# Local V1.5 runbook
 
 This runbook is the supported Windows maintainer path for the current published
-Local V1.4 release, `v1.4.0`, from exact commit
-`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. Published `v1.3.0` remains the
-preceding documented recovery release.
+Local V1.5 release, `v1.5.0`, from exact commit
+`9c140dd83a84072743facefb55c2f56e91691535`. Published `v1.4.0` remains the
+preceding recovery release.
 Run commands from the repository root in PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
@@ -193,9 +193,9 @@ volume. Never use `docker compose down -v`.
 
 ## Recovery
 
-Local V1.3.0 `v1.3.0` at
-`f79d556cb8d99961aa081464ef151ef1037fe87a` is the preceding documented
-recovery release. It uses revision `0011_automation_persistence`, but recovery
+Local V1.4.0 `v1.4.0` at
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a` is the preceding recovery release.
+It uses revision `0014_connector_refresh_schedules`, but recovery
 still belongs in a separate checkout with a verified compatible backup and an
 identity-checked database. Never downgrade the development database. Preserve
 the PostgreSQL container and `second-brain_postgres_data` named volume. Version

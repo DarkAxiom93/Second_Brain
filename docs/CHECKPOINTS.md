@@ -115,7 +115,7 @@ history. A dash means Alembic had not yet been introduced.
 | 105 | Calendar scheduling decision | Approved and complete after human review; manual refresh only | `0016_calendar_event_observations` | `4d8c0f5` |
 | 106 | Calendar security and evaluation gate | Approved and complete after human review; G01-G18 green | `0016_calendar_event_observations` | `f5eddec` |
 | 107 | Local V1.5 end-to-end acceptance | Approved and complete after human review | `0016_calendar_event_observations` | This commit |
-| 108 | Local V1.5 release hardening | Approved and complete after human review; publication-ready | `0016_calendar_event_observations` | This commit |
+| 108 | Local V1.5 release hardening | Approved and complete after human review; subsequently published | `0016_calendar_event_observations` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -196,8 +196,14 @@ revocation, privacy minimization, and UI/omission boundaries. CP108 started and
 stopped at its clean-install dependency audit. Its bounded PyJWT/pypdf security
 remediation is approved and complete after human review, committed on
 `origin/main`, and its exact push CI succeeded. CP108 release hardening is
-approved and complete after human review. Local V1.5 is publication-ready;
-`v1.5.0` remains only the approved candidate and no tag or release exists yet.
+approved and complete after human review. Local V1.5 was subsequently published
+as annotated tag `v1.5.0`, titled **Second Brain Local V1.5**, from exact release
+commit `9c140dd83a84072743facefb55c2f56e91691535`; annotated tag object
+`e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. GitHub Release
+`383369546` is neither draft nor prerelease, has zero assets, and is available at
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0>. CP99-CP108 are
+approved and complete. `v1.5.0` is the current published release, `v1.4.0` is
+the preceding recovery release, and no post-V1.5 roadmap capability has started.
 
 ## Standard lifecycle
 

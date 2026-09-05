@@ -11,11 +11,13 @@ point. Local V1.1 is published as `v1.1.0` from exact commit
 commit. Local V1.2.1 is the current published V1.2 patch release, tagged
 `v1.2.1` from exact commit `04e9db33dc0de7529b1599871c58cace6ed9f9e2`.
 Local V1.2.0 remains intact as the preceding release from
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.4 is the current
-published release, tagged `v1.4.0` with title **Second Brain Local V1.4** from
-exact commit `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. Local V1.3.0 remains
-the preceding documented recovery release from
-`f79d556cb8d99961aa081464ef151ef1037fe87a`. The sole current Alembic head is
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.5 is the current
+published release, tagged `v1.5.0` with title **Second Brain Local V1.5** from
+exact commit `9c140dd83a84072743facefb55c2f56e91691535`. Annotated tag object
+`e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. GitHub Release
+`383369546` is neither draft nor prerelease and has zero assets. Local V1.4
+`v1.4.0` remains the preceding recovery release from
+`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. The sole current Alembic head is
 `0016_calendar_event_observations`, Tool Registry remains `agent-tools-v1`, and
 Project export remains `second-brain-project-export` version `1`.
 
@@ -173,7 +175,7 @@ connector access, external writes, automatic import/review/promotion,
 authentication/multi-user, generic network execution, and export redesign
 remain deferred.
 
-## Planned Local V1.5 direction
+## Local V1.5 delivery
 
 Checkpoint 98 is approved and complete after human review. It selects **Local
 V1.5 - Read-only Google Calendar Context**. The dedicated
@@ -272,6 +274,10 @@ all import/scheduling/Agent/Automation/write omissions pass. G01-G18 remains
 green; Tool Registry and Project export identities remain unchanged. CP108
 stopped on its dependency audit. The approved two-pin PyJWT/pypdf remediation
 is committed on `origin/main` and exact push CI succeeded. CP108 release
-hardening is approved and complete after human review, and Local V1.5 is
-publication-ready. Candidate `v1.5.0` has not been tagged or published;
-published `v1.4.0` remains the recovery release until publication.
+hardening is approved and complete after human review. CP99-CP108 are approved
+and complete, including the dependency remediation. Local V1.5 was subsequently
+published as `v1.5.0` from exact release commit
+`9c140dd83a84072743facefb55c2f56e91691535`; `v1.4.0` is the preceding recovery
+release. The release adds no Calendar import or scheduling, Calendar write, or
+Agent/Automation Calendar authority, and no post-V1.5 roadmap capability has
+started.

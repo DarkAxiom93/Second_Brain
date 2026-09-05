@@ -433,9 +433,9 @@ paid/external embedding and extraction calls. Ingestion and extraction helpers
 that parse, normalize, chunk, hash, or validate data remain pure where possible.
 The caller that owns the SQLAlchemy session owns the transaction.
 
-## Planned Local V1.5 boundary
+## Local V1.5 boundary
 
-Checkpoint 98 plans, but does not implement, [Local V1.5 read-only Google
+Checkpoint 98 planned, but did not implement, [Local V1.5 read-only Google
 Calendar context](V1_5_CALENDAR_ROADMAP.md) and its dedicated
 [threat model](V1_5_CALENDAR_THREAT_MODEL.md). The proposed increment is one
 operator-authorized account, an exact calendar allowlist, manual bounded reads,
@@ -616,6 +616,11 @@ version. CP108 stopped on its dependency audit; its bounded PyJWT/pypdf
 security remediation is approved and complete after human review and does not
 change architecture. The remediation commit is on `origin/main` and exact push
 CI succeeded. CP108 release hardening is approved and complete after human
-review. Local V1.5 is publication-ready, with `v1.5.0` still only the approved
-candidate; no tag or GitHub Release exists yet and no production authority
-changed. Published `v1.4.0` remains the recovery release until publication.
+review. Local V1.5 was subsequently published as annotated tag `v1.5.0`, titled
+**Second Brain Local V1.5**, from exact release commit
+`9c140dd83a84072743facefb55c2f56e91691535`; tag object
+`e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. GitHub Release
+`383369546` is neither draft nor prerelease and has zero assets. `v1.5.0` is the
+current published release, `v1.4.0` is the preceding recovery release, no
+production authority changed during publication, and no post-V1.5 roadmap
+capability has started.

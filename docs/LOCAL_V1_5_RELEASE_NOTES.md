@@ -1,10 +1,15 @@
 # Second Brain Local V1.5 release notes
 
-Candidate tag: `v1.5.0`
+Published tag: `v1.5.0`
 
-Candidate title: **Second Brain Local V1.5**
+Release title: **Second Brain Local V1.5**
 
-Status: **Approved and publication-ready. Not published.**
+Status: **Published.** The annotated tag object is
+`e8f281a0b805b887768e53a447fc9e3b4444e04b` and peels to exact release commit
+`9c140dd83a84072743facefb55c2f56e91691535`. GitHub Release `383369546` was
+published at `2026-09-05T20:45:42Z`; it is neither a draft nor a prerelease and
+has zero assets:
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0>
 
 ## Read-only Calendar context
 
@@ -53,4 +58,7 @@ frontend vulnerability. Project export remains
 provider identity material remain excluded. Alembic remains
 `0016_calendar_event_observations` and Tool Registry remains `agent-tools-v1`.
 
-No tag, GitHub Release, PR, push, or publication action is part of CP108.
+CP99-CP108 are approved and complete, including the approved dependency
+remediation. Publication occurred only after CP108: `v1.5.0` is now the current
+published release, and `v1.4.0` is the preceding recovery release. No post-V1.5
+roadmap capability has started.

@@ -1,11 +1,12 @@
 # Local V1.5 Google Calendar threat model
 
-Status: **CP99-CP106 are approved and complete after human review. Checkpoint
+Status: **CP99-CP108 are approved and complete after human review. Checkpoint
 105 is a documentation-only manual-refresh decision. CP106's test-only
 deterministic G01-G18 release gate is green. CP107 acceptance is approved and
-complete after human review. CP108 release hardening is approved and complete
-after human review, and Local V1.5 is publication-ready; G01-G18 meaning is
-unchanged.**
+complete after human review. CP108 dependency remediation and release hardening
+are approved and complete. Local V1.5 is published as `v1.5.0`; G01-G18 meaning
+and the read-only Calendar authority boundary are unchanged. No post-V1.5
+roadmap capability has started.**
 
 This register extends rather than replaces the Agent, Automation, and V1.4
 connector threat models. Calendar content, Google/OAuth responses, browser

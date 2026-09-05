@@ -1,4 +1,4 @@
-# Local V1.4 known limitations
+# Local V1.5 known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -31,10 +31,13 @@ acceptance. Checkpoint 86 release hardening is approved and complete after
 human review; V1.3 is published as `v1.3.0`. Checkpoints 87-96 completed the
 approved V1.4 connector architecture, implementation, security gate, and joined
 acceptance. Checkpoint 97 release hardening is approved and complete after human
-review. After that approval, Local V1.4 was published as `v1.4.0`, titled
-**Second Brain Local V1.4**, from exact release commit
-`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. It is the current published
-release; `v1.3.0` remains the preceding documented recovery release.
+review. Checkpoints 98-108 completed the approved Local V1.5 read-only Calendar
+architecture, implementation, omission decisions, security gate, acceptance,
+dependency remediation, and release hardening. Local V1.5 is published as
+`v1.5.0`, titled **Second Brain Local V1.5**, from exact release commit
+`9c140dd83a84072743facefb55c2f56e91691535`; annotated tag object
+`e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. It is the
+current published release; `v1.4.0` is the preceding recovery release.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.

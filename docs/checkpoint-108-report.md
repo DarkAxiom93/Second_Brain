@@ -1,7 +1,7 @@
 # Checkpoint 108 report - Local V1.5 release hardening
 
-Status: **Approved and complete after human review. Local V1.5 is
-publication-ready and not published.**
+Status: **Approved and complete after human review. Local V1.5 was subsequently
+published without changing CP108's release-hardening evidence.**
 
 ## Candidate and preflight
 
@@ -107,7 +107,23 @@ Release, PR, commit, push, or publication action occurred.
 - `docs/V1_5_CALENDAR_THREAT_MODEL.md`
 - `docs/checkpoint-108-report.md`
 
-CP108 is approved and complete after human review. Local V1.5 is
-publication-ready; `v1.5.0` remains only the approved candidate. No tag,
-GitHub Release, push, or publication occurred, and published `v1.4.0` remains
-the recovery release until publication.
+CP108 is approved and complete after human review. At CP108 completion, Local
+V1.5 was publication-ready only: no tag, GitHub Release, push, or publication
+occurred during the checkpoint, and `v1.4.0` remained the recovery release.
+
+## Post-checkpoint publication outcome
+
+After CP108 and its exact evidence were complete, Local V1.5 was published as
+annotated tag `v1.5.0`, titled **Second Brain Local V1.5**. Tag object
+`e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to exact approved release
+commit `9c140dd83a84072743facefb55c2f56e91691535`. GitHub Release `383369546` was
+published at `2026-09-05T20:45:42Z`, is neither draft nor prerelease, has zero
+assets, and is available at
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0>.
+
+`v1.5.0` is now the current published release and `v1.4.0` is the preceding
+recovery release. CP99-CP108 remain approved and complete; Alembic remains
+`0016_calendar_event_observations`, Tool Registry remains `agent-tools-v1`, and
+Project export remains `second-brain-project-export` version `1`. Publication
+introduced no Calendar import or scheduling, Calendar write, or Agent/Automation
+Calendar authority, and no post-V1.5 roadmap capability has started.

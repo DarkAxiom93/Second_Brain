@@ -108,7 +108,7 @@ Set-Location Second_Brain
 & '.\.venv\Scripts\python.exe' -m alembic check
 ```
 
-The development database must resolve both in configuration and live as `127.0.0.1:5433/second_brain`; the separate test database must be `second_brain_test`. The sole migration head is `0014_connector_refresh_schedules`. Never downgrade the development database or delete its named volume.
+The development database must resolve both in configuration and live as `127.0.0.1:5433/second_brain`; the separate test database must be `second_brain_test`. The sole migration head is `0016_calendar_event_observations`. Never downgrade the development database or delete its named volume.
 
 Then open two additional PowerShell terminals at the repository root:
 
@@ -143,19 +143,19 @@ content.
 
 ## Current release
 
-### [v1.4.0 — Second Brain Local V1.4](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.4.0)
+### [v1.5.0 — Second Brain Local V1.5](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0)
 
-V1.4 is the current published release. It adds bounded read-only GitHub context,
-quarantined external-item history, explicit single-item import, and optional
-operator-started connector refresh schedules while preserving the trusted
-single-maintainer, loopback-only deployment boundary. V1.3.0 remains intact as
-the preceding documented recovery release.
+V1.5 is the current published release. It adds one manually refreshed,
+privacy-minimized read-only Google Calendar context workflow while preserving
+the trusted single-maintainer, loopback-only deployment boundary. Calendar
+import, scheduling, writes, and Agent/Automation Calendar authority remain
+omitted. V1.4.0 remains intact as the preceding recovery release.
 
-Release commit: [`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`](https://github.com/DarkAxiom93/Second_Brain/commit/c02a8ccb4b0b93a2fb73f23c112344b69eaac39a)
+Release commit: [`9c140dd83a84072743facefb55c2f56e91691535`](https://github.com/DarkAxiom93/Second_Brain/commit/9c140dd83a84072743facefb55c2f56e91691535)
 
-Read the [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) for its exact
-read-only connector inventory, verification, recovery guidance, residual risk,
-and deferred scope.
+Read the [V1.5 release notes](docs/LOCAL_V1_5_RELEASE_NOTES.md) for its exact
+read-only Calendar boundary, verification, recovery guidance, residual risk,
+and deliberate omissions.
 
 ## Current limitations
 

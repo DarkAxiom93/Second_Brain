@@ -1,17 +1,16 @@
 # Local V1.5 read-only Google Calendar context roadmap
 
-Status: **CP99-CP106 are approved and complete after human review. Checkpoint
+Status: **CP99-CP108 are approved and complete after human review. Checkpoint
 105 is a documentation-only manual-refresh decision. CP106's test-only
-deterministic G01-G18 release gate is green. CP107 is approved and complete
-after human review. CP108's two-pin security remediation is approved and
-complete after human review, committed on `origin/main`, and its exact push CI
-succeeded. CP108 release hardening is approved and complete after human review,
-and Local V1.5 is publication-ready. Candidate `v1.5.0` remains untagged and
-unpublished.**
+deterministic G01-G18 release gate is green. CP108's two-pin security
+remediation and release hardening are approved and complete. Local V1.5 is
+published as annotated tag `v1.5.0` from exact release commit
+`9c140dd83a84072743facefb55c2f56e91691535`; `v1.4.0` is the preceding recovery
+release. No post-V1.5 roadmap capability has started.**
 
-Checkpoint 98 defines architecture only. It implements no Calendar, OAuth,
+Checkpoint 98 defined architecture only. It implemented no Calendar, OAuth,
 transport, persistence, API, UI, Agent, Automation, import, scheduling, or
-external-write capability. Local V1.4 remains the published recovery boundary:
+external-write capability. At that checkpoint, Local V1.4 was the published recovery boundary:
 `v1.4.0` at `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`, Alembic
 `0015_calendar_persistence`, Tool Registry `agent-tools-v1`, and Project
 export `second-brain-project-export` version `1`.
@@ -565,9 +564,8 @@ downgrades run only on the verified test database.
 ### 108 - Local V1.5 release hardening
 
 - **Dependency:** approved CP107.
-- **Status:** approved and complete after human review; Local V1.5 is
-  publication-ready, with no tag or release created yet. The approved
-  remediation pins
+- **Status:** approved and complete after human review. No tag or release was
+  created during CP108. The approved remediation pins
   `PyJWT[crypto]==2.13.0` and `pypdf==6.16.1`; commit `05e74db5` is on
   `origin/main` and exact push CI run `33973369749` succeeded.
 - **Goal/areas:** stable docs, consent/revoke/recovery guidance, inventories,
@@ -579,6 +577,13 @@ downgrades run only on the verified test database.
 - **Security/tests:** G01-G18, clean install, secret scan, export exclusion,
   Full verification and fake-provider E2E.
 - **Rollback/failure:** documentation revert; `v1.4.0` remains recovery release.
+
+After CP108, Local V1.5 was published as `v1.5.0`, titled **Second Brain Local
+V1.5**. Annotated tag object `e8f281a0b805b887768e53a447fc9e3b4444e04b`
+peels to exact release commit `9c140dd83a84072743facefb55c2f56e91691535`.
+GitHub Release `383369546` was published at `2026-09-05T20:45:42Z`, is neither
+draft nor prerelease, has zero assets, and is available at
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0>.
 
 ## Official provider references used by CP98
 
