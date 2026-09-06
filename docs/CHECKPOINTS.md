@@ -117,6 +117,7 @@ history. A dash means Alembic had not yet been introduced.
 | 107 | Local V1.5 end-to-end acceptance | Approved and complete after human review | `0016_calendar_event_observations` | This commit |
 | 108 | Local V1.5 release hardening | Approved and complete after human review; subsequently published | `0016_calendar_event_observations` | This commit |
 | 109 | Local V1.6 Unified Read-only Context Hub architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0016_calendar_event_observations` | This commit |
+| 110 | Federated read/query contract and backend foundation | Implemented; pending human review | `0016_calendar_event_observations` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -215,7 +216,9 @@ bounded filters/facets/keyset pagination, and PostgreSQL-only reads. It adds no
 production/test code, persistence, migration, provider access, refresh, import,
 write, scheduling, Agent/Automation authority, registry, or export change.
 Checkpoint 109 is approved and complete after human review. The Local V1.6
-architecture and roadmap are approved; CP110 has not started.
+architecture and roadmap are approved. Checkpoint 110 implements the internal
+closed contract, database-only adapters, fixed grouping, and exact scoped
+reopen references. It is pending human review; CP111 has not started.
 
 ## Standard lifecycle
 

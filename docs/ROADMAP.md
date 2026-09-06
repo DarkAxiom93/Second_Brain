@@ -305,4 +305,8 @@ After CP109 lifecycle completion, the minimal sequence is CP110 federated read/
 query contract and backend foundation; CP111 typed API and pagination/filtering;
 CP112 accessible frontend; CP113 deterministic U01-U18 gate; CP114 end-to-end
 acceptance; and CP115 release hardening. CP109 and the Local V1.6 architecture/
-roadmap are approved and complete after human review; CP110 has not started.
+roadmap are approved and complete after human review. CP110 is implemented and
+pending human review: its internal-only `context-hub-v1` contract federates
+bounded existing PostgreSQL records in fixed family order, preserves native
+state and exact provenance, and adds no route, UI, persistence, provider access,
+or Agent/Automation authority. CP111 has not started.

@@ -147,6 +147,14 @@ def _covered(event: CalendarEventRevision, run: CalendarSyncRun) -> bool:
 def _effective(
     session: Session, event: CalendarEventRevision
 ) -> tuple[Literal["current", "stale"], datetime]:
+    state, evidence_at, _ = effective_evidence(session, event)
+    return state, evidence_at
+
+
+def effective_evidence(
+    session: Session, event: CalendarEventRevision
+) -> tuple[Literal["current", "stale"], datetime, uuid.UUID]:
+    """Return CP103 effective state and the exact eligible evidence run."""
     observed = (
         select(CalendarEventObservation.id)
         .where(
@@ -168,10 +176,10 @@ def _effective(
     for run, was_observed in rows:
         if was_observed:
             assert run.completed_at is not None
-            return "current", run.completed_at
+            return "current", run.completed_at, run.id
         if _covered(event, run):
             assert run.completed_at is not None
-            return "stale", run.completed_at
+            return "stale", run.completed_at, run.id
     raise CalendarEventNotFoundError
 
 

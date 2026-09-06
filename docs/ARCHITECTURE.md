@@ -651,5 +651,14 @@ GitHub reconciliation and safe link/import separation, local ingestion
 provenance, `agent-tools-v1`, and `second-brain-project-export` version `1`
 remain exact. See [V1_6_CONTEXT_HUB_ROADMAP.md](V1_6_CONTEXT_HUB_ROADMAP.md)
 and [V1_6_CONTEXT_HUB_THREAT_MODEL.md](V1_6_CONTEXT_HUB_THREAT_MODEL.md).
-Checkpoint 109 is approved and complete after human review; the Local V1.6
-architecture and roadmap are approved, and CP110 has not started.
+Checkpoint 109 is approved and complete after human review. Checkpoint 110 is
+implemented and pending human review. Its internal `context-hub-v1` contract
+requires one exact Project or explicit-unassigned scope and fixed group order
+`local_source`, `github`, `google_calendar`. Local chunks order by Source
+creation descending, Source UUID ascending, then chunk index and chunk UUID;
+GitHub and Calendar order by application revision descending and immutable row
+UUID descending. Typed reopen references revalidate complete local, GitHub, or
+Calendar evidence lineage under the same scope. The service adds no route, UI,
+cursor surface, persistence, migration, provider/credential/model/embedding
+access, Tool, Agent, Automation, import, refresh, write, or export authority.
+CP111 has not started.
