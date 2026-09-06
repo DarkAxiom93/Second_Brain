@@ -281,3 +281,28 @@ published as `v1.5.0` from exact release commit
 release. The release adds no Calendar import or scheduling, Calendar write, or
 Agent/Automation Calendar authority, and no post-V1.5 roadmap capability has
 started.
+
+## Local V1.6
+
+Checkpoint 109 proposes the documentation-only
+[Unified Read-only Context Hub](V1_6_CONTEXT_HUB_ROADMAP.md) and closed
+[U01-U18 threat model](V1_6_CONTEXT_HUB_THREAT_MODEL.md). The goal is one local
+find/browse surface over audited local Source/Document/Chunk knowledge, V1.4
+GitHub External Context, and V1.5 Calendar External Context. It preserves exact
+Project or explicit-unassigned scope, typed family-native immutable provenance,
+explicit local-audited/quarantined trust, and existing GitHub reconciliation and
+Calendar current/stale semantics.
+
+The baseline uses fixed provider-family grouping with no universal relevance
+score, bounded deterministic family-local PostgreSQL ordering, closed typed
+filters/facets, and request-bound keyset pagination. Direct federation requires
+no persistence or migration. The query path performs no provider, credential,
+model, or embedding request and grants no refresh/import/write/scheduling,
+knowledge/workflow mutation, Agent/Automation access, or Tool authority. Export
+v1 and all published V1.5 identities remain unchanged.
+
+After CP109 lifecycle completion, the minimal sequence is CP110 federated read/
+query contract and backend foundation; CP111 typed API and pagination/filtering;
+CP112 accessible frontend; CP113 deterministic U01-U18 gate; CP114 end-to-end
+acceptance; and CP115 release hardening. CP109 and the Local V1.6 architecture/
+roadmap are approved and complete after human review; CP110 has not started.

@@ -116,6 +116,7 @@ history. A dash means Alembic had not yet been introduced.
 | 106 | Calendar security and evaluation gate | Approved and complete after human review; G01-G18 green | `0016_calendar_event_observations` | `f5eddec` |
 | 107 | Local V1.5 end-to-end acceptance | Approved and complete after human review | `0016_calendar_event_observations` | This commit |
 | 108 | Local V1.5 release hardening | Approved and complete after human review; subsequently published | `0016_calendar_event_observations` | This commit |
+| 109 | Local V1.6 Unified Read-only Context Hub architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0016_calendar_event_observations` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -204,6 +205,17 @@ commit `9c140dd83a84072743facefb55c2f56e91691535`; annotated tag object
 <https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0>. CP99-CP108 are
 approved and complete. `v1.5.0` is the current published release, `v1.4.0` is
 the preceding recovery release, and no post-V1.5 roadmap capability has started.
+
+Checkpoint 109 proposes [Local V1.6 Unified Read-only Context Hub](V1_6_CONTEXT_HUB_ROADMAP.md)
+and its closed [U01-U18 threat model](V1_6_CONTEXT_HUB_THREAT_MODEL.md). It
+defines exact Project or explicit-unassigned federation across existing local
+Sources, GitHub External Context, and Calendar External Context using typed
+family groups, immutable native provenance, explicit trust/state, deterministic
+bounded filters/facets/keyset pagination, and PostgreSQL-only reads. It adds no
+production/test code, persistence, migration, provider access, refresh, import,
+write, scheduling, Agent/Automation authority, registry, or export change.
+Checkpoint 109 is approved and complete after human review. The Local V1.6
+architecture and roadmap are approved; CP110 has not started.
 
 ## Standard lifecycle
 

@@ -624,3 +624,32 @@ review. Local V1.5 was subsequently published as annotated tag `v1.5.0`, titled
 current published release, `v1.4.0` is the preceding recovery release, no
 production authority changed during publication, and no post-V1.5 roadmap
 capability has started.
+
+Checkpoint 109 defines the documentation-only Local V1.6 architecture as a
+**Unified Read-only Context Hub**. The planned local surface federates existing
+audited Source/SourceDocument/SourceChunk knowledge, V1.4 GitHub External
+Context, and V1.5 Calendar External Context without creating a common source of
+truth or erasing family-specific trust, provenance, freshness, and state.
+Every request selects one exact Project or explicit unassigned scope; null
+never means all. Results use typed families, explicit local-audited versus
+quarantined-external trust, family-native state, and immutable provenance that
+reopens the exact authoritative record under the same scope.
+
+The baseline uses fixed provider-family groups and no cross-provider relevance
+score. Within-family lexical/browse order must be PostgreSQL-local,
+deterministic, bounded, and tie-broken by immutable identity. Semantic/
+embedding signals, provider freshness, trust, and application state cannot be
+silently blended. Queries, filters/facets, response sizes, and request-bound
+keyset cursors are bounded. Direct reads of existing PostgreSQL records require
+no persistence or migration.
+
+Hub query/detail/facet paths cannot perform provider, credential-store, model,
+or embedding requests. They cannot refresh/import/write/schedule, mutate local
+knowledge/workflow state, execute a Tool, or become Agent/Automation evidence
+or authority. Calendar CP103 current/stale evidence and privacy minimization,
+GitHub reconciliation and safe link/import separation, local ingestion
+provenance, `agent-tools-v1`, and `second-brain-project-export` version `1`
+remain exact. See [V1_6_CONTEXT_HUB_ROADMAP.md](V1_6_CONTEXT_HUB_ROADMAP.md)
+and [V1_6_CONTEXT_HUB_THREAT_MODEL.md](V1_6_CONTEXT_HUB_THREAT_MODEL.md).
+Checkpoint 109 is approved and complete after human review; the Local V1.6
+architecture and roadmap are approved, and CP110 has not started.
