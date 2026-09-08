@@ -88,6 +88,9 @@ def _open(value: str, domain: bytes, maximum: int, secret: str) -> dict[str, Any
         raw = base64.b64decode(
             value + "=" * (-len(value) % 4), altchars=b"-_", validate=True
         )
+        canonical = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+        if canonical != value:
+            raise ContextTokenError
         if len(raw) <= _SALT_BYTES + _NONCE_BYTES + 16:
             raise ContextTokenError
         salt = raw[:_SALT_BYTES]

@@ -175,9 +175,11 @@ def test_cursor_is_opaque_bound_and_strictly_validated() -> None:
     positions, exhausted = decode_cursor(token, request, "test-secret")
     assert positions == {ContextFamily.GITHUB: position}
     assert exhausted == {ContextFamily.GITHUB: False}
+    changed = bytearray(_raw_token(token))
+    changed[-1] ^= 1
     with pytest.raises(ContextTokenError):
         decode_cursor(
-            token[:-1] + ("A" if token[-1] != "A" else "B"),
+            base64.urlsafe_b64encode(changed).decode().rstrip("="),
             request,
             "test-secret",
         )
@@ -189,6 +191,16 @@ def test_cursor_is_opaque_bound_and_strictly_validated() -> None:
 
 def _raw_token(value: str) -> bytes:
     return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def _noncanonical_alias(value: str) -> str:
+    """Change only unused Base64 pad bits while preserving decoded bytes."""
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    assert len(value) % 4 in {2, 3}
+    index = alphabet.index(value[-1])
+    alias = value[:-1] + alphabet[index ^ 1]
+    assert alias != value and _raw_token(alias) == _raw_token(value)
+    return alias
 
 
 def test_pbkdf2_token_lifecycle_salt_nonce_password_and_domain_separation() -> None:
@@ -286,3 +298,70 @@ def test_token_version_and_pbkdf2_policy_are_code_owned() -> None:
     assert "iterations=PBKDF2_ITERATIONS" in source
     assert "os.urandom(_SALT_BYTES)" in source
     assert "os.urandom(_NONCE_BYTES)" in source
+
+
+def test_canonical_base64url_is_required_for_cursor_and_reopen_tokens() -> None:
+    scope = _scope()
+    position = GitHubPosition(application_revision=4, revision_id=uuid.uuid4())
+    for query_length in range(3):
+        request = ContextHubQuery(
+            scope=scope,
+            families=(ContextFamily.GITHUB,),
+            page_size=7,
+            query="x" * query_length,
+        )
+        cursor = encode_cursor(
+            request,
+            {ContextFamily.GITHUB: position},
+            {ContextFamily.GITHUB: False},
+            "canonical-test-password",
+        )
+        if len(cursor) % 4 in {2, 3}:
+            break
+    assert decode_cursor(cursor, request, "canonical-test-password")[0] == {
+        ContextFamily.GITHUB: position
+    }
+    assert len(cursor) % 4 in {2, 3}
+    with pytest.raises(ContextTokenError):
+        decode_cursor(_noncanonical_alias(cursor), request, "canonical-test-password")
+    with pytest.raises(ContextTokenError):
+        decode_cursor(cursor + "=", request, "canonical-test-password")
+
+    provenance = GitHubProvenance(
+        account_id=uuid.uuid4(),
+        external_resource_id="repository:R_canonical",
+        external_item_id="issue:I_canonical",
+        revision_id=uuid.uuid4(),
+        application_revision=2,
+    )
+    for suffix_length in range(3):
+        provenance = provenance.model_copy(
+            update={"external_item_id": f"issue:I_canonical{'x' * suffix_length}"}
+        )
+        reopen = encode_reopen(request.scope, provenance, "canonical-test-password")
+        if len(reopen) % 4 in {2, 3}:
+            break
+    assert len(reopen) % 4 in {2, 3}
+    assert (
+        decode_reopen(
+            reopen,
+            request.scope,
+            ContextFamily.GITHUB,
+            "canonical-test-password",
+        )
+        == provenance
+    )
+    with pytest.raises(ContextTokenError):
+        decode_reopen(
+            _noncanonical_alias(reopen),
+            request.scope,
+            ContextFamily.GITHUB,
+            "canonical-test-password",
+        )
+    with pytest.raises(ContextTokenError):
+        decode_reopen(
+            reopen + "=",
+            request.scope,
+            ContextFamily.GITHUB,
+            "canonical-test-password",
+        )

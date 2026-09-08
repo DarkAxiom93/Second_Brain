@@ -146,10 +146,12 @@ migration, schema change, dependency addition, or second source of truth.
 ## Verification
 
 Focused CP110/CP111 contract, PostgreSQL API, and route-inventory selection:
-**20 passed**, zero skipped (one framework deprecation warning). The focused
+**21 passed**, zero skipped (one framework deprecation warning). The focused
 set includes PBKDF2 restart/password lifecycle, fresh salt and nonce, domain
 substitution, mutation/truncation/malformed/oversized/version rejection,
 code-owned parameters, secret non-exposure, and request/scope/family binding.
+The two canonical-transport regression nodes also passed **20 consecutive
+repeated runs** (40 node executions) with no randomness-dependent failure.
 
 The first Full run passed pip integrity, Ruff, formatting, and strict mypy, then
 reported **1,346 passed / 4 failed / 7 errors**. One CP111 test incorrectly
@@ -176,6 +178,30 @@ files; **1,359 backend tests passed**, zero skipped (13 warnings); Alembic
 current/heads/check at `0016_calendar_event_observations` with no upgrade
 operations; frontend ESLint and TypeScript; **148 tests across 15 files**; the
 88-module production build; and `git diff --check`.
+
+Exact push CI run `34259425918` for commit
+`eaec944e5eb2a7389bc5f18774032588c83bfb9e` subsequently failed only at
+`test_cursor_is_opaque_bound_and_strictly_validated` after **917 passed / 1
+failed / 1 deselected** in Quick verification. The test changed only the final
+unpadded Base64URL character. Some alternate final characters change only
+unused pad bits, so Python's strict decoder can produce the same authenticated
+bytes from two textual spellings. AES-GCM was not bypassed: salt, nonce,
+ciphertext, tag, plaintext, and authentication result were identical.
+
+The production decoder now re-encodes decoded bytes with the exact code-owned
+unpadded Base64URL encoder and requires byte-for-byte textual equality before
+decrypting. Alternate pad-bit spellings, supplied padding, and other textual
+aliases therefore fail as `ContextTokenError`. Regression coverage separately
+uses a canonical byte-changing ciphertext mutation that must fail AES-GCM and a
+deliberately constructed non-canonical alias proven to decode to the same raw
+bytes; both cursor and reopen domains reject aliases and padded forms while
+canonical tokens continue to decode. Final post-remediation Full verification
+passed: dependency integrity; Ruff lint and format over 493 files; strict mypy
+over 208 production files; **1,360 backend tests passed**, zero skipped (13
+warnings); Alembic current/heads/check at
+`0016_calendar_event_observations` with no upgrade operations; frontend ESLint
+and TypeScript; **148 tests across 15 files**; the 88-module production build;
+and `git diff --check`.
 
 ## Residual risk
 
