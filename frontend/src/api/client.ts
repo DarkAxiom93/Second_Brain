@@ -203,6 +203,16 @@ export type Automation = { id: string; label: string; automation_kind: "schedule
 export type SchedulePoint = { local_date: string; local_time: string; timezone_name: string; utc_offset_minutes: number; utc_instant: string };
 export type AutomationOccurrence = { id: string; scheduled_at: string; scheduled_local_date: string; scheduled_local_time: string; scheduled_utc_offset_minutes: number; timezone_name: string; state: "due" | "claimed" | "run_created" | "completed" | "missed" | "failed" | "cancelled"; attempt_count: number; retry_not_before: string | null; safe_disposition_code: string | null; safe_error_code: string | null; agent_run_id: string | null; created_at: string; claimed_at: string | null; completed_at: string | null };
 export type AutomationNotification = { id: string; automation_id: string; occurrence_id: string | null; agent_run_id: string | null; event_kind: "occurrence_missed" | "occurrence_failed" | "retry_exhausted" | "lifecycle_race" | "capacity_delayed" | "run_completed"; severity: "info" | "warning" | "error"; title: string; body: string; read_at: string | null; created_at: string };
+export type ContextFamily = "local_source" | "github" | "google_calendar";
+export type ContextKind = "source_chunk" | "repository" | "issue" | "pull_request" | "calendar_event";
+export type ContextTrust = "local_audited" | "quarantined_external";
+export type ContextState = "extracted" | "current" | "stale" | "deleted";
+export type ContextScope = { project_id: string; unassigned: false } | { project_id: null; unassigned: true };
+export type ContextHubQuery = { scope: ContextScope; families: ContextFamily[]; kinds: ContextKind[]; trust: ContextTrust[]; states: ContextState[]; query: string; page_size: number };
+export type ContextHubItem = { contract_version: "context-hub-v1"; family: ContextFamily; kind: ContextKind; scope: ContextScope; trust: ContextTrust; state: ContextState; title: string; text: string; reopen_id: string };
+export type ContextHubPage = { contract_version: "context-hub-v1"; groups: Array<{ family: ContextFamily; items: ContextHubItem[]; exhausted: boolean }>; next_cursor: string | null };
+export type ContextFacetBucket = { value: string; count: number };
+export type ContextHubFacets = { contract_version: "context-hub-v1"; observed_at: string; families: ContextFacetBucket[]; kinds: ContextFacetBucket[]; trust: ContextFacetBucket[]; states: ContextFacetBucket[] };
 
 export class SafeApiError extends Error {
   constructor() {
@@ -235,6 +245,7 @@ export class ApiConflictError extends Error { constructor() { super("The proposa
 export class SearchProviderError extends Error { constructor(message: string) { super(message); this.name = "SearchProviderError"; } }
 export class AnswerProviderError extends Error { constructor(message: string) { super(message); this.name = "AnswerProviderError"; } }
 export class ImportConflictError extends Error { constructor() { super("The bundle now conflicts with the target or its confirmation is stale."); this.name = "ImportConflictError"; } }
+export class ContextFacetLimitError extends Error { constructor() { super("Counts unavailable for this request."); this.name = "ContextFacetLimitError"; } }
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
@@ -491,6 +502,42 @@ function isProjectList(value: unknown): value is ProjectRead[] {
 
 export function listProjects(limit: number, offset: number, signal?: AbortSignal): Promise<ProjectRead[]> {
   return request(`/projects?limit=${limit}&offset=${offset}`, isProjectList, signal);
+}
+
+const CONTEXT_FAMILIES: ContextFamily[] = ["local_source", "github", "google_calendar"];
+const CONTEXT_KINDS: ContextKind[] = ["source_chunk", "repository", "issue", "pull_request", "calendar_event"];
+const CONTEXT_TRUST: ContextTrust[] = ["local_audited", "quarantined_external"];
+const CONTEXT_STATES: ContextState[] = ["extracted", "current", "stale", "deleted"];
+function isContextScope(value: unknown): value is ContextScope {
+  if (!objectRecord(value) || !exactKeys(value, ["project_id", "unassigned"]) || typeof value.unassigned !== "boolean") return false;
+  return value.unassigned ? value.project_id === null : typeof value.project_id === "string" && isProjectId(value.project_id);
+}
+function isContextItem(value: unknown): value is ContextHubItem {
+  return objectRecord(value) && exactKeys(value, ["contract_version", "family", "kind", "scope", "trust", "state", "title", "text", "reopen_id"]) &&
+    value.contract_version === "context-hub-v1" && CONTEXT_FAMILIES.includes(value.family as ContextFamily) && CONTEXT_KINDS.includes(value.kind as ContextKind) &&
+    CONTEXT_TRUST.includes(value.trust as ContextTrust) && CONTEXT_STATES.includes(value.state as ContextState) && isContextScope(value.scope) &&
+    typeof value.title === "string" && typeof value.text === "string" && typeof value.reopen_id === "string" && value.reopen_id.length > 0;
+}
+function isContextPage(value: unknown): value is ContextHubPage {
+  return objectRecord(value) && exactKeys(value, ["contract_version", "groups", "next_cursor"]) && value.contract_version === "context-hub-v1" &&
+    (value.next_cursor === null || typeof value.next_cursor === "string") && Array.isArray(value.groups) && value.groups.every(group =>
+      objectRecord(group) && exactKeys(group, ["family", "items", "exhausted"]) && CONTEXT_FAMILIES.includes(group.family as ContextFamily) &&
+      typeof group.exhausted === "boolean" && Array.isArray(group.items) && group.items.every(isContextItem));
+}
+function isFacetBucket(value: unknown): value is ContextFacetBucket { return objectRecord(value) && exactKeys(value, ["value", "count"]) && typeof value.value === "string" && isCount(value.count); }
+function isContextFacets(value: unknown): value is ContextHubFacets {
+  return objectRecord(value) && exactKeys(value, ["contract_version", "observed_at", "families", "kinds", "trust", "states"]) && value.contract_version === "context-hub-v1" && isTimestamp(value.observed_at) &&
+    [value.families, value.kinds, value.trust, value.states].every(buckets => Array.isArray(buckets) && buckets.every(isFacetBucket));
+}
+export function queryContextHub(body: ContextHubQuery & { cursor?: string }, signal?: AbortSignal) { return request("/context-hub/query", isContextPage, signal, { method: "POST", body }); }
+export function detailContextHub(body: { scope: ContextScope; family: ContextFamily; reopen_id: string }, signal?: AbortSignal) { return request("/context-hub/detail", isContextItem, signal, { method: "POST", body }); }
+export async function facetContextHub(body: ContextHubQuery, signal?: AbortSignal): Promise<ContextHubFacets> {
+  const response = await fetch(`${apiBase()}/context-hub/facets`, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify(body), signal, credentials: "same-origin" }).catch(() => { throw new SafeApiError(); });
+  if (response.status === 422) throw new ContextFacetLimitError();
+  if (!response.ok) throw new SafeApiError();
+  const value: unknown = await response.json().catch(() => { throw new SafeApiError(); });
+  if (!isContextFacets(value)) throw new SafeApiError();
+  return value;
 }
 
 function isConnectorAccount(value: unknown): value is ConnectorAccount {

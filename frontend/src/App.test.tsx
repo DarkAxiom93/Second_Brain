@@ -33,7 +33,7 @@ describe("application shell", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
     for (const name of [
       "Dashboard", "Projects", "Sources", "Proposals", "Memories",
-      "Search", "Answers", "Agent", "Automations", "External Context", "Settings",
+      "Search", "Answers", "Agent", "Automations", "External Context", "Context Hub", "Settings",
     ]) {
       expect(screen.getByRole("link", { name })).toBeInTheDocument();
     }

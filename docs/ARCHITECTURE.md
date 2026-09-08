@@ -670,5 +670,13 @@ keysets independently per family; facets are bounded request-time observations.
 Every route starts a PostgreSQL read-only transaction and rolls it back. No
 provider, credential-store, model, embedding, mutation, import, refresh,
 scheduling, Tool, Agent, Automation, export, persistence, migration, index, or
-schema authority is added. CP111 is implemented and pending human review;
-CP112 has not started.
+schema authority is added. CP111 is approved and complete after human review.
+Checkpoint 112 adds only the client-side `/context-hub` route and primary
+navigation entry. It loads Projects for explicit scope selection, performs Hub
+reads only after operator submission, retains one in-memory applied request for
+cursor pagination, fetches exact request facets, and reopens opaque detail
+inside the same route. All content is React-rendered inert text with bidi and
+overflow containment; no token enters the DOM, URL, or browser storage. The UI
+adds no provider link, polling, refresh, import, scheduling, write, Agent,
+Automation, registry, export, persistence, migration, or backend authority.
+CP112 is implemented and pending human review; CP113 has not started.

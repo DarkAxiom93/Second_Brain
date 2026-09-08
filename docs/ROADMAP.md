@@ -313,4 +313,8 @@ or Agent/Automation authority. CP111 is implemented and pending human review.
 It adds exactly three loopback-only typed POST routes for grouped query, exact
 detail, and closed facets; confidential authenticated request-bound cursors and
 reopen identities; native keyset predicates; and explicit read-only
-transactions. It adds no persistence or authority. CP112 has not started.
+transactions. It adds no persistence or authority. CP111 is approved and
+complete after human review. CP112 adds the accessible single-route Context Hub
+frontend over those three APIs, with explicit scope submission, inert content,
+fixed family disclosure, exact facets, request-bound pagination, and in-page
+detail. CP112 is implemented and pending human review; CP113 has not started.

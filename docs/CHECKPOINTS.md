@@ -224,8 +224,11 @@ reopen references. It is approved and complete after human review. Checkpoint
 exact detail, and closed facets. Confidential authenticated version-1 tokens
 bind pagination to the canonical request and reopen to exact scope/family/
 provenance; native keysets preserve family order without offsets. All routes
-use explicit PostgreSQL read-only transactions. CP111 is implemented and
-pending human review; CP112 has not started.
+use explicit PostgreSQL read-only transactions. CP111 is approved and complete
+after human review. CP112 implements the accessible single-route `/context-hub`
+frontend with explicit scope submission, fixed family disclosure, exact facets,
+request-bound pagination, and in-page opaque reopen. CP112 is implemented and
+pending human review; CP113 has not started.
 
 ## Standard lifecycle
 

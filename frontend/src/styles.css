@@ -193,6 +193,17 @@ textarea { min-height: 6rem; resize: vertical; }
 .agent-list h3, .agent-list p { margin: 0 0 .5rem; }
 fieldset { display: flex; flex-wrap: wrap; gap: 1rem; border: 1px solid #d1d8d0; border-radius: .55rem; }
 fieldset input { width: auto; }
+.context-controls, .context-results, .context-detail { max-width: 64rem; }
+.context-controls fieldset label { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.5rem; }
+.hub-status { max-width: 64rem; padding: .8rem 1rem; border-left: .3rem solid #416758; overflow-wrap: anywhere; }
+.context-group { min-width: 0; border-top: 1px solid #d1d8d0; padding-top: 1rem; }
+.context-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.context-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; overflow: hidden; }
+.hostile-text { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; unicode-bidi: isolate; }
+.context-disclosure { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: .75rem; margin: 1rem 0; }
+.context-disclosure div { min-width: 0; }
+.context-disclosure dt { color: #59665f; font-size: .8rem; }
+.context-disclosure dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
 
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: minmax(0, 1fr); }
@@ -205,6 +216,7 @@ fieldset input { width: auto; }
   .search-grid { grid-template-columns: 1fr; }
   .settings-header { align-items: start; flex-direction: column; }
   .section-heading { align-items: start; flex-direction: column; }
+  .context-controls fieldset { display: grid; grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {
