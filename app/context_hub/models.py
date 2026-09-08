@@ -20,6 +20,9 @@ MAX_TRUST_LABELS = 2
 MAX_TITLE_CHARACTERS = 500
 MAX_TEXT_CHARACTERS = 4_000
 MAX_FAMILY_WORK = 200
+MAX_CURSOR_CHARACTERS = 4096
+MAX_REOPEN_ID_CHARACTERS = 4096
+ORDERING_MODE: Final[Literal["family-native-v1"]] = "family-native-v1"
 
 
 class ClosedModel(BaseModel):
@@ -230,3 +233,59 @@ class ContextFamilyResult(ClosedModel):
 class ContextHubResult(ClosedModel):
     contract_version: Literal["context-hub-v1"] = CONTRACT_VERSION
     groups: tuple[ContextFamilyResult, ...]
+
+
+class ContextHubPageRequest(ContextHubQuery):
+    cursor: Annotated[
+        str | None, StringConstraints(max_length=MAX_CURSOR_CHARACTERS)
+    ] = None
+
+
+class PublicContextItem(ClosedModel):
+    contract_version: Literal["context-hub-v1"] = CONTRACT_VERSION
+    family: ContextFamily
+    kind: ContextKind
+    scope: ContextScope
+    trust: TrustLabel
+    state: ContextState
+    title: Annotated[str, StringConstraints(max_length=MAX_TITLE_CHARACTERS)]
+    text: Annotated[str, StringConstraints(max_length=MAX_TEXT_CHARACTERS)]
+    reopen_id: Annotated[
+        str, StringConstraints(min_length=1, max_length=MAX_REOPEN_ID_CHARACTERS)
+    ]
+
+
+class PublicContextFamilyResult(ClosedModel):
+    family: ContextFamily
+    items: tuple[PublicContextItem, ...]
+    exhausted: bool
+
+
+class ContextHubPage(ClosedModel):
+    contract_version: Literal["context-hub-v1"] = CONTRACT_VERSION
+    groups: tuple[PublicContextFamilyResult, ...]
+    next_cursor: Annotated[
+        str | None, StringConstraints(max_length=MAX_CURSOR_CHARACTERS)
+    ]
+
+
+class ContextDetailRequest(ClosedModel):
+    scope: ContextScope
+    family: ContextFamily
+    reopen_id: Annotated[
+        str, StringConstraints(min_length=1, max_length=MAX_REOPEN_ID_CHARACTERS)
+    ]
+
+
+class FacetBucket(ClosedModel):
+    value: str
+    count: Annotated[int, Field(ge=0)]
+
+
+class ContextHubFacets(ClosedModel):
+    contract_version: Literal["context-hub-v1"] = CONTRACT_VERSION
+    observed_at: datetime
+    families: tuple[FacetBucket, ...]
+    kinds: tuple[FacetBucket, ...]
+    trust: tuple[FacetBucket, ...]
+    states: tuple[FacetBucket, ...]

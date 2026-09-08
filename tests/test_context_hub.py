@@ -1,5 +1,6 @@
 """Focused closed-contract and zero-authority checks for Checkpoint 110."""
 
+import base64
 import uuid
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.agent_tools.registry import AGENT_TOOL_REGISTRY, REGISTRY_VERSION
+from app.context_hub import tokens
 from app.context_hub.models import (
     CONTRACT_VERSION,
     MAX_PAGE_SIZE,
@@ -16,9 +18,18 @@ from app.context_hub.models import (
     ContextKind,
     ContextScope,
     ContextState,
+    GitHubPosition,
     GitHubProvenance,
     LocalSourceProvenance,
     TrustLabel,
+)
+from app.context_hub.tokens import (
+    PBKDF2_ITERATIONS,
+    ContextTokenError,
+    decode_cursor,
+    decode_reopen,
+    encode_cursor,
+    encode_reopen,
 )
 from app.project_export.models import FORMAT_NAME, FORMAT_VERSION
 
@@ -148,3 +159,130 @@ def test_hostile_text_has_no_authority_and_no_capability_expansion() -> None:
         and ".commit(" not in service
         and ".flush(" not in service
     )
+
+
+def test_cursor_is_opaque_bound_and_strictly_validated() -> None:
+    request = ContextHubQuery(
+        scope=_scope(), families=(ContextFamily.GITHUB,), page_size=7, query=" term "
+    )
+    position = GitHubPosition(application_revision=4, revision_id=uuid.uuid4())
+    token = encode_cursor(
+        request,
+        {ContextFamily.GITHUB: position},
+        {ContextFamily.GITHUB: False},
+        "test-secret",
+    )
+    positions, exhausted = decode_cursor(token, request, "test-secret")
+    assert positions == {ContextFamily.GITHUB: position}
+    assert exhausted == {ContextFamily.GITHUB: False}
+    with pytest.raises(ContextTokenError):
+        decode_cursor(
+            token[:-1] + ("A" if token[-1] != "A" else "B"),
+            request,
+            "test-secret",
+        )
+    with pytest.raises(ContextTokenError):
+        decode_cursor(token, request.model_copy(update={"page_size": 8}), "test-secret")
+    with pytest.raises(ContextTokenError):
+        decode_cursor("x" * 4097, request, "test-secret")
+
+
+def _raw_token(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def test_pbkdf2_token_lifecycle_salt_nonce_password_and_domain_separation() -> None:
+    request = ContextHubQuery(
+        scope=_scope(), families=(ContextFamily.GITHUB,), page_size=7
+    )
+    position = GitHubPosition(application_revision=4, revision_id=uuid.uuid4())
+    arguments = (
+        request,
+        {ContextFamily.GITHUB: position},
+        {ContextFamily.GITHUB: False},
+        "restart-stable-test-password",
+    )
+    first = encode_cursor(*arguments)
+    second = encode_cursor(*arguments)
+    first_raw = _raw_token(first)
+    second_raw = _raw_token(second)
+
+    assert PBKDF2_ITERATIONS == 100_000
+    assert first_raw[:16] != second_raw[:16]
+    assert first_raw[16:28] != second_raw[16:28]
+    assert b"restart-stable-test-password" not in first_raw
+    assert decode_cursor(first, request, "restart-stable-test-password")[0] == {
+        ContextFamily.GITHUB: position
+    }
+
+    for invalid in (
+        first_raw[:3],
+        first_raw[:27],
+        first_raw[:-1],
+        bytes([first_raw[0] ^ 1]) + first_raw[1:],
+        first_raw[:16] + bytes([first_raw[16] ^ 1]) + first_raw[17:],
+        first_raw[:-1] + bytes([first_raw[-1] ^ 1]),
+    ):
+        with pytest.raises(ContextTokenError):
+            decode_cursor(
+                base64.urlsafe_b64encode(invalid).decode().rstrip("="),
+                request,
+                "restart-stable-test-password",
+            )
+    with pytest.raises(ContextTokenError):
+        decode_cursor(first, request, "rotated-password")
+
+    provenance = GitHubProvenance(
+        account_id=uuid.uuid4(),
+        external_resource_id="repository:R_restart",
+        external_item_id="issue:I_restart",
+        revision_id=uuid.uuid4(),
+        application_revision=2,
+    )
+    reopen = encode_reopen(request.scope, provenance, arguments[3])
+    assert (
+        decode_reopen(reopen, request.scope, ContextFamily.GITHUB, arguments[3])
+        == provenance
+    )
+    with pytest.raises(ContextTokenError):
+        decode_reopen(first, request.scope, ContextFamily.GITHUB, arguments[3])
+    with pytest.raises(ContextTokenError):
+        decode_reopen(
+            reopen, ContextScope(unassigned=True), ContextFamily.GITHUB, arguments[3]
+        )
+    with pytest.raises(ContextTokenError):
+        decode_reopen(reopen, request.scope, ContextFamily.LOCAL_SOURCE, arguments[3])
+    unchanged = provenance.model_dump()
+    with pytest.raises(ContextTokenError):
+        decode_reopen(reopen, request.scope, ContextFamily.GITHUB, "rotated-password")
+    assert provenance.model_dump() == unchanged
+
+
+def test_token_version_and_pbkdf2_policy_are_code_owned() -> None:
+    request = ContextHubQuery(
+        scope=_scope(), families=(ContextFamily.GITHUB,), page_size=1
+    )
+    position = GitHubPosition(application_revision=1, revision_id=uuid.uuid4())
+    invalid_version = tokens._seal(
+        {
+            "v": 999,
+            "request": tokens.canonical_request(request),
+            "groups": [
+                {
+                    "family": ContextFamily.GITHUB.value,
+                    "exhausted": False,
+                    "position": position.model_dump(mode="json"),
+                }
+            ],
+        },
+        tokens._CURSOR_DOMAIN,
+        "test-password",
+    )
+    with pytest.raises(ContextTokenError):
+        decode_cursor(invalid_version, request, "test-password")
+
+    source = Path("app/context_hub/tokens.py").read_text(encoding="utf-8")
+    assert "PBKDF2HMAC(" in source and "hashlib" not in source
+    assert "iterations=PBKDF2_ITERATIONS" in source
+    assert "os.urandom(_SALT_BYTES)" in source
+    assert "os.urandom(_NONCE_BYTES)" in source

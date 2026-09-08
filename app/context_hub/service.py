@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
@@ -22,13 +23,16 @@ from app.context_hub.models import (
     CalendarProvenance,
     ContextFamily,
     ContextFamilyResult,
+    ContextHubFacets,
     ContextHubQuery,
     ContextHubResult,
     ContextItem,
     ContextKind,
+    ContextPosition,
     ContextProvenance,
     ContextScope,
     ContextState,
+    FacetBucket,
     GitHubPosition,
     GitHubProvenance,
     LocalSourcePosition,
@@ -53,6 +57,10 @@ from app.schemas.connector import NumberedExternalContent, RepositoryExternalCon
 
 class ContextNotFoundError(Exception):
     """The exact scoped authoritative record cannot be reopened."""
+
+
+class ContextFacetLimitError(Exception):
+    """The exact facet domain exceeded the approved bounded work limit."""
 
 
 def _scope_clause(
@@ -84,9 +92,11 @@ def _family_enabled(request: ContextHubQuery, family: ContextFamily) -> bool:
     )
 
 
-def _local_items(session: Session, request: ContextHubQuery) -> list[ContextItem]:
+def _local_items(
+    session: Session, request: ContextHubQuery, after: LocalSourcePosition | None = None
+) -> tuple[list[ContextItem], bool, LocalSourcePosition | None]:
     if request.states and ContextState.EXTRACTED not in request.states:
-        return []
+        return [], True, after
     statement = (
         select(Source, SourceDocument, SourceChunk)
         .join(SourceDocument, SourceDocument.source_id == Source.id)
@@ -108,6 +118,27 @@ def _local_items(session: Session, request: ContextHubQuery) -> list[ContextItem
                 SourceChunk.content.ilike(pattern),
             )
         )
+    if after is not None:
+        statement = statement.where(
+            or_(
+                Source.created_at < after.source_created_at,
+                and_(
+                    Source.created_at == after.source_created_at,
+                    Source.id > after.source_id,
+                ),
+                and_(
+                    Source.created_at == after.source_created_at,
+                    Source.id == after.source_id,
+                    SourceChunk.chunk_index > after.chunk_index,
+                ),
+                and_(
+                    Source.created_at == after.source_created_at,
+                    Source.id == after.source_id,
+                    SourceChunk.chunk_index == after.chunk_index,
+                    SourceChunk.id > after.chunk_id,
+                ),
+            )
+        )
     rows = session.execute(
         statement.order_by(
             Source.created_at.desc(),
@@ -116,7 +147,7 @@ def _local_items(session: Session, request: ContextHubQuery) -> list[ContextItem
             SourceChunk.id.asc(),
         ).limit(request.page_size + 1)
     ).all()
-    return [
+    items = [
         ContextItem(
             family=ContextFamily.LOCAL_SOURCE,
             kind=ContextKind.SOURCE_CHUNK,
@@ -141,6 +172,9 @@ def _local_items(session: Session, request: ContextHubQuery) -> list[ContextItem
         )
         for source, document, chunk in rows[: request.page_size]
     ]
+    position = items[-1].position if items else after
+    assert position is None or isinstance(position, LocalSourcePosition)
+    return items, len(rows) <= request.page_size, position
 
 
 def _github_latest(request: ContextHubQuery) -> Select[tuple[ExternalItem]]:
@@ -205,15 +239,28 @@ def _github_text(item: ExternalItem) -> str:
     return content.body or ""
 
 
-def _github_items(session: Session, request: ContextHubQuery) -> list[ContextItem]:
+def _github_items(
+    session: Session, request: ContextHubQuery, after: GitHubPosition | None = None
+) -> tuple[list[ContextItem], bool, GitHubPosition | None]:
+    statement = _github_latest(request)
+    if after is not None:
+        statement = statement.where(
+            or_(
+                ExternalItem.application_revision < after.application_revision,
+                and_(
+                    ExternalItem.application_revision == after.application_revision,
+                    ExternalItem.id < after.revision_id,
+                ),
+            )
+        )
     rows = list(
         session.scalars(
-            _github_latest(request)
-            .order_by(ExternalItem.application_revision.desc(), ExternalItem.id.desc())
-            .limit(request.page_size + 1)
+            statement.order_by(
+                ExternalItem.application_revision.desc(), ExternalItem.id.desc()
+            ).limit(request.page_size + 1)
         )
     )
-    return [
+    items = [
         ContextItem(
             family=ContextFamily.GITHUB,
             kind=ContextKind(item.resource_type),
@@ -235,25 +282,46 @@ def _github_items(session: Session, request: ContextHubQuery) -> list[ContextIte
         )
         for item in rows[: request.page_size]
     ]
+    position = items[-1].position if items else after
+    assert position is None or isinstance(position, GitHubPosition)
+    return items, len(rows) <= request.page_size, position
 
 
-def _calendar_items(session: Session, request: ContextHubQuery) -> list[ContextItem]:
+def _calendar_items(
+    session: Session, request: ContextHubQuery, after: CalendarPosition | None = None
+) -> tuple[list[ContextItem], bool, CalendarPosition | None]:
     scope = calendar_query.CalendarExternalScope(request.scope.project_id)
     statement = calendar_query._latest_positive_query(scope)
     if request.query:
         statement = statement.where(
             CalendarEventRevision.title.ilike(f"%{request.query}%")
         )
+    if after is not None:
+        statement = statement.where(
+            or_(
+                CalendarEventRevision.application_revision < after.application_revision,
+                and_(
+                    CalendarEventRevision.application_revision
+                    == after.application_revision,
+                    CalendarEventRevision.id < after.revision_id,
+                ),
+            )
+        )
     rows = list(
         session.scalars(
             statement.order_by(
                 CalendarEventRevision.application_revision.desc(),
                 CalendarEventRevision.id.desc(),
-            ).limit(MAX_FAMILY_WORK)
+            ).limit(MAX_FAMILY_WORK + 1)
         )
     )
     items: list[ContextItem] = []
-    for event in rows:
+    last_scanned = after
+    scan_exhausted = len(rows) <= MAX_FAMILY_WORK
+    for event in rows[:MAX_FAMILY_WORK]:
+        last_scanned = CalendarPosition(
+            application_revision=event.application_revision, revision_id=event.id
+        )
         state, _, evidence_run_id = calendar_query.effective_evidence(session, event)
         typed_state = ContextState(state)
         if request.states and typed_state not in request.states:
@@ -284,30 +352,108 @@ def _calendar_items(session: Session, request: ContextHubQuery) -> list[ContextI
         )
         if len(items) == request.page_size:
             break
-    return items
+    return items, scan_exhausted and len(items) < request.page_size, last_scanned
 
 
-def query_context(session: Session, request: ContextHubQuery) -> ContextHubResult:
+def query_context_page(
+    session: Session,
+    request: ContextHubQuery,
+    positions: dict[ContextFamily, ContextPosition | None] | None = None,
+    prior_exhausted: dict[ContextFamily, bool] | None = None,
+) -> tuple[ContextHubResult, dict[ContextFamily, ContextPosition | None]]:
     """Federate fixed-order, bounded database-only family reads."""
     _require_scope(session, request.scope)
-    adapters = {
-        ContextFamily.LOCAL_SOURCE: _local_items,
-        ContextFamily.GITHUB: _github_items,
-        ContextFamily.GOOGLE_CALENDAR: _calendar_items,
-    }
-    groups = []
+    groups: list[ContextFamilyResult] = []
+    items: list[ContextItem]
+    next_positions: dict[ContextFamily, ContextPosition | None] = {}
     for family in FAMILY_ORDER:
         if not _family_enabled(request, family):
             continue
-        items = adapters[family](session, request)
+        if prior_exhausted and prior_exhausted.get(family, False):
+            items, exhausted, position = (
+                [],
+                True,
+                positions.get(family) if positions else None,
+            )
+        else:
+            after = positions.get(family) if positions else None
+            if family == ContextFamily.LOCAL_SOURCE:
+                assert after is None or isinstance(after, LocalSourcePosition)
+                items, exhausted, position = _local_items(session, request, after)
+            elif family == ContextFamily.GITHUB:
+                assert after is None or isinstance(after, GitHubPosition)
+                items, exhausted, position = _github_items(session, request, after)
+            else:
+                assert after is None or isinstance(after, CalendarPosition)
+                items, exhausted, position = _calendar_items(session, request, after)
         groups.append(
             ContextFamilyResult(
                 family=family,
                 items=tuple(items),
-                exhausted=len(items) < request.page_size,
+                exhausted=exhausted,
             )
         )
-    return ContextHubResult(groups=tuple(groups))
+        next_positions[family] = position
+    return ContextHubResult(groups=tuple(groups)), next_positions
+
+
+def query_context(session: Session, request: ContextHubQuery) -> ContextHubResult:
+    """Preserve the CP110 first-page internal contract."""
+    result, _ = query_context_page(session, request)
+    return result
+
+
+def facet_context(session: Session, request: ContextHubQuery) -> ContextHubFacets:
+    """Return closed request-time buckets over the same bounded query domain."""
+    _require_scope(session, request.scope)
+    counts: dict[str, dict[str, int]] = {
+        "families": {},
+        "kinds": {},
+        "trust": {},
+        "states": {},
+    }
+    positions: dict[ContextFamily, ContextPosition | None] = {}
+    exhausted: dict[ContextFamily, bool] = {}
+    seen = 0
+    facet_request = request.model_copy(update={"page_size": 50})
+    while seen < MAX_FAMILY_WORK * len(request.families):
+        page, positions = query_context_page(
+            session, facet_request, positions, exhausted
+        )
+        added = 0
+        for group in page.groups:
+            exhausted[group.family] = group.exhausted
+            for item in group.items:
+                added += 1
+                seen += 1
+                for bucket, value in (
+                    ("families", item.family.value),
+                    ("kinds", item.kind.value),
+                    ("trust", item.trust.value),
+                    ("states", item.state.value),
+                ):
+                    counts[bucket][value] = counts[bucket].get(value, 0) + 1
+        if all(exhausted.get(family, False) for family in request.families):
+            break
+        if added == 0 and not any(positions.values()):
+            break
+    active = [family for family in request.families if _family_enabled(request, family)]
+    if not all(exhausted.get(family, False) for family in active):
+        raise ContextFacetLimitError
+
+    def buckets(name: str) -> tuple[FacetBucket, ...]:
+        return tuple(
+            FacetBucket(value=value, count=count)
+            for value, count in sorted(counts[name].items())
+        )
+
+    return ContextHubFacets(
+        observed_at=datetime.now(UTC),
+        families=buckets("families"),
+        kinds=buckets("kinds"),
+        trust=buckets("trust"),
+        states=buckets("states"),
+    )
 
 
 def reopen_context(

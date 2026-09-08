@@ -661,4 +661,14 @@ UUID descending. Typed reopen references revalidate complete local, GitHub, or
 Calendar evidence lineage under the same scope. The service adds no route, UI,
 cursor surface, persistence, migration, provider/credential/model/embedding
 access, Tool, Agent, Automation, import, refresh, write, or export authority.
-CP111 has not started.
+Checkpoint 110 is approved and complete after human review. Checkpoint 111
+exposes the same foundation through loopback-only `POST /context-hub/query`,
+`POST /context-hub/detail`, and `POST /context-hub/facets`. Its closed public
+models use confidential authenticated version-1 cursor and reopen tokens bound
+to exact scope and request semantics. Pagination applies the native CP110
+keysets independently per family; facets are bounded request-time observations.
+Every route starts a PostgreSQL read-only transaction and rolls it back. No
+provider, credential-store, model, embedding, mutation, import, refresh,
+scheduling, Tool, Agent, Automation, export, persistence, migration, index, or
+schema authority is added. CP111 is implemented and pending human review;
+CP112 has not started.

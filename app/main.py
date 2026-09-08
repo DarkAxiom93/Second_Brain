@@ -23,10 +23,18 @@ def create_app() -> FastAPI:
     ) -> Response:
         # Pydantic's normal 422 body echoes rejected input. Connector input may be
         # secret-shaped, so this boundary returns one closed content-free error.
-        if request.url.path.startswith(("/connector-accounts", "/calendar-accounts")):
+        if request.url.path.startswith(
+            ("/connector-accounts", "/calendar-accounts", "/context-hub")
+        ):
             return JSONResponse(
                 status_code=422,
-                content={"detail": "invalid connector account request"},
+                content={
+                    "detail": (
+                        "invalid context hub request"
+                        if request.url.path.startswith("/context-hub")
+                        else "invalid connector account request"
+                    )
+                },
             )
         return await request_validation_exception_handler(request, exc)
 

@@ -13,6 +13,7 @@ from app.api.routes.calendar_accounts import router as calendar_accounts_router
 from app.api.routes.calendar_events import router as calendar_events_router
 from app.api.routes.connector_schedules import router as connector_schedules_router
 from app.api.routes.connectors import router as connectors_router
+from app.api.routes.context_hub import router as context_hub_router
 from app.api.routes.health import router as health_router
 from app.api.routes.memories import router as memories_router
 from app.api.routes.memory_embedding_batches import router as embedding_batches_router
@@ -32,6 +33,7 @@ api_router.include_router(automation_notifications_router)
 api_router.include_router(calendar_accounts_router)
 api_router.include_router(calendar_events_router)
 api_router.include_router(connectors_router)
+api_router.include_router(context_hub_router)
 api_router.include_router(connector_schedules_router)
 api_router.include_router(health_router)
 api_router.include_router(readiness_router)

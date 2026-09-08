@@ -1,10 +1,13 @@
 """Checkpoint 110 PostgreSQL federation, isolation, and provenance coverage."""
 
+import hashlib
 import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.calendar.identity import occurrence_identity
@@ -12,8 +15,10 @@ from app.connectors.validation import snapshot_content_hash
 from app.context_hub.models import ContextFamily, ContextHubQuery, ContextScope
 from app.context_hub.service import ContextNotFoundError, query_context, reopen_context
 from app.db.session import get_engine
+from app.main import create_app
 from app.models.calendar import (
     CalendarAccountRevision,
+    CalendarEventObservation,
     CalendarEventRevision,
     CalendarIdentity,
     CalendarSyncRun,
@@ -40,6 +45,87 @@ from app.repositories.connectors import (
     create_sync_run,
     record_item_revision,
 )
+
+
+def _cleanup_api_scopes(project_ids: tuple[uuid.UUID, ...]) -> None:
+    """Remove only the exact synthetic scopes owned by one API test."""
+    with Session(get_engine()) as session:
+        calendar_run_ids = tuple(
+            session.scalars(
+                select(CalendarSyncRun.id).where(
+                    CalendarSyncRun.project_id.in_(project_ids)
+                )
+            )
+        )
+        account_revision_ids = tuple(
+            session.scalars(
+                select(CalendarAccountRevision.id).where(
+                    CalendarAccountRevision.project_id.in_(project_ids)
+                )
+            )
+        )
+        memory_ids = tuple(
+            session.scalars(select(Memory.id).where(Memory.project_id.in_(project_ids)))
+        )
+        source_ids = tuple(
+            session.scalars(
+                select(MemorySource.source_id).where(
+                    MemorySource.memory_id.in_(memory_ids)
+                )
+            )
+        )
+        document_ids = tuple(
+            session.scalars(
+                select(SourceDocument.id).where(
+                    SourceDocument.source_id.in_(source_ids)
+                )
+            )
+        )
+        session.execute(
+            delete(CalendarEventObservation).where(
+                CalendarEventObservation.sync_run_id.in_(calendar_run_ids)
+            )
+        )
+        session.execute(
+            delete(CalendarEventRevision).where(
+                CalendarEventRevision.project_id.in_(project_ids)
+            )
+        )
+        session.execute(
+            delete(CalendarSyncRun).where(CalendarSyncRun.project_id.in_(project_ids))
+        )
+        session.execute(
+            delete(CalendarIdentity).where(
+                CalendarIdentity.account_revision_id.in_(account_revision_ids)
+            )
+        )
+        session.execute(
+            delete(CalendarAccountRevision).where(
+                CalendarAccountRevision.project_id.in_(project_ids)
+            )
+        )
+        session.execute(
+            delete(ExternalItem).where(ExternalItem.project_id.in_(project_ids))
+        )
+        session.execute(
+            delete(ConnectorSyncRun).where(ConnectorSyncRun.project_id.in_(project_ids))
+        )
+        session.execute(
+            delete(ConnectorAccount).where(ConnectorAccount.project_id.in_(project_ids))
+        )
+        session.execute(
+            delete(SourceChunk).where(SourceChunk.document_id.in_(document_ids))
+        )
+        session.execute(
+            delete(SourceDocument).where(SourceDocument.source_id.in_(source_ids))
+        )
+        session.execute(
+            delete(MemorySource).where(MemorySource.memory_id.in_(memory_ids))
+        )
+        session.execute(delete(Source).where(Source.id.in_(source_ids)))
+        session.execute(delete(Memory).where(Memory.id.in_(memory_ids)))
+        session.execute(delete(Project).where(Project.id.in_(project_ids)))
+        session.commit()
 
 
 def _seed_scope(session: Session, project_id: uuid.UUID | None, label: str) -> None:
@@ -69,7 +155,9 @@ def _seed_scope(session: Session, project_id: uuid.UUID | None, label: str) -> N
         session,
         ConnectorAccount(
             external_account_id=f"account:{label}",
-            external_account_fingerprint=("a" if label == "a" else "b") * 64,
+            external_account_fingerprint=hashlib.sha256(
+                f"github:{label}".encode()
+            ).hexdigest(),
             credential_reference=f"sbcred:v1:{uuid.uuid4()}",
             project_id=project_id,
             resource_allowlist=[f"owner/repo-{label}"],
@@ -118,7 +206,9 @@ def _seed_scope(session: Session, project_id: uuid.UUID | None, label: str) -> N
         CalendarAccountRevision(
             configuration_id=uuid.uuid4(),
             configuration_revision=1,
-            account_fingerprint=("d" if label == "a" else "e") * 64,
+            account_fingerprint=hashlib.sha256(
+                f"calendar:{label}".encode()
+            ).hexdigest(),
             credential_reference=f"sbcred:v1:{uuid.uuid4()}",
             project_id=project_id,
         ),
@@ -230,3 +320,129 @@ def test_explicit_unassigned_isolation(migrated_test_database: None) -> None:
             "calendar-u",
         ]
         session.rollback()
+
+
+def test_context_hub_api_paginates_reopens_facets_and_rejects_replay(
+    migrated_test_database: None,
+) -> None:
+    with Session(get_engine()) as session:
+        project = Project(name="hub-api-" + uuid.uuid4().hex)
+        other = Project(name="hub-other-" + uuid.uuid4().hex)
+        session.add_all((project, other))
+        session.flush()
+        _seed_scope(session, project.id, "a")
+        _seed_scope(session, project.id, "b")
+        _seed_scope(session, other.id, "u")
+        session.commit()
+        project_id = str(project.id)
+        other_id = str(other.id)
+
+    try:
+        client = TestClient(create_app(), client=("127.0.0.1", 50000))
+        body = {"scope": {"project_id": project_id}, "page_size": 1}
+        first = client.post("/context-hub/query", json=body)
+        assert first.status_code == 200
+        first_body = first.json()
+        assert [group["family"] for group in first_body["groups"]] == [
+            "local_source",
+            "github",
+            "google_calendar",
+        ]
+        assert all(len(group["items"]) == 1 for group in first_body["groups"])
+        assert first_body["next_cursor"]
+        assert "account:" not in first.text and "sbcred:" not in first.text
+
+        pages = [first_body]
+        cursor = first_body["next_cursor"]
+        while cursor is not None:
+            response = client.post(
+                "/context-hub/query", json={**body, "cursor": cursor}
+            )
+            assert response.status_code == 200
+            pages.append(response.json())
+            cursor = pages[-1]["next_cursor"]
+            assert len(pages) <= 4
+        first_ids = {
+            item["reopen_id"]
+            for group in first_body["groups"]
+            for item in group["items"]
+        }
+        second_ids = {
+            item["reopen_id"] for group in pages[1]["groups"] for item in group["items"]
+        }
+        assert first_ids.isdisjoint(second_ids)
+        all_ids = [
+            item["reopen_id"]
+            for page in pages
+            for group in page["groups"]
+            for item in group["items"]
+        ]
+        assert len(all_ids) == len(set(all_ids)) == 6
+
+        item = first_body["groups"][1]["items"][0]
+        detail = client.post(
+            "/context-hub/detail",
+            json={
+                "scope": {"project_id": project_id},
+                "family": item["family"],
+                "reopen_id": item["reopen_id"],
+            },
+        )
+        assert detail.status_code == 200 and detail.json() == item
+        forged = client.post(
+            "/context-hub/detail",
+            json={
+                "scope": {"project_id": other_id},
+                "family": item["family"],
+                "reopen_id": item["reopen_id"],
+            },
+        )
+        assert forged.status_code == 404
+        wrong_family = client.post(
+            "/context-hub/detail",
+            json={
+                "scope": {"project_id": project_id},
+                "family": "local_source",
+                "reopen_id": item["reopen_id"],
+            },
+        )
+        assert wrong_family.status_code == 404
+
+        facets = client.post(
+            "/context-hub/facets", json={"scope": {"project_id": project_id}}
+        )
+        assert facets.status_code == 200
+        assert facets.json()["families"] == [
+            {"value": "github", "count": 2},
+            {"value": "google_calendar", "count": 2},
+            {"value": "local_source", "count": 2},
+        ]
+        replay = client.post(
+            "/context-hub/query",
+            json={
+                "scope": {"project_id": other_id},
+                "page_size": 1,
+                "cursor": first_body["next_cursor"],
+            },
+        )
+        assert replay.status_code == 422
+        malformed = client.post(
+            "/context-hub/query", json={**body, "cursor": "not-a-cursor"}
+        )
+        assert malformed.status_code == 422
+        missing_scope = client.post("/context-hub/query", json={})
+        both_scope = client.post(
+            "/context-hub/query",
+            json={"scope": {"project_id": project_id, "unassigned": True}},
+        )
+        assert missing_scope.status_code == both_scope.status_code == 422
+        assert missing_scope.json() == {"detail": "invalid context hub request"}
+    finally:
+        _cleanup_api_scopes((project.id, other.id))
+
+
+def test_context_hub_rejects_non_loopback_before_database() -> None:
+    response = TestClient(create_app()).post(
+        "/context-hub/query", json={"scope": {"unassigned": True}}
+    )
+    assert response.status_code == 403
