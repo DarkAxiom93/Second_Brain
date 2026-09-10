@@ -48,5 +48,6 @@ strict = true
 files = ["app"]
 
 [tool.pytest.ini_options]
+markers = ["cp113_security: requires the exact CP113 PostgreSQL security gate"]
 testpaths = ["tests"]
 addopts = "-ra"

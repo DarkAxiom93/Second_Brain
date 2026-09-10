@@ -119,6 +119,8 @@ history. A dash means Alembic had not yet been introduced.
 | 109 | Local V1.6 Unified Read-only Context Hub architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0016_calendar_event_observations` | This commit |
 | 110 | Federated read/query contract and backend foundation | Approved and complete after human review | `0016_calendar_event_observations` | `f5f3afa` |
 | 111 | Context Hub API and typed pagination/filtering | Implemented; pending human review | `0016_calendar_event_observations` | This commit |
+| 112 | Accessible Unified Context Hub frontend | Approved and complete after human review | `0016_calendar_event_observations` | `e1740a0` |
+| 113 | Context Hub security and evaluation gate | Implemented; pending human review; U01-U18 green | `0016_calendar_event_observations` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -227,8 +229,12 @@ provenance; native keysets preserve family order without offsets. All routes
 use explicit PostgreSQL read-only transactions. CP111 is approved and complete
 after human review. CP112 implements the accessible single-route `/context-hub`
 frontend with explicit scope submission, fixed family disclosure, exact facets,
-request-bound pagination, and in-page opaque reopen. CP112 is implemented and
-pending human review; CP113 has not started.
+request-bound pagination, and in-page opaque reopen. CP112 is approved and
+complete after human review. CP113 adds an ordered code-owned U01-U18 manifest,
+bounded hostile corpus, deterministic backend/UI evidence, identity/authority/
+export scans, protected-domain snapshots, and a PostgreSQL event-barrier
+interleaving. CP113 is implemented and pending human review; CP114 has not
+started.
 
 ## Standard lifecycle
 

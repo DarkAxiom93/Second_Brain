@@ -81,6 +81,32 @@ describe("Context Hub", () => {
     await userEvent.click(close); expect(open).toHaveFocus(); expect(bodyOf(fetchMock.mock.calls[3])).toEqual({ scope, family: "github", reopen_id: token });
   });
 
+  it("contains the complete hostile rendering corpus without execution navigation or label spoofing", async () => {
+    const corpus = ["<img src=x onerror=alert(1)>", "<svg onload=alert(1)>", "[tool](javascript:alert(1))", "![track](data:text/html,boom)", "\u202ESettings\u2066trusted\u2069", "C0:\u0001 C1:\u0085", "confusable cÐ¾ntext-hub", "x".repeat(4000)];
+    const hostileItem = item("google_calendar", { title: corpus[0], text: corpus.join(" | "), trust: "local_audited", state: "deleted" });
+    const page = { contract_version: "context-hub-v1", groups: [{ family: "local_source", items: [], exhausted: true }, { family: "github", items: [], exhausted: true }, { family: "google_calendar", items: [hostileItem], exhausted: true }], next_cursor: null };
+    const fetchMock = vi.fn().mockResolvedValueOnce(response(projects)).mockResolvedValueOnce(response(page)).mockResolvedValueOnce(response(facets)); vi.stubGlobal("fetch", fetchMock); renderHub();
+    await userEvent.selectOptions(await screen.findByLabelText("Exact scope"), projectId); await userEvent.click(screen.getByRole("button", { name: "Search context" }));
+    await screen.findByRole("button", { name: "Open exact Calendar event detail" });
+    expect(document.querySelector("script, img, svg, style, iframe")).toBeNull();
+    expect(screen.getAllByRole("link").every((link) => !/javascript:|data:/i.test(link.getAttribute("href") ?? ""))).toBe(true);
+    expect(window.location.pathname).toBe("/"); expect((globalThis as { cp113Executed?: boolean }).cp113Executed).toBeUndefined();
+    expect(screen.getByText("Quarantined external")).toBeInTheDocument(); expect(screen.getByText("Current")).toBeInTheDocument();
+    for (const forbidden of ["Refresh", "Import", "Schedule", "Write"]) expect(screen.queryByRole("button", { name: new RegExp(forbidden, "i") })).not.toBeInTheDocument();
+  });
+
+  it("keeps excluded privacy and capability canaries out of the DOM", async () => {
+    const canaries = ["cp113-credential-canary", "cp113-provider-canary", "cp113-private-canary", "cp113-config-canary"];
+    const safeItem = item("github", { title: "safe", text: "safe" });
+    const page = { contract_version: "context-hub-v1", groups: [{ family: "local_source", items: [], exhausted: true }, { family: "github", items: [safeItem], exhausted: true }, { family: "google_calendar", items: [], exhausted: true }], next_cursor: "opaque-cursor" };
+    const fetchMock = vi.fn().mockResolvedValueOnce(response(projects)).mockResolvedValueOnce(response(page)).mockResolvedValueOnce(response(facets)).mockResolvedValueOnce(response({}, 404)); vi.stubGlobal("fetch", fetchMock); renderHub();
+    await userEvent.selectOptions(await screen.findByLabelText("Exact scope"), projectId); await userEvent.click(screen.getByRole("button", { name: "Search context" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open exact Issue detail" })); await screen.findByRole("alert");
+    const serialized = document.documentElement.textContent + document.documentElement.innerHTML;
+    for (const canary of canaries) expect(serialized).not.toContain(canary);
+    expect(serialized).not.toContain(token); expect(serialized).not.toContain("opaque-cursor");
+  });
+
   it("announces exact facet-limit, loading, empty, and safe error states without adding authority controls", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(response(projects)).mockResolvedValueOnce(response(emptyPage())).mockResolvedValueOnce(response({}, 422)); vi.stubGlobal("fetch", fetchMock); renderHub();
     await userEvent.selectOptions(await screen.findByLabelText("Exact scope"), projectId); await userEvent.click(screen.getByRole("button", { name: "Search context" }));

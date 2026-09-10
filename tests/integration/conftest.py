@@ -28,12 +28,25 @@ def validate_test_database_url(database_url: str) -> str:
     return database_url
 
 
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    config._cp113_security_selected = any(  # type: ignore[attr-defined]
+        item.get_closest_marker("cp113_security") is not None for item in items
+    )
+
+
 @pytest.fixture(scope="session")
-def test_database_url() -> str:
+def test_database_url(pytestconfig: pytest.Config) -> str:
     """Load the explicit test URL without falling back to DATABASE_URL."""
 
     value = os.environ.get("TEST_DATABASE_URL")
     if value is None:
+        if getattr(pytestconfig, "_cp113_security_selected", False):
+            pytest.fail(
+                "CP113 security tests require TEST_DATABASE_URL=second_brain_test",
+                pytrace=False,
+            )
         pytest.skip("TEST_DATABASE_URL is required for PostgreSQL integration tests")
     return validate_test_database_url(value)
 

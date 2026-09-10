@@ -679,4 +679,10 @@ inside the same route. All content is React-rendered inert text with bidi and
 overflow containment; no token enters the DOM, URL, or browser storage. The UI
 adds no provider link, polling, refresh, import, scheduling, write, Agent,
 Automation, registry, export, persistence, migration, or backend authority.
-CP112 is implemented and pending human review; CP113 has not started.
+CP112 is approved and complete after human review. Checkpoint 113 adds only the
+deterministic U01-U18 evaluation boundary: an exact code-owned manifest,
+bounded adversarial corpus, backend/UI evidence, provider/credential/network/
+model omission scans, protected-domain snapshots, stable registry/export/schema
+identity checks, and PostgreSQL event-barrier reconciliation coverage. It adds
+no production capability. CP113 is implemented and pending human review; CP114
+has not started.

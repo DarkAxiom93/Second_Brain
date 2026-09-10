@@ -317,4 +317,8 @@ transactions. It adds no persistence or authority. CP111 is approved and
 complete after human review. CP112 adds the accessible single-route Context Hub
 frontend over those three APIs, with explicit scope submission, inert content,
 fixed family disclosure, exact facets, request-bound pagination, and in-page
-detail. CP112 is implemented and pending human review; CP113 has not started.
+detail. CP112 is approved and complete after human review. CP113 implements the
+deterministic U01-U18 release gate with unique mapped nodes, a bounded hostile
+corpus, protected-domain and authority/identity proofs, and PostgreSQL
+event-barrier concurrency evidence. CP113 is implemented and pending human
+review; CP114 has not started.

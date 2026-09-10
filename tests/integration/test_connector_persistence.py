@@ -279,6 +279,7 @@ def test_external_content_is_inert_and_protected_domains_do_not_mutate(
         session.rollback()
 
 
+@pytest.mark.cp113_security
 def test_project_export_v1_excludes_all_connector_data(tmp_path: Path) -> None:
     reference = "sbcred:v1:22345678-1234-4123-8123-123456789abc"
     with Session(get_engine()) as session:

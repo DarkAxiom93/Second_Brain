@@ -268,6 +268,7 @@ def test_observation_uniqueness_and_cross_lineage_substitution_fail_closed() -> 
             )
 
 
+@pytest.mark.cp113_security
 def test_export_v1_excludes_calendar_and_secret_canary(tmp_path: Path) -> None:
     canary = "sbcred:v1:32345678-1234-4123-8123-123456789abc"
     with Session(get_engine()) as session:
