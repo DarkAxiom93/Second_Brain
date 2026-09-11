@@ -233,8 +233,12 @@ request-bound pagination, and in-page opaque reopen. CP112 is approved and
 complete after human review. CP113 adds an ordered code-owned U01-U18 manifest,
 bounded hostile corpus, deterministic backend/UI evidence, identity/authority/
 export scans, protected-domain snapshots, and a PostgreSQL event-barrier
-interleaving. CP113 is implemented and pending human review; CP114 has not
-started.
+interleaving. CP113 is implemented and pending human review. CP114 adds the
+joined real-route/PostgreSQL/frontend acceptance for pagination, filters,
+facets, immutable detail, native reconciliation, restart, hostile content,
+three-scope isolation, accessibility, authority omissions, protected-domain
+zero delta, and export-v1 compatibility. CP114 is implemented and pending
+human review; CP115 has not started.
 
 ## Standard lifecycle
 

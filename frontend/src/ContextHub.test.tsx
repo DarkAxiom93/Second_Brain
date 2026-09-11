@@ -114,4 +114,36 @@ describe("Context Hub", () => {
     for (const forbidden of ["Refresh", "Import", "Schedule", "Write"]) expect(screen.queryByRole("button", { name: new RegExp(forbidden, "i") })).not.toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Families" })).toBeInTheDocument(); expect(screen.getByRole("main")).toBeInTheDocument();
   });
+
+  it("completes the CP114 hostile keyboard detail and pagination journey without capability leakage", async () => {
+    const hostile = `<script>cp114=1</script> [go](javascript:alert(1)) \u202E Settings ${"x".repeat(1200)}`;
+    const page = { contract_version: "context-hub-v1", groups: [
+      { family: "local_source", items: [item("local_source", { title: hostile, text: hostile })], exhausted: false },
+      { family: "github", items: [item("github", { title: hostile, text: hostile, reopen_id: `${token}-github` })], exhausted: false },
+      { family: "google_calendar", items: [item("google_calendar", { title: hostile, text: hostile, reopen_id: `${token}-calendar` })], exhausted: false },
+    ], next_cursor: "cp114-opaque-cursor" };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response(projects))
+      .mockResolvedValueOnce(response(page))
+      .mockResolvedValueOnce(response(facets))
+      .mockResolvedValueOnce(response(page.groups[0].items[0]))
+      .mockResolvedValueOnce(response(emptyPage()));
+    vi.stubGlobal("fetch", fetchMock); renderHub();
+    await userEvent.selectOptions(await screen.findByLabelText("Exact scope"), projectId);
+    await userEvent.click(screen.getByRole("button", { name: "Search context" }));
+    expect((await screen.findAllByText(hostile)).length).toBeGreaterThan(0);
+    expect(document.querySelector("script, img, svg, iframe")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Results" }).parentElement).toHaveAttribute("aria-busy", "false");
+    const open = screen.getByRole("button", { name: "Open exact Source chunk detail" });
+    open.focus(); await userEvent.keyboard("{Enter}");
+    const close = await screen.findByRole("button", { name: "Close detail and return to result" });
+    await userEvent.click(close); expect(open).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Load next page" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    expect(bodyOf(fetchMock.mock.calls[4])).toMatchObject({ scope, cursor: "cp114-opaque-cursor" });
+    expect(document.body.innerHTML).not.toContain(token);
+    expect(document.body.innerHTML).not.toContain("cp114-opaque-cursor");
+    expect(localStorage.length).toBe(0); expect(sessionStorage.length).toBe(0);
+    expect(screen.queryByRole("link", { name: /javascript|go/i })).not.toBeInTheDocument();
+  });
 });

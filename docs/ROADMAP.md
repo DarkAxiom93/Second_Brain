@@ -321,4 +321,7 @@ detail. CP112 is approved and complete after human review. CP113 implements the
 deterministic U01-U18 release gate with unique mapped nodes, a bounded hostile
 corpus, protected-domain and authority/identity proofs, and PostgreSQL
 event-barrier concurrency evidence. CP113 is implemented and pending human
-review; CP114 has not started.
+review. CP114 implements the joined three-family Local V1.6 acceptance,
+including restart, isolation, hostile UI, native reconciliation, authority
+tripwires, protected-domain snapshots, and export-v1 omission. CP114 is
+implemented and pending human review; CP115 has not started.

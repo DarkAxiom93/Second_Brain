@@ -5,7 +5,9 @@ import json
 import socket
 import threading
 import uuid
+import zipfile
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import httpx
 import pytest
@@ -51,6 +53,12 @@ from app.models.project import Project
 from app.models.source import Source
 from app.models.source_chunk import SourceChunk
 from app.models.source_document import SourceDocument
+from app.project_export.models import (
+    CURRENT_DATABASE_REVISION,
+    FORMAT_NAME,
+    FORMAT_VERSION,
+)
+from app.project_export.service import DATA_FILES, export_project
 from app.repositories.calendar import (
     create_account_revision,
     create_calendar_identity,
@@ -2037,3 +2045,320 @@ def test_u18_calendar_and_scope_commits_make_detail_exact_or_fail_closed(
         proceed.set()
         thread.join(timeout=10)
         _cleanup_api_scopes((project_id, other_id))
+
+
+def test_cp114_joined_three_family_restart_isolation_and_export_acceptance(
+    migrated_test_database: None,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Accept the complete Hub as one read-only journey over three native domains."""
+    from app.agent_tools.registry import AGENT_TOOL_REGISTRY, REGISTRY_VERSION
+    from app.models import (
+        AgentEvent,
+        AgentRun,
+        AgentStep,
+        ApprovalRequest,
+        Automation,
+        AutomationNotification,
+        AutomationOccurrence,
+        ExternalItemImport,
+        MemoryEmbedding,
+        MemoryExtractionRun,
+        MemoryProposal,
+        ToolInvocation,
+    )
+
+    hostile = "<script>cp114</script> [run](javascript:cp114) \u202e Settings " + (
+        "x" * 1200
+    )
+    hostile_title = hostile[:480]
+    hostile_source_name = hostile[:240]
+    unassigned_seeds: list[dict[str, uuid.UUID]] = []
+    with Session(get_engine()) as session:
+        project_a = Project(name="cp114-a-" + uuid.uuid4().hex)
+        project_b = Project(name="cp114-b-" + uuid.uuid4().hex)
+        session.add_all((project_a, project_b))
+        session.flush()
+        seeds_a = (
+            _seed_scope(session, project_a.id, "cp114_collision_1"),
+            _seed_scope(session, project_a.id, "cp114_hostile"),
+        )
+        _seed_scope(session, project_b.id, "cp114_b_collision_1")
+        _seed_scope(session, project_b.id, "cp114_b_2")
+        unassigned_seeds.extend(
+            (
+                _seed_scope(session, None, "cp114_u_collision_1"),
+                _seed_scope(session, None, "cp114_u_2"),
+            )
+        )
+        hostile_source = session.get(Source, seeds_a[1]["source"])
+        hostile_document = session.get(SourceDocument, seeds_a[1]["document"])
+        hostile_chunk = session.get(SourceChunk, seeds_a[1]["chunk"])
+        hostile_github = session.get(ExternalItem, seeds_a[1]["external_item"])
+        hostile_calendar = session.get(
+            CalendarEventRevision, seeds_a[1]["calendar_event"]
+        )
+        assert all(
+            (
+                hostile_source,
+                hostile_document,
+                hostile_chunk,
+                hostile_github,
+                hostile_calendar,
+            )
+        )
+        hostile_source.name = hostile_source_name  # type: ignore[union-attr]
+        hostile_document.extracted_text = hostile  # type: ignore[union-attr]
+        hostile_chunk.content = hostile  # type: ignore[union-attr]
+        hostile_chunk.char_end = len(hostile)  # type: ignore[union-attr]
+        hostile_chunk.content_hash = hashlib.sha256(hostile.encode()).hexdigest()  # type: ignore[union-attr]
+        hostile_github.title = hostile_title  # type: ignore[union-attr]
+        hostile_github.body = json.dumps(
+            {"body": hostile, "number": 1, "state": "open"}
+        )  # type: ignore[union-attr]
+        hostile_github.content_hash = snapshot_content_hash(  # type: ignore[union-attr]
+            hostile_title,
+            hostile_github.body,  # type: ignore[union-attr]
+        )
+        hostile_calendar.title = hostile_title  # type: ignore[union-attr]
+        hostile_calendar.content_hash = hashlib.sha256(  # type: ignore[union-attr]
+            hostile.encode()
+        ).hexdigest()
+        session.commit()
+        project_a_id, project_b_id = project_a.id, project_b.id
+
+    protected = (
+        Source,
+        SourceDocument,
+        SourceChunk,
+        Memory,
+        MemorySource,
+        ConnectorAccount,
+        ConnectorSyncRun,
+        ExternalItem,
+        CalendarAccountRevision,
+        CalendarIdentity,
+        CalendarSyncRun,
+        CalendarEventRevision,
+        CalendarEventObservation,
+        MemoryProposal,
+        MemoryEmbedding,
+        MemoryExtractionRun,
+        ExternalItemImport,
+        Automation,
+        AutomationOccurrence,
+        AutomationNotification,
+        AgentRun,
+        AgentStep,
+        AgentEvent,
+        ToolInvocation,
+        ApprovalRequest,
+    )
+
+    def scope(project_id: uuid.UUID | None) -> dict[str, object]:
+        return (
+            {"project_id": str(project_id), "unassigned": False}
+            if project_id is not None
+            else {"project_id": None, "unassigned": True}
+        )
+
+    def walk(
+        client: TestClient, selected: dict[str, object]
+    ) -> list[dict[str, object]]:
+        request: dict[str, object] = {"scope": selected, "page_size": 1}
+        pages: list[dict[str, object]] = []
+        while True:
+            response = client.post("/context-hub/query", json=request)
+            assert response.status_code == 200, response.text
+            page = response.json()
+            assert [group["family"] for group in page["groups"]] == [
+                "local_source",
+                "github",
+                "google_calendar",
+            ]
+            pages.append(page)
+            if page["next_cursor"] is None:
+                break
+            request["cursor"] = page["next_cursor"]
+            assert len(pages) < 5
+        items = [
+            item
+            for page in pages
+            for group in page["groups"]
+            for item in group["items"]
+        ]
+        assert len(items) == 6
+        assert len({item["reopen_id"] for item in items}) == 6
+        return items
+
+    try:
+        calls = _runtime_tripwires(monkeypatch)
+        before = _complete_rows(protected)
+        client = TestClient(create_app(), client=("127.0.0.1", 51140))
+        assert client.post("/context-hub/query", json={}).status_code == 422
+        assert (
+            client.post(
+                "/context-hub/query",
+                json={"scope": {"project_id": str(project_a_id), "unassigned": True}},
+            ).status_code
+            == 422
+        )
+
+        scope_items: dict[str, list[dict[str, object]]] = {}
+        for label, selected in (
+            ("a", scope(project_a_id)),
+            ("b", scope(project_b_id)),
+            ("u", scope(None)),
+        ):
+            items = walk(client, selected)
+            scope_items[label] = items
+            assert all(item["scope"] == selected for item in items)
+            assert {item["family"] for item in items} == {
+                "local_source",
+                "github",
+                "google_calendar",
+            }
+            assert {item["trust"] for item in items} == {
+                "local_audited",
+                "quarantined_external",
+            }
+            for item in items:
+                detail = client.post(
+                    "/context-hub/detail",
+                    json={
+                        "scope": selected,
+                        "family": item["family"],
+                        "reopen_id": item["reopen_id"],
+                    },
+                )
+                assert detail.status_code == 200 and detail.json() == item
+        assert not (
+            {item["reopen_id"] for item in scope_items["a"]}
+            & {item["reopen_id"] for item in scope_items["b"]}
+        )
+
+        first_a = client.post(
+            "/context-hub/query", json={"scope": scope(project_a_id), "page_size": 1}
+        ).json()
+        cursor = first_a["next_cursor"]
+        assert cursor
+        for changed in (
+            {"query": "changed"},
+            {"families": ["github"]},
+            {"kinds": ["issue"]},
+            {"trust": ["quarantined_external"]},
+            {"states": ["current"]},
+            {"page_size": 2},
+        ):
+            body = {
+                "scope": scope(project_a_id),
+                "page_size": 1,
+                "cursor": cursor,
+                **changed,
+            }
+            assert client.post("/context-hub/query", json=body).status_code == 422
+        assert (
+            client.post(
+                "/context-hub/query",
+                json={"scope": scope(project_b_id), "page_size": 1, "cursor": cursor},
+            ).status_code
+            == 422
+        )
+        exact = scope_items["a"][0]
+        assert (
+            client.post(
+                "/context-hub/detail",
+                json={
+                    "scope": scope(project_b_id),
+                    "family": exact["family"],
+                    "reopen_id": exact["reopen_id"],
+                },
+            ).status_code
+            == 404
+        )
+
+        for family, kind, trust, state in (
+            ("local_source", "source_chunk", "local_audited", "extracted"),
+            ("github", "issue", "quarantined_external", "current"),
+            ("google_calendar", "calendar_event", "quarantined_external", "current"),
+        ):
+            filters = {
+                "scope": scope(project_a_id),
+                "families": [family],
+                "kinds": [kind],
+                "trust": [trust],
+                "states": [state],
+            }
+            listed = client.post("/context-hub/query", json=filters).json()
+            assert [group["family"] for group in listed["groups"]] == [family]
+            assert len(listed["groups"][0]["items"]) == 2
+            facets = client.post("/context-hub/facets", json=filters).json()
+            assert facets["families"] == [{"value": family, "count": 2}]
+            assert facets["kinds"] == [{"value": kind, "count": 2}]
+            assert facets["trust"] == [{"value": trust, "count": 2}]
+            assert facets["states"] == [{"value": state, "count": 2}]
+
+        hostile_response = json.dumps(scope_items["a"], ensure_ascii=False)
+        assert "<script>cp114</script>" in hostile_response
+        assert "javascript:cp114" in hostile_response
+        assert "sbcred:" not in hostile_response
+
+        canonical = [
+            (item["family"], item["kind"], item["title"], item["text"], item["state"])
+            for item in scope_items["a"]
+        ]
+        client.close()
+        restarted = TestClient(create_app(), client=("127.0.0.1", 51141))
+        restarted_items = walk(restarted, scope(project_a_id))
+        assert [
+            (item["family"], item["kind"], item["title"], item["text"], item["state"])
+            for item in restarted_items
+        ] == canonical
+        for item in restarted_items:
+            assert (
+                restarted.post(
+                    "/context-hub/detail",
+                    json={
+                        "scope": scope(project_a_id),
+                        "family": item["family"],
+                        "reopen_id": item["reopen_id"],
+                    },
+                ).status_code
+                == 200
+            )
+
+        output = tmp_path / "cp114-export.zip"
+        with Session(get_engine()) as session:
+            result = export_project(
+                session,
+                project_a_id,
+                output,
+                source_alembic_revision=CURRENT_DATABASE_REVISION,
+            )
+        assert result.format_version == FORMAT_VERSION == 1
+        with zipfile.ZipFile(output) as archive:
+            assert set(archive.namelist()) == {*DATA_FILES, "manifest.json"}
+            exported = b"".join(archive.read(name) for name in archive.namelist())
+            manifest = json.loads(archive.read("manifest.json"))
+        assert manifest["format_name"] == FORMAT_NAME == "second-brain-project-export"
+        assert manifest["format_version"] == 1
+        assert b"sbcred:" not in exported
+        assert b"account:cp114" not in exported
+        assert b"calendar-cp114" not in exported
+        assert b"context-hub-v1" not in exported
+        assert REGISTRY_VERSION == "agent-tools-v1"
+        assert AGENT_TOOL_REGISTRY.get_exact("context_hub.query", 1) is None
+        assert _complete_rows(protected) == before
+        assert calls == []
+    finally:
+        _cleanup_api_scopes((project_a_id, project_b_id))
+        for seed in unassigned_seeds:
+            _cleanup_exact_unassigned(seed)
+
+
+def test_cp114_native_reconciliation_acceptance(
+    migrated_test_database: None,
+) -> None:
+    """Re-run the native CP113 transition proof as an explicit CP114 gate."""
+    test_u09_native_github_and_calendar_state_is_preserved(migrated_test_database)

@@ -684,5 +684,10 @@ deterministic U01-U18 evaluation boundary: an exact code-owned manifest,
 bounded adversarial corpus, backend/UI evidence, provider/credential/network/
 model omission scans, protected-domain snapshots, stable registry/export/schema
 identity checks, and PostgreSQL event-barrier reconciliation coverage. It adds
-no production capability. CP113 is implemented and pending human review; CP114
-has not started.
+no production capability. CP113 is implemented and pending human review.
+Checkpoint 114 adds only joined acceptance evidence over the real Hub routes,
+PostgreSQL domains, and frontend harness. It covers three-family pagination,
+filter/facet/detail behavior, native reconciliation, restart, hostile content,
+Project/unassigned isolation, accessibility, zero-call/zero-delta authority
+tripwires, and export-v1 omission. It adds no production capability. CP114 is
+implemented and pending human review; CP115 has not started.
