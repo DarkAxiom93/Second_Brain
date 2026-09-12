@@ -1,6 +1,7 @@
 # Local V1.6 Unified Read-only Context Hub roadmap
 
-Status: **Approved after human review; Checkpoint 109 complete.**
+Status: **Implemented through Checkpoint 115; release candidate remains
+unpublished pending human approval.**
 
 This document defines the approved Local V1.6 architecture but authorizes no
 production implementation. Checkpoint 110 has not started and must not begin
@@ -204,6 +205,10 @@ omissions. No real provider or credential use.
 Run clean-install dependency/privacy/export/schema audits, Full verification,
 backup/restart/recovery, release-note/runbook updates, and exact candidate
 evidence. Tagging/publication remains a separate post-review action.
+
+CP115 completed these evidence and documentation gates without product,
+dependency, schema, migration, or authority changes. No tag or GitHub Release
+was created.
 
 ## Rollback and compatibility
 

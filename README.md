@@ -157,6 +157,16 @@ Read the [V1.5 release notes](docs/LOCAL_V1_5_RELEASE_NOTES.md) for its exact
 read-only Calendar boundary, verification, recovery guidance, residual risk,
 and deliberate omissions.
 
+### Local V1.6 release candidate
+
+Local V1.6 is prepared but not published. It adds a Unified Read-only Context
+Hub over existing audited local Sources, quarantined GitHub context, and
+quarantined Google Calendar context. Every read uses one exact Project or
+explicit unassigned scope, fixed family grouping, native provenance/state, and
+local PostgreSQL reads only. It adds no provider call, Hub Tool, Agent or
+Automation authority, import, refresh, scheduling, write path, persistence, or
+migration. See the [V1.6 release notes](docs/LOCAL_V1_6_RELEASE_NOTES.md).
+
 ## Current limitations
 
 - Second Brain is a trusted, single-maintainer local application with no authentication, remote access, synchronization, or multi-user isolation.
@@ -178,6 +188,8 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 | [V1.2 release notes](docs/LOCAL_V1_2_RELEASE_NOTES.md) | Release inventory, safety boundary, and recovery notes. |
 | [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) | Published Automation inventory, verification, recovery, and deferred scope. |
 | [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) | Published read-only connector inventory, evidence, recovery, and residual risks. |
+| [V1.5 release notes](docs/LOCAL_V1_5_RELEASE_NOTES.md) | Published read-only Calendar inventory, privacy boundary, and recovery guidance. |
+| [V1.6 release notes](docs/LOCAL_V1_6_RELEASE_NOTES.md) | Unpublished Context Hub candidate inventory, boundaries, startup, and rollback guidance. |
 | [Known limitations](docs/KNOWN_LIMITATIONS.md) | Current operational and product boundaries. |
 | [Agent threat model](docs/AGENT_THREAT_MODEL.md) | Assets, trust boundaries, security invariants, and threat controls. |
 | [Verification](docs/VERIFICATION.md) | Local verification requirements and release-authoritative checks. |

@@ -1,9 +1,9 @@
-# Local V1.5 runbook
+# Local V1.6 release-candidate runbook
 
-This runbook is the supported Windows maintainer path for the current published
-Local V1.5 release, `v1.5.0`, from exact commit
-`9c140dd83a84072743facefb55c2f56e91691535`. Published `v1.4.0` remains the
-preceding recovery release.
+This runbook is the supported Windows maintainer path for the unpublished Local
+V1.6 release candidate. Local V1.5, `v1.5.0`, from exact commit
+`9c140dd83a84072743facefb55c2f56e91691535` remains the current published
+release. No V1.6 tag or GitHub Release exists.
 Run commands from the repository root in PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
@@ -65,7 +65,12 @@ Invoke-RestMethod http://127.0.0.1:5173/api/ready
 ```
 
 The top-level screens are Dashboard, Projects, Sources, Proposals, Memories,
-Search, Answers, Agent Runs, Automations, Notifications, and Settings. Provider-backed semantic/hybrid search,
+Search, Answers, Context Hub, Agent Runs, Automations, Notifications, and
+Settings. Context Hub requires one exact Project or explicit unassigned scope
+and groups audited local Sources, GitHub, and Google Calendar in a fixed order.
+It reads existing PostgreSQL state only: it does not call providers, resolve
+credentials, run models or embeddings, refresh/import content, write, schedule,
+or grant Tool, Agent, or Automation authority. Provider-backed semantic/hybrid search,
 proposal generation, and successful answered responses require configured
 provider credentials; deterministic automated tests cover those success paths
 when credentials are absent.
@@ -146,9 +151,10 @@ Format version 1 accepts source bundles produced at
 `0016_calendar_event_observations`. Project
 bundles exclude Agent Runs, Steps, Tool invocations, Agent events, Approval
 Requests, connector accounts/sync runs/items/import provenance/schedules/
-occurrences, credential references, provider payloads, hidden reasoning, and
-other private runtime state. Imported ordinary Source/SourceDocument records
-retain the existing version-1 semantics only.
+occurrences, all Calendar account/revision/observation/runtime state, Hub
+runtime/token state, credential references, provider payloads, hidden reasoning,
+and other private runtime state. Imported ordinary Source/SourceDocument
+records retain the existing version-1 semantics only.
 
 ## Full database backup
 
@@ -193,6 +199,12 @@ volume. Never use `docker compose down -v`.
 
 ## Recovery
 
+Context Hub owns no persistence, so V1.6 adds no backup, restore, or restart
+step. Normal database upgrade/start/restart remains unchanged at sole Alembic
+head `0016_calendar_event_observations`. A Hub rollback removes or reverts only
+the additive Hub route/service/UI surface; existing local, GitHub, and Calendar
+records remain owned by their established systems.
+
 Local V1.4.0 `v1.4.0` at
 `c02a8ccb4b0b93a2fb73f23c112344b69eaac39a` is the preceding recovery release.
 It uses revision `0014_connector_refresh_schedules`, but recovery
@@ -218,6 +230,10 @@ remap, repair, or partial-import behavior.
 - A PowerShell child appears quiet: the verifier redirects and drains child
   handles deliberately. Wait for its real exit code; do not pipe verifier
   stages, inherit outer handles, sleep/retry, or suppress stderr.
+- Windows Credential Manager is per-user and execution-context-bound. A
+  restricted sandbox may return `credential_store_locked`; do not weaken or
+  skip the test. Run the final Full verification from the authorized interactive
+  Windows maintainer context where the same credential round trip is supported.
 - Test-database column-slot exhaustion commonly appears when repeated migration
   lifecycle runs leave PostgreSQL unable to add another column even after old
   columns were dropped; related exhaustion symptoms can also include migration

@@ -121,6 +121,8 @@ history. A dash means Alembic had not yet been introduced.
 | 111 | Context Hub API and typed pagination/filtering | Implemented; pending human review | `0016_calendar_event_observations` | This commit |
 | 112 | Accessible Unified Context Hub frontend | Approved and complete after human review | `0016_calendar_event_observations` | `e1740a0` |
 | 113 | Context Hub security and evaluation gate | Implemented; pending human review; U01-U18 green | `0016_calendar_event_observations` | This commit |
+| 114 | Local V1.6 end-to-end acceptance | Implemented; exact push CI green | `0016_calendar_event_observations` | `f21e01e` |
+| 115 | Local V1.6 release hardening | Implemented and fully verified; pending human review; unpublished | `0016_calendar_event_observations` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -237,8 +239,9 @@ interleaving. CP113 is implemented and pending human review. CP114 adds the
 joined real-route/PostgreSQL/frontend acceptance for pagination, filters,
 facets, immutable detail, native reconciliation, restart, hostile content,
 three-scope isolation, accessibility, authority omissions, protected-domain
-zero delta, and export-v1 compatibility. CP114 is implemented and pending
-human review; CP115 has not started.
+zero delta, and export-v1 compatibility. CP114 is implemented at `f21e01e` and
+its exact push CI is green. CP115 completes documentation-and-evidence-only
+release hardening. The candidate remains unpublished.
 
 ## Standard lifecycle
 

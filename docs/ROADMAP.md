@@ -324,4 +324,8 @@ event-barrier concurrency evidence. CP113 is implemented and pending human
 review. CP114 implements the joined three-family Local V1.6 acceptance,
 including restart, isolation, hostile UI, native reconciliation, authority
 tripwires, protected-domain snapshots, and export-v1 omission. CP114 is
-implemented and pending human review; CP115 has not started.
+implemented at `f21e01e` and its exact push CI is green. CP115 completes
+clean-install, dependency, schema, privacy/export, recovery, and release-
+regression hardening plus the V1.6 release notes/runbook. It adds no product
+capability, migration, dependency, or authority. Publication remains a separate
+human-approved action.

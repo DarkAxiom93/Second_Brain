@@ -690,4 +690,7 @@ PostgreSQL domains, and frontend harness. It covers three-family pagination,
 filter/facet/detail behavior, native reconciliation, restart, hostile content,
 Project/unassigned isolation, accessibility, zero-call/zero-delta authority
 tripwires, and export-v1 omission. It adds no production capability. CP114 is
-implemented and pending human review; CP115 has not started.
+implemented at `f21e01e` and its exact push CI is green. CP115 adds release
+evidence and documentation only. The candidate retains sole Alembic head
+`0016_calendar_event_observations`, seven-definition `agent-tools-v1`, and
+`second-brain-project-export` version `1`; no V1.6 tag or publication exists.
