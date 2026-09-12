@@ -700,3 +700,39 @@ Alembic head `0016_calendar_event_observations`, seven-definition
 `agent-tools-v1`, and `second-brain-project-export` version `1` remain exact.
 Publication introduced no production authority change, and no post-V1.6
 capability has started.
+
+## Proposed Local V1.7 Capture & Triage boundary
+
+Checkpoint 116 proposes the documentation-only architecture in
+[V1_7_CAPTURE_TRIAGE_ROADMAP.md](V1_7_CAPTURE_TRIAGE_ROADMAP.md) and the closed
+[CAP01-CAP18 threat model](V1_7_CAPTURE_TRIAGE_THREAT_MODEL.md). `CaptureItem`
+is separate from Source, Memory, Notification, Agent, Automation, and Context
+Hub state. It uses exact Project or explicit unassigned ownership, bounded inert
+text, revision-aware triage, terminal processed state, and no delete.
+
+`id` and `created_at` are immutable, `updated_at` changes on every successful
+mutation, and `processed_at` is null until it is written exactly once by
+successful conversion. A processed CaptureItem's scope is then immutable. Its
+unique reverse `resulting_source_id` relationship is the authoritative scope
+binding for that **capture-bound Source**; existing Sources without the binding
+remain legacy/unbound and retain their contracts. Every Source/document/chunk
+read or downstream action must detect the binding and require the exact bound
+scope. Unscoped legacy Source routes reject or omit capture-bound Sources, and
+the Inbox reopens them only through the scoped Capture resolver.
+
+Only explicit transactional conversion may cross into the existing audited
+text Source/document/chunk path. It locks/revalidates the item, creates at most
+one Source, records a unique restrictive Source FK, and commits provenance plus
+processed state atomically; replay returns that Source. It creates no Memory or
+model/provider work. Until conversion, captures are absent from search/Answers,
+Context Hub, prompts/embeddings, Agents, Tools, Automations, Daily Brief,
+Project Watch, and Curator. Export remains `second-brain-project-export`
+version `1` and excludes captures; full PostgreSQL backups naturally contain
+them and require corresponding privacy protection. CP117 has not started.
+
+Capture query resource bounds are deterministic query-shape controls rather
+than a PostgreSQL wall-clock or examined-row promise: keyset only, no offset/
+count/facets/semantic query, required scope/state/order and lexical indexes,
+bounded cardinality, no unbounded application iteration, and documented normal-
+path SQL statement ceilings of 3 create, 2 query, 2 detail, 3 edit, 4 reassign,
+3 discard/restore, 10 convert/replay, and 3 scoped Source resolution.

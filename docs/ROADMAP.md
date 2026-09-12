@@ -11,13 +11,11 @@ point. Local V1.1 is published as `v1.1.0` from exact commit
 commit. Local V1.2.1 is the current published V1.2 patch release, tagged
 `v1.2.1` from exact commit `04e9db33dc0de7529b1599871c58cace6ed9f9e2`.
 Local V1.2.0 remains intact as the preceding release from
-`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.5 is the current
-published release, tagged `v1.5.0` with title **Second Brain Local V1.5** from
-exact commit `9c140dd83a84072743facefb55c2f56e91691535`. Annotated tag object
-`e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. GitHub Release
-`383369546` is neither draft nor prerelease and has zero assets. Local V1.4
-`v1.4.0` remains the preceding recovery release from
-`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a`. The sole current Alembic head is
+`67e790f2f2c34b346773cddba385fa3f2db04a26`. Local V1.6 is the current
+published release, tagged `v1.6.0` with title **Second Brain Local V1.6** from
+exact commit `64c8215d142ba66f7788d2a71f3debf291cd9862`. Local V1.5 `v1.5.0`
+remains the preceding recovery release from
+`9c140dd83a84072743facefb55c2f56e91691535`. The sole current Alembic head is
 `0016_calendar_event_observations`, Tool Registry remains `agent-tools-v1`, and
 Project export remains `second-brain-project-export` version `1`.
 
@@ -334,3 +332,14 @@ Local V1.6 was subsequently published as `v1.6.0` from exact release commit
 Release `387495253` was published at `2026-09-12T07:46:12Z` with zero assets.
 V1.6 is current, V1.5 is the preceding recovery release, publication changed no
 production authority, and no post-V1.6 capability has started.
+
+## Local V1.7 - Capture & Triage Inbox
+
+Checkpoint 116 proposes [Local V1.7 Capture & Triage Inbox](V1_7_CAPTURE_TRIAGE_ROADMAP.md)
+and its closed [CAP01-CAP18 threat model](V1_7_CAPTURE_TRIAGE_THREAT_MODEL.md).
+It defines a separate durable CaptureItem domain, exact Project/unassigned
+scope, bounded inert text, revision-aware triage, and explicit transactional
+conversion through the existing audited text Source ingestion path. Captures
+remain unavailable to knowledge retrieval, Context Hub, models/providers,
+Agents, Tools, and Automations. Project export remains version 1 and excludes
+CaptureItems. CP116 is documentation-only; CP117-CP123 have not started.

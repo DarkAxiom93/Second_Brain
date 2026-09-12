@@ -253,6 +253,15 @@ are complete. V1.6 is current, V1.5 is the preceding recovery release,
 publication introduced no production authority change, and no post-V1.6
 capability has started.
 
+Checkpoint 116 proposes the documentation-only Local V1.7 Capture & Triage
+Inbox architecture in [V1_7_CAPTURE_TRIAGE_ROADMAP.md](V1_7_CAPTURE_TRIAGE_ROADMAP.md)
+and its closed [CAP01-CAP18 threat model](V1_7_CAPTURE_TRIAGE_THREAT_MODEL.md).
+The independently reviewed sequence is CP116 architecture/threat model, CP117
+persistence/domain, CP118 scoped Inbox API/state machine, CP119 atomic Source
+conversion, CP120 frontend, CP121 security gate, CP122 joined acceptance, and
+CP123 release hardening. Publication remains separate. CP116 begins no
+implementation; CP117-CP123 have not started.
+
 ## Standard lifecycle
 
 1. Confirm a clean repository.
