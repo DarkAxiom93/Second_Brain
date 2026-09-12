@@ -118,11 +118,11 @@ history. A dash means Alembic had not yet been introduced.
 | 108 | Local V1.5 release hardening | Approved and complete after human review; subsequently published | `0016_calendar_event_observations` | This commit |
 | 109 | Local V1.6 Unified Read-only Context Hub architecture, roadmap, and threat model | Approved and complete after human review; documentation only | `0016_calendar_event_observations` | This commit |
 | 110 | Federated read/query contract and backend foundation | Approved and complete after human review | `0016_calendar_event_observations` | `f5f3afa` |
-| 111 | Context Hub API and typed pagination/filtering | Implemented; pending human review | `0016_calendar_event_observations` | This commit |
+| 111 | Context Hub API and typed pagination/filtering | Approved and complete after human review | `0016_calendar_event_observations` | This commit |
 | 112 | Accessible Unified Context Hub frontend | Approved and complete after human review | `0016_calendar_event_observations` | `e1740a0` |
-| 113 | Context Hub security and evaluation gate | Implemented; pending human review; U01-U18 green | `0016_calendar_event_observations` | This commit |
-| 114 | Local V1.6 end-to-end acceptance | Implemented; exact push CI green | `0016_calendar_event_observations` | `f21e01e` |
-| 115 | Local V1.6 release hardening | Implemented and fully verified; pending human review; unpublished | `0016_calendar_event_observations` | This commit |
+| 113 | Context Hub security and evaluation gate | Approved and complete after human review; U01-U18 green | `0016_calendar_event_observations` | This commit |
+| 114 | Local V1.6 end-to-end acceptance | Approved and complete after human review; exact push CI green | `0016_calendar_event_observations` | `f21e01e` |
+| 115 | Local V1.6 release hardening | Approved and complete after human review; subsequently published | `0016_calendar_event_observations` | `64c8215` |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -209,8 +209,9 @@ commit `9c140dd83a84072743facefb55c2f56e91691535`; annotated tag object
 `e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. GitHub Release
 `383369546` is neither draft nor prerelease, has zero assets, and is available at
 <https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0>. CP99-CP108 are
-approved and complete. `v1.5.0` is the current published release, `v1.4.0` is
-the preceding recovery release, and no post-V1.5 roadmap capability has started.
+approved and complete. At that publication point `v1.5.0` became current and
+`v1.4.0` became the preceding recovery release; V1.5 publication changed no
+production authority.
 
 Checkpoint 109 proposes [Local V1.6 Unified Read-only Context Hub](V1_6_CONTEXT_HUB_ROADMAP.md)
 and its closed [U01-U18 threat model](V1_6_CONTEXT_HUB_THREAT_MODEL.md). It
@@ -235,13 +236,22 @@ request-bound pagination, and in-page opaque reopen. CP112 is approved and
 complete after human review. CP113 adds an ordered code-owned U01-U18 manifest,
 bounded hostile corpus, deterministic backend/UI evidence, identity/authority/
 export scans, protected-domain snapshots, and a PostgreSQL event-barrier
-interleaving. CP113 is implemented and pending human review. CP114 adds the
+interleaving. CP113 is approved and complete after human review. CP114 adds the
 joined real-route/PostgreSQL/frontend acceptance for pagination, filters,
 facets, immutable detail, native reconciliation, restart, hostile content,
 three-scope isolation, accessibility, authority omissions, protected-domain
-zero delta, and export-v1 compatibility. CP114 is implemented at `f21e01e` and
-its exact push CI is green. CP115 completes documentation-and-evidence-only
-release hardening. The candidate remains unpublished.
+zero delta, and export-v1 compatibility. CP114 is approved and complete at
+`f21e01e`, and its exact push CI is green. CP115 documentation-and-evidence-only
+release hardening is approved and complete. Local V1.6 was subsequently
+published as `v1.6.0`, titled **Second Brain Local V1.6**, from exact commit
+`64c8215d142ba66f7788d2a71f3debf291cd9862`; annotated tag object
+`3d2bc5f774729459f89db7187f407db1b273c9dd` peels to that commit. GitHub Release
+`387495253` was published at `2026-09-12T07:46:12Z`, is neither draft nor
+prerelease, has zero assets, and is available at
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.6.0>. CP109-CP115
+are complete. V1.6 is current, V1.5 is the preceding recovery release,
+publication introduced no production authority change, and no post-V1.6
+capability has started.
 
 ## Standard lifecycle
 

@@ -143,29 +143,21 @@ content.
 
 ## Current release
 
-### [v1.5.0 — Second Brain Local V1.5](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.5.0)
+### [v1.6.0 — Second Brain Local V1.6](https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.6.0)
 
-V1.5 is the current published release. It adds one manually refreshed,
-privacy-minimized read-only Google Calendar context workflow while preserving
-the trusted single-maintainer, loopback-only deployment boundary. Calendar
-import, scheduling, writes, and Agent/Automation Calendar authority remain
-omitted. V1.4.0 remains intact as the preceding recovery release.
-
-Release commit: [`9c140dd83a84072743facefb55c2f56e91691535`](https://github.com/DarkAxiom93/Second_Brain/commit/9c140dd83a84072743facefb55c2f56e91691535)
-
-Read the [V1.5 release notes](docs/LOCAL_V1_5_RELEASE_NOTES.md) for its exact
-read-only Calendar boundary, verification, recovery guidance, residual risk,
-and deliberate omissions.
-
-### Local V1.6 release candidate
-
-Local V1.6 is prepared but not published. It adds a Unified Read-only Context
+V1.6 is the current published release. It adds a Unified Read-only Context
 Hub over existing audited local Sources, quarantined GitHub context, and
 quarantined Google Calendar context. Every read uses one exact Project or
 explicit unassigned scope, fixed family grouping, native provenance/state, and
 local PostgreSQL reads only. It adds no provider call, Hub Tool, Agent or
 Automation authority, import, refresh, scheduling, write path, persistence, or
-migration. See the [V1.6 release notes](docs/LOCAL_V1_6_RELEASE_NOTES.md).
+migration. V1.5.0 is the preceding recovery release.
+
+Release commit: [`64c8215d142ba66f7788d2a71f3debf291cd9862`](https://github.com/DarkAxiom93/Second_Brain/commit/64c8215d142ba66f7788d2a71f3debf291cd9862)
+
+Read the [V1.6 release notes](docs/LOCAL_V1_6_RELEASE_NOTES.md) for its exact
+Context Hub boundary, verification, recovery guidance, and deliberate
+omissions.
 
 ## Current limitations
 
@@ -189,7 +181,7 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 | [V1.3 release notes](docs/LOCAL_V1_3_RELEASE_NOTES.md) | Published Automation inventory, verification, recovery, and deferred scope. |
 | [V1.4 release notes](docs/LOCAL_V1_4_RELEASE_NOTES.md) | Published read-only connector inventory, evidence, recovery, and residual risks. |
 | [V1.5 release notes](docs/LOCAL_V1_5_RELEASE_NOTES.md) | Published read-only Calendar inventory, privacy boundary, and recovery guidance. |
-| [V1.6 release notes](docs/LOCAL_V1_6_RELEASE_NOTES.md) | Unpublished Context Hub candidate inventory, boundaries, startup, and rollback guidance. |
+| [V1.6 release notes](docs/LOCAL_V1_6_RELEASE_NOTES.md) | Published Context Hub inventory, boundaries, startup, and rollback guidance. |
 | [Known limitations](docs/KNOWN_LIMITATIONS.md) | Current operational and product boundaries. |
 | [Agent threat model](docs/AGENT_THREAT_MODEL.md) | Assets, trust boundaries, security invariants, and threat controls. |
 | [Verification](docs/VERIFICATION.md) | Local verification requirements and release-authoritative checks. |
@@ -198,7 +190,7 @@ See [Known limitations](docs/KNOWN_LIMITATIONS.md) for the complete, candid boun
 
 ## Project status
 
-Second Brain Local V1.4 is published and remains intentionally local-first. Issues, feedback, and stars are welcome. The repository does not currently define a formal contribution process; review the architecture, safety rules, and checkpoint guidance before proposing changes.
+Second Brain Local V1.6 is published and remains intentionally local-first. Issues, feedback, and stars are welcome. The repository does not currently define a formal contribution process; review the architecture, safety rules, and checkpoint guidance before proposing changes.
 
 For release-authoritative local verification, keep PostgreSQL and the separate test database running, then run:
 

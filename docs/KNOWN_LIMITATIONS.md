@@ -1,4 +1,4 @@
-# Local V1.5 known limitations
+# Local V1.6 known limitations
 
 Local V1.1 is published as `v1.1.0` from
 `88dffa90ff04cde4c57dcacbe2764b8a31b0c9ce`. Checkpoint 61 is complete at
@@ -37,7 +37,16 @@ dependency remediation, and release hardening. Local V1.5 is published as
 `v1.5.0`, titled **Second Brain Local V1.5**, from exact release commit
 `9c140dd83a84072743facefb55c2f56e91691535`; annotated tag object
 `e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. It is the
-current published release; `v1.4.0` is the preceding recovery release.
+preceding published release. Checkpoints 109-115 completed the approved Local
+V1.6 Context Hub architecture, implementation, U01-U18 security gate, joined
+acceptance, and release hardening. Local V1.6 is published as `v1.6.0`, titled
+**Second Brain Local V1.6**, from exact release commit
+`64c8215d142ba66f7788d2a71f3debf291cd9862`; annotated tag object
+`3d2bc5f774729459f89db7187f407db1b273c9dd` peels to that commit. GitHub Release
+`387495253` was published at `2026-09-12T07:46:12Z`, is neither draft nor
+prerelease, and has zero assets. V1.6 is the current published release;
+`v1.5.0` is the preceding recovery release. No post-V1.6 capability has
+started.
 
 - There is no authentication, authorization, role model, or multi-user
   isolation. Run the app only on loopback for one trusted local maintainer.
@@ -84,6 +93,12 @@ current published release; `v1.4.0` is the preceding recovery release.
   reauthorization-required state blocks refresh while preserving minimized
   historical local evidence. Database/machine backups may still contain that
   sensitive minimized history and must be protected.
+- Context Hub is a bounded local read surface only. It requires one exact
+  Project or explicit unassigned scope, preserves fixed family grouping and
+  native provenance/state, and grants no provider, credential, model,
+  embedding, import, refresh, write, scheduling, Tool, Agent, or Automation
+  authority. Read-committed changes between pages remain possible; start a
+  fresh walk when a durable snapshot is required.
 - Notifications are a local content-free inbox only. There is no webhook,
   email, push, OS notification, or other external delivery.
 - Automation, occurrence, Run, and notification history has no automatic

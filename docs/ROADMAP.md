@@ -309,7 +309,7 @@ roadmap are approved and complete after human review. CP110 is approved and
 complete after human review: its internal-only `context-hub-v1` contract federates
 bounded existing PostgreSQL records in fixed family order, preserves native
 state and exact provenance, and adds no route, UI, persistence, provider access,
-or Agent/Automation authority. CP111 is implemented and pending human review.
+or Agent/Automation authority. CP111 is approved and complete after human review.
 It adds exactly three loopback-only typed POST routes for grouped query, exact
 detail, and closed facets; confidential authenticated request-bound cursors and
 reopen identities; native keyset predicates; and explicit read-only
@@ -320,12 +320,17 @@ fixed family disclosure, exact facets, request-bound pagination, and in-page
 detail. CP112 is approved and complete after human review. CP113 implements the
 deterministic U01-U18 release gate with unique mapped nodes, a bounded hostile
 corpus, protected-domain and authority/identity proofs, and PostgreSQL
-event-barrier concurrency evidence. CP113 is implemented and pending human
+event-barrier concurrency evidence. CP113 is approved and complete after human
 review. CP114 implements the joined three-family Local V1.6 acceptance,
 including restart, isolation, hostile UI, native reconciliation, authority
 tripwires, protected-domain snapshots, and export-v1 omission. CP114 is
-implemented at `f21e01e` and its exact push CI is green. CP115 completes
-clean-install, dependency, schema, privacy/export, recovery, and release-
+approved and complete at `f21e01e`, and its exact push CI is green. CP115
+completed clean-install, dependency, schema, privacy/export, recovery, and release-
 regression hardening plus the V1.6 release notes/runbook. It adds no product
-capability, migration, dependency, or authority. Publication remains a separate
-human-approved action.
+capability, migration, dependency, or authority. CP109-CP115 are complete.
+Local V1.6 was subsequently published as `v1.6.0` from exact release commit
+`64c8215d142ba66f7788d2a71f3debf291cd9862`; annotated tag object
+`3d2bc5f774729459f89db7187f407db1b273c9dd` peels to that commit, and GitHub
+Release `387495253` was published at `2026-09-12T07:46:12Z` with zero assets.
+V1.6 is current, V1.5 is the preceding recovery release, publication changed no
+production authority, and no post-V1.6 capability has started.

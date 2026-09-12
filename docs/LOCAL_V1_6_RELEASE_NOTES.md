@@ -1,10 +1,17 @@
 # Second Brain Local V1.6 release notes
 
-Candidate title: **Second Brain Local V1.6**
+Published tag: `v1.6.0`
 
-Status: **Release candidate only; not published.** No `v1.6.0` tag or GitHub
-Release has been created. Local V1.5 `v1.5.0` remains the current published
-release.
+Release title: **Second Brain Local V1.6**
+
+Status: **Published.** Annotated tag object
+`3d2bc5f774729459f89db7187f407db1b273c9dd` peels to exact release commit
+`64c8215d142ba66f7788d2a71f3debf291cd9862`. GitHub Release `387495253` was
+published at `2026-09-12T07:46:12Z`; it is neither a draft nor a prerelease and
+has zero assets:
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.6.0>
+
+Local V1.5 `v1.5.0` is the preceding recovery release.
 
 ## Unified Read-only Context Hub
 
@@ -50,7 +57,7 @@ Rollback removes or reverts the additive Context Hub service/routes/UI. It does
 not rewrite, migrate, delete, or take ownership of local Source, GitHub, or
 Calendar records. Never downgrade or restore over the development database.
 
-## Candidate identities and omissions
+## Release identities and omissions
 
 - baseline before CP115: `f21e01ea8afe4fa5797a63f8b717d6f0f93a66fb`;
 - Tool Registry: `agent-tools-v1`, exactly seven definitions;
@@ -59,4 +66,4 @@ Calendar records. Never downgrade or restore over the development database.
 - Google OAuth scopes unchanged: `openid` and
   `https://www.googleapis.com/auth/calendar.events.readonly`;
 - no product capability or production-code addition in CP115; and
-- no tag, GitHub Release, PR, push, or publication in CP115.
+- publication introduced no product capability or production authority change.

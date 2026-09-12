@@ -620,10 +620,9 @@ review. Local V1.5 was subsequently published as annotated tag `v1.5.0`, titled
 **Second Brain Local V1.5**, from exact release commit
 `9c140dd83a84072743facefb55c2f56e91691535`; tag object
 `e8f281a0b805b887768e53a447fc9e3b4444e04b` peels to that commit. GitHub Release
-`383369546` is neither draft nor prerelease and has zero assets. `v1.5.0` is the
-current published release, `v1.4.0` is the preceding recovery release, no
-production authority changed during publication, and no post-V1.5 roadmap
-capability has started.
+`383369546` is neither draft nor prerelease and has zero assets. At that
+publication point `v1.5.0` became current and `v1.4.0` became the preceding
+recovery release; V1.5 publication changed no production authority.
 
 Checkpoint 109 defines the documentation-only Local V1.6 architecture as a
 **Unified Read-only Context Hub**. The planned local surface federates existing
@@ -684,13 +683,20 @@ deterministic U01-U18 evaluation boundary: an exact code-owned manifest,
 bounded adversarial corpus, backend/UI evidence, provider/credential/network/
 model omission scans, protected-domain snapshots, stable registry/export/schema
 identity checks, and PostgreSQL event-barrier reconciliation coverage. It adds
-no production capability. CP113 is implemented and pending human review.
+no production capability. CP113 is approved and complete after human review.
 Checkpoint 114 adds only joined acceptance evidence over the real Hub routes,
 PostgreSQL domains, and frontend harness. It covers three-family pagination,
 filter/facet/detail behavior, native reconciliation, restart, hostile content,
 Project/unassigned isolation, accessibility, zero-call/zero-delta authority
 tripwires, and export-v1 omission. It adds no production capability. CP114 is
-implemented at `f21e01e` and its exact push CI is green. CP115 adds release
-evidence and documentation only. The candidate retains sole Alembic head
-`0016_calendar_event_observations`, seven-definition `agent-tools-v1`, and
-`second-brain-project-export` version `1`; no V1.6 tag or publication exists.
+implemented at `f21e01e`, approved and complete after human review, and its
+exact push CI is green. CP115 added release evidence and documentation only and
+is approved and complete. Local V1.6 was subsequently published as `v1.6.0`
+from exact commit `64c8215d142ba66f7788d2a71f3debf291cd9862` via annotated
+tag object `3d2bc5f774729459f89db7187f407db1b273c9dd`; GitHub Release
+`387495253` was published at `2026-09-12T07:46:12Z` with zero assets. V1.6 is
+the current published release and V1.5 is the preceding recovery release. Sole
+Alembic head `0016_calendar_event_observations`, seven-definition
+`agent-tools-v1`, and `second-brain-project-export` version `1` remain exact.
+Publication introduced no production authority change, and no post-V1.6
+capability has started.

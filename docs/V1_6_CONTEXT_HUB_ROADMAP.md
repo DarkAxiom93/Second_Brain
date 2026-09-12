@@ -1,11 +1,9 @@
 # Local V1.6 Unified Read-only Context Hub roadmap
 
-Status: **Implemented through Checkpoint 115; release candidate remains
-unpublished pending human approval.**
+Status: **Published as Local V1.6; Checkpoints 109-115 complete.**
 
-This document defines the approved Local V1.6 architecture but authorizes no
-production implementation. Checkpoint 110 has not started and must not begin
-until Checkpoint 109 is committed, pushed, and its exact push CI succeeds.
+This document defines the approved Local V1.6 architecture and its now-complete
+implementation sequence. No post-V1.6 roadmap capability has started.
 
 ## Product decision
 
@@ -207,8 +205,15 @@ backup/restart/recovery, release-note/runbook updates, and exact candidate
 evidence. Tagging/publication remains a separate post-review action.
 
 CP115 completed these evidence and documentation gates without product,
-dependency, schema, migration, or authority changes. No tag or GitHub Release
-was created.
+dependency, schema, migration, or authority changes. Local V1.6 was subsequently
+published as `v1.6.0`, titled **Second Brain Local V1.6**, from exact release
+commit `64c8215d142ba66f7788d2a71f3debf291cd9862`. Annotated tag object
+`3d2bc5f774729459f89db7187f407db1b273c9dd` peels to that commit. GitHub Release
+`387495253` was published at `2026-09-12T07:46:12Z`, is neither draft nor
+prerelease, has zero assets, and is available at
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.6.0>. V1.6 is the
+current published release and V1.5 is the preceding recovery release.
+Publication introduced no production authority change.
 
 ## Rollback and compatibility
 

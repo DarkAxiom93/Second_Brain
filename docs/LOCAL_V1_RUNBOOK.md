@@ -1,9 +1,9 @@
-# Local V1.6 release-candidate runbook
+# Local V1.6 runbook
 
-This runbook is the supported Windows maintainer path for the unpublished Local
-V1.6 release candidate. Local V1.5, `v1.5.0`, from exact commit
-`9c140dd83a84072743facefb55c2f56e91691535` remains the current published
-release. No V1.6 tag or GitHub Release exists.
+This runbook is the supported Windows maintainer path for the current published
+Local V1.6 release, `v1.6.0`, from exact commit
+`64c8215d142ba66f7788d2a71f3debf291cd9862`. Published `v1.5.0` is the
+preceding recovery release.
 Run commands from the repository root in PowerShell. The backend is
 local FastAPI, the frontend is local Vite, and PostgreSQL 16 with pgvector runs
 in Docker Compose. Nothing here deploys to a network service.
@@ -205,10 +205,10 @@ head `0016_calendar_event_observations`. A Hub rollback removes or reverts only
 the additive Hub route/service/UI surface; existing local, GitHub, and Calendar
 records remain owned by their established systems.
 
-Local V1.4.0 `v1.4.0` at
-`c02a8ccb4b0b93a2fb73f23c112344b69eaac39a` is the preceding recovery release.
-It uses revision `0014_connector_refresh_schedules`, but recovery
-still belongs in a separate checkout with a verified compatible backup and an
+Local V1.5.0 `v1.5.0` at
+`9c140dd83a84072743facefb55c2f56e91691535` is the preceding recovery release.
+It uses the same revision `0016_calendar_event_observations`, but recovery still
+belongs in a separate checkout with a verified compatible backup and an
 identity-checked database. Never downgrade the development database. Preserve
 the PostgreSQL container and `second-brain_postgres_data` named volume. Version
 1 Project import remains validation-first and atomic, with no merge, overwrite,

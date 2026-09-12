@@ -1,6 +1,7 @@
 # Checkpoint 115 report - Local V1.6 release hardening
 
-Status: **Implemented and fully verified; pending human review. Unpublished.**
+Status: **Approved and complete after human review; subsequently published as
+Local V1.6.**
 
 ## Candidate and preflight
 
@@ -94,3 +95,18 @@ run under the commit instruction. `git diff --check` was rerun afterward.
 All changes remain unstaged and uncommitted. CP115 adds no production feature,
 dependency, migration, schema, OAuth-scope, registry, export-format, or release
 publication change.
+
+## Post-checkpoint publication outcome
+
+After CP115 approval and commit, Local V1.6 was published as annotated tag
+`v1.6.0`, titled **Second Brain Local V1.6**, from exact release commit
+`64c8215d142ba66f7788d2a71f3debf291cd9862`. Annotated tag object
+`3d2bc5f774729459f89db7187f407db1b273c9dd` peels to that commit. GitHub Release
+`387495253` was published at `2026-09-12T07:46:12Z`; it is neither draft nor
+prerelease, has zero assets, and is available at
+<https://github.com/DarkAxiom93/Second_Brain/releases/tag/v1.6.0>.
+
+CP109-CP115 are complete. Local V1.6 is the current published release and
+Local V1.5 `v1.5.0` is the preceding recovery release. Publication changed no
+application code, schema, dependency, OAuth scope, Tool Registry, export format,
+or production authority. No post-V1.6 capability has started.
