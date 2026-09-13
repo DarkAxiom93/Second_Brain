@@ -16,7 +16,7 @@ published release, tagged `v1.6.0` with title **Second Brain Local V1.6** from
 exact commit `64c8215d142ba66f7788d2a71f3debf291cd9862`. Local V1.5 `v1.5.0`
 remains the preceding recovery release from
 `9c140dd83a84072743facefb55c2f56e91691535`. The sole current Alembic head is
-`0016_calendar_event_observations`, Tool Registry remains `agent-tools-v1`, and
+`0017_capture_items`, Tool Registry remains `agent-tools-v1`, and
 Project export remains `second-brain-project-export` version `1`.
 
 V1.1 adds the patched frontend dependency graph, least-privilege
@@ -342,4 +342,7 @@ scope, bounded inert text, revision-aware triage, and explicit transactional
 conversion through the existing audited text Source ingestion path. Captures
 remain unavailable to knowledge retrieval, Context Hub, models/providers,
 Agents, Tools, and Automations. Project export remains version 1 and excludes
-CaptureItems. CP116 is documentation-only; CP117-CP123 have not started.
+CaptureItems. CP116 is approved and complete. CP117 implements the migration,
+inert persistence model, deterministic normalization/fingerprinting, and
+concurrency-safe internal create/replay primitive and is awaiting human review.
+CP118-CP123 have not started.

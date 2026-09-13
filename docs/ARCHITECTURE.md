@@ -3,7 +3,7 @@
 Second Brain is a local, Windows-hosted FastAPI application. PostgreSQL 16 with
 pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
-`0016_calendar_event_observations`.
+`0017_capture_items`.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
@@ -709,6 +709,14 @@ Checkpoint 116 proposes the documentation-only architecture in
 is separate from Source, Memory, Notification, Agent, Automation, and Context
 Hub state. It uses exact Project or explicit unassigned ownership, bounded inert
 text, revision-aware triage, terminal processed state, and no delete.
+
+Checkpoint 117 implements only that domain's persistence and internal creation
+foundation at Alembic head `0017_capture_items`. PostgreSQL atomically claims a
+private SHA-256 idempotency-key hash; exact replay uses a separate versioned
+fingerprint of normalized content and exact Project/unassigned scope. The
+generated `simple` search vector, GIN index, and scope/state/browse B-tree add
+no Capture route. Capture remains absent from UI, Context Hub, Tool Registry,
+Agents, Automations, search/Answers, providers, and export v1.
 
 `id` and `created_at` are immutable, `updated_at` changes on every successful
 mutation, and `processed_at` is null until it is written exactly once by

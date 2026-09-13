@@ -1,0 +1,1 @@
+"""Internal Capture domain foundation."""

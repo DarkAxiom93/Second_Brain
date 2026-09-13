@@ -194,7 +194,7 @@ def test_project_export_streams_safe_attachment_and_cleans_exact_file(
     session = Mock()
     session.scalar.side_effect = [
         "second_brain",
-        "0016_calendar_event_observations",
+        "0017_capture_items",
     ]
     created: list[Path] = []
 
@@ -220,7 +220,7 @@ def test_project_export_streams_safe_attachment_and_cleans_exact_file(
         == f'attachment; filename="project-{project_id}.sbexport"'
     )
     assert created and not created[0].exists()
-    assert captured == {"source_alembic_revision": "0016_calendar_event_observations"}
+    assert captured == {"source_alembic_revision": "0017_capture_items"}
     session.commit.assert_not_called()
 
 
@@ -259,7 +259,7 @@ def test_import_validation_returns_safe_conflict_plan_and_cleans_upload(
     session = Mock()
     session.scalar.side_effect = [
         "second_brain",
-        "0016_calendar_event_observations",
+        "0017_capture_items",
     ]
     project_id = uuid4()
     manifest = ExportManifest(
@@ -302,7 +302,7 @@ def test_import_execute_requires_exact_confirmations_and_commits_once(
     session = Mock()
     session.scalar.side_effect = [
         "second_brain",
-        "0016_calendar_event_observations",
+        "0017_capture_items",
     ]
     project_id = uuid4()
     manifest = ExportManifest(

@@ -13,7 +13,7 @@ def test_alembic_upgrade_reaches_head(migrated_test_database: None) -> None:
     with get_engine().connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert revision == "0016_calendar_event_observations"
+    assert revision == "0017_capture_items"
 
 
 def test_alembic_version_table_exists(migrated_test_database: None) -> None:
@@ -66,6 +66,7 @@ def test_only_approved_application_tables_exist(migrated_test_database: None) ->
         "calendar_sync_runs",
         "calendar_event_revisions",
         "calendar_event_observations",
+        "capture_items",
     }
     unique_columns = {
         tuple(value["column_names"])
@@ -118,7 +119,10 @@ def test_migration_graph_has_expected_single_head(
     alembic_config: Config,
 ) -> None:
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == ["0016_calendar_event_observations"]
+    assert script.get_heads() == ["0017_capture_items"]
+    assert script.get_revision("0017_capture_items").down_revision == (
+        "0016_calendar_event_observations"
+    )
     assert script.get_revision("0016_calendar_event_observations").down_revision == (
         "0015_calendar_persistence"
     )
@@ -172,3 +176,23 @@ def test_automation_migration_test_database_downgrade_upgrade_lifecycle(
     finally:
         command.upgrade(alembic_config, "head")
     assert inspect(get_engine()).has_table("automations")
+
+
+def test_capture_migration_upgrades_exact_0016_to_0017(
+    migrated_test_database: None,
+    test_database_url: str,
+    alembic_config: Config,
+) -> None:
+    verify_connected_test_database(test_database_url)
+    try:
+        command.downgrade(alembic_config, "0016_calendar_event_observations")
+        assert not inspect(get_engine()).has_table("capture_items")
+        command.upgrade(alembic_config, "0017_capture_items")
+        assert inspect(get_engine()).has_table("capture_items")
+        with get_engine().connect() as connection:
+            assert (
+                connection.scalar(text("SELECT version_num FROM alembic_version"))
+                == "0017_capture_items"
+            )
+    finally:
+        command.upgrade(alembic_config, "head")

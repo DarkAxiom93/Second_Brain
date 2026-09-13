@@ -123,6 +123,8 @@ history. A dash means Alembic had not yet been introduced.
 | 113 | Context Hub security and evaluation gate | Approved and complete after human review; U01-U18 green | `0016_calendar_event_observations` | This commit |
 | 114 | Local V1.6 end-to-end acceptance | Approved and complete after human review; exact push CI green | `0016_calendar_event_observations` | `f21e01e` |
 | 115 | Local V1.6 release hardening | Approved and complete after human review; subsequently published | `0016_calendar_event_observations` | `64c8215` |
+| 116 | Local V1.7 Capture & Triage architecture and threat model | Approved and complete after human review; documentation only | `0016_calendar_event_observations` | `b436613` |
+| 117 | Local V1.7 Capture persistence/domain foundation | Implemented; awaiting human review | `0017_capture_items` | This commit |
 
 Checkpoint 97 prepared candidate `v1.4.0` / **Second Brain Local V1.4** without
 creating a tag or release during the checkpoint. It is approved and complete
@@ -260,7 +262,9 @@ The independently reviewed sequence is CP116 architecture/threat model, CP117
 persistence/domain, CP118 scoped Inbox API/state machine, CP119 atomic Source
 conversion, CP120 frontend, CP121 security gate, CP122 joined acceptance, and
 CP123 release hardening. Publication remains separate. CP116 begins no
-implementation; CP117-CP123 have not started.
+implementation. CP117 adds only `0017_capture_items` plus internal validated
+idempotent creation and focused tests; it is awaiting human review. CP118-CP123
+have not started.
 
 ## Standard lifecycle
 

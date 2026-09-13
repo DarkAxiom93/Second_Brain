@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 FORMAT_NAME = "second-brain-project-export"
 FORMAT_VERSION = 1
-CURRENT_DATABASE_REVISION = "0016_calendar_event_observations"
+CURRENT_DATABASE_REVISION = "0017_capture_items"
 SUPPORTED_SOURCE_REVISIONS = frozenset(
     {
         "0009_memory_expiration",

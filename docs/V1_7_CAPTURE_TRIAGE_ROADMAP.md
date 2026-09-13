@@ -246,8 +246,9 @@ external writes, remote/mobile/cloud access, and physical purge/delete.
 ## Independently reviewable sequence
 
 - **CP116:** architecture and CAP01-CAP18 threat model; documentation only.
-- **CP117:** migration `0017`, model/repository constraints and idempotent create;
-  no public API/UI.
+- **CP117:** implemented and awaiting human review: migration
+  `0017_capture_items`, model/repository constraints and idempotent internal
+  create; no public API/UI.
 - **CP118:** exact-scope Inbox query/detail and revision-aware triage API.
 - **CP119:** transactional/idempotent audited Source conversion.
 - **CP120:** accessible Quick Capture and Inbox frontend.

@@ -19,6 +19,7 @@ from app.models.calendar import (
     CalendarIdentity,
     CalendarSyncRun,
 )
+from app.models.capture_item import CaptureItem
 from app.models.connector import ConnectorAccount, ConnectorSyncRun, ExternalItem
 from app.models.connector_schedule import (
     ConnectorRefreshNotification,
@@ -49,6 +50,7 @@ __all__ = [
     "CalendarEventRevision",
     "CalendarIdentity",
     "CalendarSyncRun",
+    "CaptureItem",
     "ConnectorAccount",
     "ConnectorRefreshNotification",
     "ConnectorRefreshOccurrence",
