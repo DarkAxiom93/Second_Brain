@@ -11,6 +11,7 @@ from app.api.routes.automation_notifications import (
 from app.api.routes.automations import router as automations_router
 from app.api.routes.calendar_accounts import router as calendar_accounts_router
 from app.api.routes.calendar_events import router as calendar_events_router
+from app.api.routes.captures import router as captures_router
 from app.api.routes.connector_schedules import router as connector_schedules_router
 from app.api.routes.connectors import router as connectors_router
 from app.api.routes.context_hub import router as context_hub_router
@@ -32,6 +33,7 @@ api_router.include_router(automations_router)
 api_router.include_router(automation_notifications_router)
 api_router.include_router(calendar_accounts_router)
 api_router.include_router(calendar_events_router)
+api_router.include_router(captures_router)
 api_router.include_router(connectors_router)
 api_router.include_router(context_hub_router)
 api_router.include_router(connector_schedules_router)

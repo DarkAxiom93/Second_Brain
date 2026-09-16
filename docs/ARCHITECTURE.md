@@ -5,6 +5,16 @@ pgvector runs in Docker Compose. Application persistence uses synchronous
 SQLAlchemy 2 sessions and Alembic migrations; the current head is
 `0017_capture_items`.
 
+Checkpoint 118 exposes the loopback-only Capture Inbox API over the CP117
+persistence boundary. Every non-create operation carries exactly one current
+Project or explicit-unassigned scope; database lookups combine identity and
+scope. Bounded browse and PostgreSQL `simple` lexical queries use authenticated,
+request-bound keyset cursors. Pending edits/reassignment and discard/restore
+lock the scoped row, revalidate the observed revision and closed state, then
+advance revision and `updated_at` atomically. Capture remains excluded from
+Sources, Context Hub, Agents, Tools, Automations, search, export/import, models,
+providers, and network behavior.
+
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
 The stable recovery architecture is released as `v1.0.0` at commit

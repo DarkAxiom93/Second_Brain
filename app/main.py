@@ -24,7 +24,12 @@ def create_app() -> FastAPI:
         # Pydantic's normal 422 body echoes rejected input. Connector input may be
         # secret-shaped, so this boundary returns one closed content-free error.
         if request.url.path.startswith(
-            ("/connector-accounts", "/calendar-accounts", "/context-hub")
+            (
+                "/connector-accounts",
+                "/calendar-accounts",
+                "/context-hub",
+                "/capture-items",
+            )
         ):
             return JSONResponse(
                 status_code=422,
@@ -32,6 +37,8 @@ def create_app() -> FastAPI:
                     "detail": (
                         "invalid context hub request"
                         if request.url.path.startswith("/context-hub")
+                        else "invalid capture request"
+                        if request.url.path.startswith("/capture-items")
                         else "invalid connector account request"
                     )
                 },

@@ -249,7 +249,8 @@ external writes, remote/mobile/cloud access, and physical purge/delete.
 - **CP117:** implemented and awaiting human review: migration
   `0017_capture_items`, model/repository constraints and idempotent internal
   create; no public API/UI.
-- **CP118:** exact-scope Inbox query/detail and revision-aware triage API.
+- **CP118:** implemented and awaiting human review: exact-scope Inbox
+  query/detail and revision-aware triage API; no Source conversion or UI.
 - **CP119:** transactional/idempotent audited Source conversion.
 - **CP120:** accessible Quick Capture and Inbox frontend.
 - **CP121:** one-to-one deterministic CAP01-CAP18 security gate.

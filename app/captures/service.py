@@ -12,6 +12,7 @@ from app.ingestion.text import normalize_plain_text
 from app.models.capture_item import CaptureItem
 from app.repositories import capture_items as repository
 from app.repositories.projects import get_project
+from app.schemas.capture import CaptureQueryRequest, CaptureScope
 
 FINGERPRINT_DOMAIN = "second-brain.capture-create.v1"
 
@@ -26,6 +27,19 @@ class CaptureProjectNotFoundError(Exception):
 
 class CaptureIdempotencyConflictError(Exception):
     """An idempotency key is already bound to another request."""
+
+
+class CaptureNotFoundError(Exception):
+    pass
+
+
+class CaptureRevisionConflictError(Exception):
+    def __init__(self, item: "CaptureItemProjection") -> None:
+        self.item = item
+
+
+class CaptureTransitionConflictError(Exception):
+    pass
 
 
 @dataclass(frozen=True)
@@ -117,6 +131,115 @@ def _project(item: CaptureItem) -> CaptureItemProjection:
         processed_at=item.processed_at,
         resulting_source_id=item.resulting_source_id,
     )
+
+
+def scope_project_id(scope: CaptureScope) -> uuid.UUID | None:
+    return scope.project_id
+
+
+def validate_scope(session: Session, scope: CaptureScope) -> uuid.UUID | None:
+    project_id = scope_project_id(scope)
+    if project_id is not None and get_project(session, project_id) is None:
+        raise CaptureProjectNotFoundError
+    return project_id
+
+
+def query_capture_items(
+    session: Session,
+    request: CaptureQueryRequest,
+    position: tuple[datetime, uuid.UUID, float | None] | None = None,
+) -> list[tuple[CaptureItemProjection, float | None]]:
+    project_id = validate_scope(session, request.scope)
+    return [
+        (_project(item), rank)
+        for item, rank in repository.query_captures(
+            session,
+            project_id=project_id,
+            states=list(request.states),
+            query=request.query,
+            page_size=request.page_size,
+            position=position,
+        )
+    ]
+
+
+def detail_capture(
+    session: Session, item_id: uuid.UUID, scope: CaptureScope
+) -> CaptureItemProjection:
+    project_id = validate_scope(session, scope)
+    item = repository.get_scoped_capture(session, item_id, project_id)
+    if item is None:
+        raise CaptureNotFoundError
+    return _project(item)
+
+
+def _lock_pending(
+    session: Session, item_id: uuid.UUID, scope: CaptureScope, revision: int
+) -> CaptureItem:
+    project_id = validate_scope(session, scope)
+    item = repository.get_scoped_capture(session, item_id, project_id, lock=True)
+    if item is None:
+        raise CaptureNotFoundError
+    if item.revision != revision:
+        raise CaptureRevisionConflictError(_project(item))
+    if item.state != "pending":
+        raise CaptureTransitionConflictError
+    return item
+
+
+def _finish_mutation(session: Session, item: CaptureItem) -> CaptureItemProjection:
+    item.revision += 1
+    item.updated_at = datetime.now(UTC)
+    session.flush()
+    return _project(item)
+
+
+def edit_capture(
+    session: Session,
+    item_id: uuid.UUID,
+    scope: CaptureScope,
+    revision: int,
+    content: str,
+) -> CaptureItemProjection:
+    item = _lock_pending(session, item_id, scope, revision)
+    item.content = normalize_capture_content(content)
+    return _finish_mutation(session, item)
+
+
+def reassign_capture(
+    session: Session,
+    item_id: uuid.UUID,
+    scope: CaptureScope,
+    target_scope: CaptureScope,
+    revision: int,
+) -> CaptureItemProjection:
+    # Validate the destination before locking so the successful assigned-to-assigned
+    # path remains within the approved four statements.
+    target_project_id = validate_scope(session, target_scope)
+    item = _lock_pending(session, item_id, scope, revision)
+    item.project_id = target_project_id
+    return _finish_mutation(session, item)
+
+
+def transition_capture(
+    session: Session,
+    item_id: uuid.UUID,
+    scope: CaptureScope,
+    revision: int,
+    *,
+    expected: str,
+    target: str,
+) -> CaptureItemProjection:
+    project_id = validate_scope(session, scope)
+    item = repository.get_scoped_capture(session, item_id, project_id, lock=True)
+    if item is None:
+        raise CaptureNotFoundError
+    if item.revision != revision:
+        raise CaptureRevisionConflictError(_project(item))
+    if item.state != expected:
+        raise CaptureTransitionConflictError
+    item.state = target
+    return _finish_mutation(session, item)
 
 
 def create_capture(session: Session, request: CaptureCreate) -> CaptureCreateResult:

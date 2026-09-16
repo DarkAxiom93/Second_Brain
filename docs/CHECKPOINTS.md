@@ -1,5 +1,10 @@
 # Checkpoints
 
+Checkpoint 118 implements only the Local V1.7 public Capture Inbox creation,
+exact-scope query/detail, authenticated keyset pagination, pending edit and
+reassignment, and revision-aware discard/restore state machine. Source
+conversion and frontend work remain deferred to CP119 and CP120.
+
 Hashes and migration heads below come from the committed linear Git and Alembic
 history. A dash means Alembic had not yet been introduced.
 

@@ -480,6 +480,13 @@ def test_memory_paths_and_existing_endpoints_are_registered(
     client, _ = route_client
     paths = client.app.openapi()["paths"]
     assert set(paths) == {
+        "/capture-items",
+        "/capture-items/query",
+        "/capture-items/{item_id}/detail",
+        "/capture-items/{item_id}",
+        "/capture-items/{item_id}/reassign",
+        "/capture-items/{item_id}/discard",
+        "/capture-items/{item_id}/restore",
         "/agent-runs",
         "/agent-runs/{run_id}",
         "/agent-runs/{run_id}/cancel",
