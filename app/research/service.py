@@ -24,6 +24,7 @@ from app.repositories import agent_runtime as repository
 from app.research.catalog import is_research
 from app.research.provider import ResearchProviderResult
 from app.schemas.agent_run import AgentRunState
+from app.sources.scope import source_access_clause
 
 RESULT_EVENT = "research.result"
 ALLOWED_TYPES = frozenset({"project", "memory", "source", "source_chunk"})
@@ -167,7 +168,7 @@ def _in_scope(
             select(Source.id)
             .join(MemorySource, MemorySource.source_id == Source.id)
             .join(Memory, Memory.id == MemorySource.memory_id)
-            .where(Source.id == entity_id, scope)
+            .where(Source.id == entity_id, scope, source_access_clause(run.project_id))
         )
     else:
         statement = (
@@ -176,7 +177,11 @@ def _in_scope(
             .join(Source, Source.id == SourceDocument.source_id)
             .join(MemorySource, MemorySource.source_id == Source.id)
             .join(Memory, Memory.id == MemorySource.memory_id)
-            .where(SourceChunk.id == entity_id, scope)
+            .where(
+                SourceChunk.id == entity_id,
+                scope,
+                source_access_clause(run.project_id),
+            )
         )
     return session.scalar(statement.limit(1)) is not None
 

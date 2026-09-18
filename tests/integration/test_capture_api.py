@@ -297,12 +297,6 @@ def test_two_real_sessions_same_revision_have_exactly_one_winner() -> None:
         )
 
 
-def test_no_cp119_routes_exist() -> None:
-    paths = {getattr(route, "path", "") for route in create_app().routes}
-    assert "/capture-items/{item_id}/convert-to-source" not in paths
-    assert "/capture-items/{item_id}/source" not in paths
-
-
 @pytest.mark.parametrize(
     "value",
     [

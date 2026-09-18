@@ -538,10 +538,16 @@ def link_source_to_memory(
 ) -> MemorySource:
     """Link an existing Source to an existing Memory."""
     try:
-        if memory_repository.get_memory(session, memory_id) is None:
+        memory = memory_repository.get_memory(session, memory_id)
+        if memory is None:
             session.rollback()
             raise HTTPException(status_code=404, detail="memory not found")
-        if source_repository.get_source(session, link_data.source_id) is None:
+        if (
+            source_repository.get_source(
+                session, link_data.source_id, memory.project_id
+            )
+            is None
+        ):
             session.rollback()
             raise HTTPException(status_code=404, detail="source not found")
         if source_repository.memory_source_link_exists(

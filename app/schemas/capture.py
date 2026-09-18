@@ -6,6 +6,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.source import SourceRead
+
 CaptureState = Literal["pending", "processed", "discarded"]
 
 
@@ -115,3 +117,8 @@ class CaptureRead(ClosedModel):
 class CapturePage(ClosedModel):
     items: list[CaptureRead]
     next_cursor: str | None
+
+
+class CaptureConversionRead(ClosedModel):
+    capture: CaptureRead
+    source: SourceRead

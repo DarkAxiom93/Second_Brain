@@ -19,10 +19,11 @@ from app.models import (
     MemoryExtractionRun,
     MemoryProposal,
     Project,
-    Source,
     SourceChunk,
     SourceDocument,
 )
+from app.repositories import sources as source_repository
+from app.sources.scope import LEGACY_ONLY, AuthoritativeScope, SourceScopeMode
 
 
 class ExtractionHTTPError(Exception):
@@ -60,6 +61,7 @@ def generate(
     *,
     source_id: uuid.UUID,
     project_id: uuid.UUID | None,
+    source_scope: AuthoritativeScope | SourceScopeMode = LEGACY_ONLY,
     chunk_start: int,
     chunk_limit: int,
     maximum: int,
@@ -68,7 +70,7 @@ def generate(
     if provider is None:
         raise ExtractionHTTPError(503, "extraction provider unavailable")
     try:
-        if session.get(Source, source_id) is None:
+        if source_repository.get_source(session, source_id, source_scope) is None:
             raise ExtractionHTTPError(404, "source not found")
         document = session.scalar(
             select(SourceDocument).where(SourceDocument.source_id == source_id)

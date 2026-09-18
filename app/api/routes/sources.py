@@ -47,6 +47,7 @@ from app.schemas.source import (
     SourceRead,
     SourceTextIngest,
 )
+from app.sources.scope import LEGACY_ONLY
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 document_router = APIRouter(prefix="/source-documents", tags=["source-documents"])
@@ -72,6 +73,11 @@ def generate_memory_proposals(
             session,
             source_id=source_id,
             project_id=request.project_id,
+            source_scope=(
+                request.project_id
+                if "project_id" in request.model_fields_set
+                else LEGACY_ONLY
+            ),
             chunk_start=request.chunk_start,
             chunk_limit=request.chunk_limit,
             maximum=request.max_proposals_per_chunk,

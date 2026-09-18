@@ -13,6 +13,7 @@ from app.models.memory_proposal import MemoryProposal
 from app.models.memory_source import MemorySource
 from app.models.source import Source
 from app.models.source_document import SourceDocument
+from app.sources.scope import source_access_clause
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,10 @@ def promote_proposal(session: Session, proposal_id: uuid.UUID) -> PromotionResul
         .join(MemoryExtractionRun, MemoryExtractionRun.id == MemoryProposal.run_id)
         .join(SourceDocument, SourceDocument.id == MemoryExtractionRun.document_id)
         .join(Source, Source.id == SourceDocument.source_id)
-        .where(MemoryProposal.id == proposal_id)
+        .where(
+            MemoryProposal.id == proposal_id,
+            source_access_clause(MemoryProposal.project_id),
+        )
         .with_for_update(of=MemoryProposal)
     ).one_or_none()
     if row is None:

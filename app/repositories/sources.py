@@ -15,6 +15,7 @@ from app.models.source import Source
 from app.models.source_chunk import SourceChunk
 from app.models.source_document import SourceDocument
 from app.schemas.source import MemorySourceLinkCreate, SourceCreate
+from app.sources.scope import LEGACY_ONLY, source_access_clause
 
 
 @dataclass(frozen=True)
@@ -94,15 +95,22 @@ def create_source(session: Session, source_data: SourceCreate) -> Source:
     return source
 
 
-def get_source(session: Session, source_id: uuid.UUID) -> Source | None:
+def get_source(
+    session: Session,
+    source_id: uuid.UUID,
+    scope: object = LEGACY_ONLY,
+) -> Source | None:
     """Return a source by identifier, or None."""
-    return session.scalar(select(Source).where(Source.id == source_id))
+    return session.scalar(
+        select(Source).where(Source.id == source_id, source_access_clause(scope))
+    )
 
 
 def list_sources(session: Session, *, limit: int, offset: int) -> list[Source]:
     """Return a deterministic page of Sources."""
     statement = (
         select(Source)
+        .where(source_access_clause(LEGACY_ONLY))
         .order_by(Source.created_at.desc(), Source.id.asc())
         .limit(limit)
         .offset(offset)
@@ -149,7 +157,12 @@ def list_documents_for_source(
 def get_document(session: Session, document_id: uuid.UUID) -> DocumentRead | None:
     """Return public document metadata and chunk count by identifier."""
     row = session.execute(
-        _document_projection().where(SourceDocument.id == document_id)
+        _document_projection()
+        .join(Source, Source.id == SourceDocument.source_id)
+        .where(
+            SourceDocument.id == document_id,
+            source_access_clause(LEGACY_ONLY),
+        )
     ).one_or_none()
     return None if row is None else DocumentRead(*row)
 
@@ -308,7 +321,9 @@ def list_sources_for_memory(
             Source.updated_at,
         )
         .join(Source, Source.id == MemorySource.source_id)
+        .join(Memory, Memory.id == MemorySource.memory_id)
         .where(MemorySource.memory_id == memory_id)
+        .where(source_access_clause(Memory.project_id))
         .order_by(MemorySource.created_at.desc(), MemorySource.id.asc())
         .limit(limit)
         .offset(offset)

@@ -20,6 +20,7 @@ from app.models.source import Source
 from app.models.source_chunk import SourceChunk
 from app.models.source_document import SourceDocument
 from app.repositories import memories, projects
+from app.sources.scope import source_access_clause
 
 
 class ToolUnavailableError(Exception):
@@ -99,6 +100,7 @@ def _scoped_source_statement(project_scope: uuid.UUID | None) -> Any:
         .join(MemorySource, MemorySource.source_id == Source.id)
         .join(Memory, Memory.id == MemorySource.memory_id)
         .where(_scope_clause(project_scope))
+        .where(source_access_clause(project_scope))
         .distinct()
     )
 
@@ -131,6 +133,7 @@ def _source_chunk_get(context: ToolCallContext, value: BaseModel) -> dict[str, o
         .where(
             SourceChunk.id == value.source_chunk_id,  # type: ignore[attr-defined]
             _scope_clause(context.project_scope),
+            source_access_clause(context.project_scope),
         )
         .distinct()
     )

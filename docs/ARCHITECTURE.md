@@ -11,9 +11,18 @@ Project or explicit-unassigned scope; database lookups combine identity and
 scope. Bounded browse and PostgreSQL `simple` lexical queries use authenticated,
 request-bound keyset cursors. Pending edits/reassignment and discard/restore
 lock the scoped row, revalidate the observed revision and closed state, then
-advance revision and `updated_at` atomically. Capture remains excluded from
-Sources, Context Hub, Agents, Tools, Automations, search, export/import, models,
-providers, and network behavior.
+advance revision and `updated_at` atomically. Pending Capture content remains
+excluded from Sources, Context Hub, Agents, Tools, Automations, search,
+export/import, models, providers, and network behavior.
+
+Checkpoint 119 adds explicit transactional Capture-to-Source conversion and a
+read-only processed-Capture Source resolver. Conversion locks the exact scoped
+Capture, reuses audited plain-text ingestion with fixed 2,000/200 chunking, and
+atomically freezes the processed Capture's Project or explicit-unassigned scope
+as the reverse binding for its one resulting Source. One common Source guard
+preserves legacy/unbound behavior while requiring that immutable exact scope on
+all Source/document/chunk paths; global Source APIs omit or reject capture-bound
+data. Project export remains version 1 and excludes the Capture binding.
 
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.

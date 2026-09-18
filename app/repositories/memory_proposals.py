@@ -13,6 +13,7 @@ from app.models.memory_proposal import MemoryProposal
 from app.models.source import Source
 from app.models.source_document import SourceDocument
 from app.schemas.memory_proposal import MemoryProposalFilters
+from app.sources.scope import source_access_clause
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,7 @@ def _joined_statement() -> Select[tuple[Any, ...]]:
         .join(MemoryExtractionRun, MemoryExtractionRun.id == MemoryProposal.run_id)
         .join(SourceDocument, SourceDocument.id == MemoryExtractionRun.document_id)
         .join(Source, Source.id == SourceDocument.source_id)
+        .where(source_access_clause(MemoryProposal.project_id))
     )
 
 
@@ -130,7 +132,12 @@ def review_proposal(
     locked = session.execute(
         select(MemoryProposal, MemoryExtractionRun)
         .join(MemoryExtractionRun, MemoryExtractionRun.id == MemoryProposal.run_id)
-        .where(MemoryProposal.id == proposal_id)
+        .join(SourceDocument, SourceDocument.id == MemoryExtractionRun.document_id)
+        .join(Source, Source.id == SourceDocument.source_id)
+        .where(
+            MemoryProposal.id == proposal_id,
+            source_access_clause(MemoryProposal.project_id),
+        )
         .with_for_update(of=MemoryProposal)
     ).one_or_none()
     if locked is None:

@@ -3,12 +3,16 @@
 import uuid
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
+from hashlib import sha256
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.connectors import imports as import_service
+from app.connectors import query as item_query
 from app.connectors.dependencies import (
     credential_store_dependency,
     github_transport_factory_dependency,
@@ -32,6 +36,9 @@ from app.models import (
     SourceChunk,
     SourceDocument,
 )
+from app.models.capture_item import CaptureItem
+from app.models.project import Project
+from app.schemas.connector import ExternalItemImportConfirm
 from tests.integration.conftest import verify_connected_test_database
 
 
@@ -298,3 +305,120 @@ def test_sequential_and_concurrent_confirmation_create_exactly_one_import() -> N
         assert session.scalar(select(func.count(ExternalItemImport.id))) == 1
         assert session.scalar(select(func.count(Source.id))) == 1
         assert session.scalar(select(func.count(SourceDocument.id))) == 1
+
+
+def _capture_document(session: Session, project_id: uuid.UUID | None) -> SourceDocument:
+    now = datetime.now(UTC)
+    identity = uuid.uuid4()
+    source = Source(source_type="capture", name=f"Capture {identity}")
+    session.add(source)
+    session.flush()
+    document = SourceDocument(
+        source_id=source.id,
+        media_type="text/plain",
+        original_filename=None,
+        byte_size=7,
+        extracted_text="capture",
+        ingestion_status="extracted",
+        extracted_at=now,
+    )
+    session.add(document)
+    session.flush()
+    session.add(
+        CaptureItem(
+            id=identity,
+            project_id=project_id,
+            content="capture",
+            state="processed",
+            revision=2,
+            created_at=now,
+            updated_at=now,
+            processed_at=now,
+            resulting_source_id=source.id,
+            idempotency_key_hash=sha256(f"key:{identity}".encode()).hexdigest(),
+            request_fingerprint=sha256(f"request:{identity}".encode()).hexdigest(),
+        )
+    )
+    session.flush()
+    return document
+
+
+def test_existing_import_replay_uses_exact_external_scope_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, account_id, _, _ = _client()
+    item = _issue(client, account_id)
+    preview = _preview(client, account_id, str(item["id"]))
+    created = client.post(
+        f"/connector-accounts/{account_id}/external-items/{item['id']}/import",
+        params={"scope": "unassigned"},
+        json=_confirm_body(preview),
+    )
+    assert created.status_code == 200
+    with Session(get_engine()) as session:
+        provenance = session.get(
+            ExternalItemImport, uuid.UUID(created.json()["import_id"])
+        )
+        external_item = session.get(ExternalItem, uuid.UUID(str(item["id"])))
+        assert provenance is not None and external_item is not None
+        legacy_document = session.get(SourceDocument, provenance.source_document_id)
+        assert legacy_document is not None
+
+        def replay(
+            document: SourceDocument, scope: item_query.ExternalScope
+        ) -> import_service.ImportResult:
+            external_item.project_id = scope.project_id
+            values = import_service._preview_values(session, external_item)
+            fingerprint = import_service._fingerprint(values)
+            provenance.source_document_id = document.id
+            provenance.confirmation_fingerprint = fingerprint
+            session.flush()
+            request = ExternalItemImportConfirm(
+                application_revision=external_item.application_revision,
+                provider_source_version=external_item.provider_source_version,
+                content_hash=external_item.content_hash,
+                confirmation_fingerprint=fingerprint,
+            )
+            return import_service.confirm(
+                session,
+                external_item.account_id,
+                scope,
+                external_item.id,
+                request,
+            )
+
+        unassigned_scope = item_query.parse_scope("unassigned")
+        legacy = replay(legacy_document, unassigned_scope)
+        assert legacy.created is False
+
+        unassigned_document = _capture_document(session, None)
+        matching_unassigned = replay(unassigned_document, unassigned_scope)
+        assert matching_unassigned.source.id == unassigned_document.source_id
+
+        project = Project(name=f"connector-guard-{uuid.uuid4()}")
+        wrong_project = Project(name=f"connector-guard-{uuid.uuid4()}")
+        session.add_all([project, wrong_project])
+        session.flush()
+        project_scope = item_query.ExternalScope(project.id)
+        wrong_scope = item_query.ExternalScope(wrong_project.id)
+        assigned_document = _capture_document(session, project.id)
+        matching_project = replay(assigned_document, project_scope)
+        assert matching_project.source.id == assigned_document.source_id
+
+        with pytest.raises(import_service.ExternalItemImportConflictError):
+            replay(assigned_document, wrong_scope)
+        with pytest.raises(import_service.ExternalItemImportConflictError):
+            replay(assigned_document, unassigned_scope)
+        with pytest.raises(import_service.ExternalItemImportConflictError):
+            replay(unassigned_document, project_scope)
+
+        replay(legacy_document, unassigned_scope)
+        with monkeypatch.context() as context:
+            context.setattr(import_service, "get_document_for_scope", lambda *_: None)
+            with pytest.raises(import_service.ExternalItemImportConflictError):
+                replay(legacy_document, unassigned_scope)
+        with monkeypatch.context() as context:
+            context.setattr(import_service, "get_source_for_scope", lambda *_: None)
+            with pytest.raises(import_service.ExternalItemImportConflictError):
+                replay(legacy_document, unassigned_scope)
+        session.rollback()

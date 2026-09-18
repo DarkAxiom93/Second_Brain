@@ -13,6 +13,7 @@ from app.captures.tokens import CaptureCursorError, decode_cursor, encode_cursor
 from app.core.config import Settings, get_settings
 from app.db.dependencies import get_db_session
 from app.schemas.capture import (
+    CaptureConversionRead,
     CaptureCreateRequest,
     CaptureDetailRequest,
     CaptureEditRequest,
@@ -22,6 +23,7 @@ from app.schemas.capture import (
     CaptureReassignRequest,
     CaptureRevisionRequest,
 )
+from app.schemas.source import SourceRead
 
 router = APIRouter(prefix="/capture-items", tags=["capture-items"])
 
@@ -240,3 +242,61 @@ def restore_capture(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> CaptureRead:
     return _transition(item_id, body, request, session, "discarded", "pending")
+
+
+@router.post("/{item_id}/convert-to-source", response_model=CaptureConversionRead)
+def convert_capture_to_source(
+    item_id: uuid.UUID,
+    body: CaptureRevisionRequest,
+    request: Request,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> CaptureConversionRead:
+    _loopback(request)
+    try:
+        result = service.convert_capture(session, item_id, body.scope, body.revision)
+        session.commit()
+        return CaptureConversionRead(
+            capture=CaptureRead.model_validate(result.item),
+            source=SourceRead.model_validate(result.source),
+        )
+    except service.CaptureNotFoundError:
+        session.rollback()
+        raise _error(404, "capture item not found") from None
+    except service.CaptureProjectNotFoundError:
+        session.rollback()
+        raise _error(404, "project not found") from None
+    except service.CaptureRevisionConflictError as exc:
+        session.rollback()
+        raise _conflict(exc) from None
+    except service.CaptureTransitionConflictError:
+        session.rollback()
+        raise _error(409, "capture transition conflict") from None
+    except service.CaptureSourceInvalidError:
+        session.rollback()
+        raise _error(404, "source not found") from None
+    except SQLAlchemyError:
+        session.rollback()
+        raise _error(503, "database unavailable") from None
+
+
+@router.post("/{item_id}/source", response_model=SourceRead)
+def resolve_capture_source(
+    item_id: uuid.UUID,
+    body: CaptureDetailRequest,
+    request: Request,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> SourceRead:
+    _loopback(request)
+    try:
+        result = service.resolve_capture_source(session, item_id, body.scope)
+        return SourceRead.model_validate(result.source)
+    except service.CaptureProjectNotFoundError:
+        raise _error(404, "project not found") from None
+    except (service.CaptureNotFoundError, service.CaptureSourceInvalidError):
+        raise _error(404, "capture item not found") from None
+    except service.CaptureTransitionConflictError:
+        raise _error(409, "capture transition conflict") from None
+    except SQLAlchemyError:
+        raise _error(503, "database unavailable") from None
+    finally:
+        session.rollback()

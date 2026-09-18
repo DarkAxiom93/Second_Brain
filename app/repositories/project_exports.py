@@ -18,6 +18,7 @@ from app.models import (
     SourceChunk,
     SourceDocument,
 )
+from app.sources.scope import source_access_clause
 
 
 def get_project(session: Session, project_id: UUID) -> Project | None:
@@ -75,7 +76,9 @@ def documents(session: Session, project_id: UUID) -> Iterator[SourceDocument]:
     return _rows(
         session,
         select(SourceDocument)
+        .join(Source, Source.id == SourceDocument.source_id)
         .where(SourceDocument.id.in_(run_documents))
+        .where(source_access_clause(project_id))
         .order_by(SourceDocument.id),
     )
 
@@ -87,7 +90,10 @@ def chunks(session: Session, project_id: UUID) -> Iterator[SourceChunk]:
     return _rows(
         session,
         select(SourceChunk)
+        .join(SourceDocument, SourceDocument.id == SourceChunk.document_id)
+        .join(Source, Source.id == SourceDocument.source_id)
         .where(SourceChunk.document_id.in_(run_documents))
+        .where(source_access_clause(project_id))
         .order_by(SourceChunk.id),
     )
 
@@ -107,6 +113,7 @@ def sources(session: Session, project_id: UUID) -> Iterator[Source]:
         session,
         select(Source)
         .where(Source.id.in_(linked_sources.union(document_sources)))
+        .where(source_access_clause(project_id))
         .order_by(Source.id),
     )
 

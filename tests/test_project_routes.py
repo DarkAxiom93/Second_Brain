@@ -229,6 +229,8 @@ def test_existing_routes_and_only_public_project_paths_remain_present(
         "/capture-items/{item_id}/reassign",
         "/capture-items/{item_id}/discard",
         "/capture-items/{item_id}/restore",
+        "/capture-items/{item_id}/convert-to-source",
+        "/capture-items/{item_id}/source",
         "/agent-runs",
         "/agent-runs/{run_id}",
         "/agent-runs/{run_id}/cancel",

@@ -27,6 +27,7 @@ from app.schemas.connector import (
     NumberedExternalContent,
     RepositoryExternalContent,
 )
+from app.sources.scope import get_document_for_scope, get_source_for_scope
 
 CHUNK_SIZE = 2_000
 CHUNK_OVERLAP = 200
@@ -161,11 +162,17 @@ def preview(
     return values.model_copy(update={"confirmation_fingerprint": _fingerprint(values)})
 
 
-def _existing_result(session: Session, provenance: ExternalItemImport) -> ImportResult:
-    document = session.get(SourceDocument, provenance.source_document_id)
+def _existing_result(
+    session: Session,
+    provenance: ExternalItemImport,
+    scope: item_query.ExternalScope,
+) -> ImportResult:
+    document = get_document_for_scope(
+        session, provenance.source_document_id, scope.project_id
+    )
     if document is None:
         raise ExternalItemImportConflictError
-    source = session.get(Source, document.source_id)
+    source = get_source_for_scope(session, document.source_id, scope.project_id)
     if source is None:
         raise ExternalItemImportConflictError
     count = session.scalar(
@@ -199,7 +206,7 @@ def confirm(
     if existing is not None:
         if existing.confirmation_fingerprint != fingerprint:
             raise ExternalItemImportConflictError
-        return _existing_result(session, existing)
+        return _existing_result(session, existing, scope)
 
     normalized_text = values.normalized_text
     chunks = chunk_text(normalized_text, CHUNK_SIZE, CHUNK_OVERLAP)

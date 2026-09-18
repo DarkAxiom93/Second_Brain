@@ -8,11 +8,15 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from app.ingestion.text import normalize_plain_text
+from app.ingestion.text import chunk_text, hash_chunk, normalize_plain_text
 from app.models.capture_item import CaptureItem
+from app.models.source import Source
 from app.repositories import capture_items as repository
+from app.repositories import sources as source_repository
 from app.repositories.projects import get_project
 from app.schemas.capture import CaptureQueryRequest, CaptureScope
+from app.schemas.source import SourceCreate
+from app.sources.scope import get_source_for_scope
 
 FINGERPRINT_DOMAIN = "second-brain.capture-create.v1"
 
@@ -42,6 +46,10 @@ class CaptureTransitionConflictError(Exception):
     pass
 
 
+class CaptureSourceInvalidError(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class CaptureCreate:
     content: str
@@ -68,6 +76,12 @@ class CaptureItemProjection:
 class CaptureCreateResult:
     item: CaptureItemProjection
     created: bool
+
+
+@dataclass(frozen=True)
+class CaptureConversionResult:
+    item: CaptureItemProjection
+    source: Source
 
 
 def normalize_capture_content(value: str) -> str:
@@ -240,6 +254,74 @@ def transition_capture(
         raise CaptureTransitionConflictError
     item.state = target
     return _finish_mutation(session, item)
+
+
+def convert_capture(
+    session: Session,
+    item_id: uuid.UUID,
+    scope: CaptureScope,
+    revision: int,
+) -> CaptureConversionResult:
+    """Convert once, or resolve the one successful processed replay."""
+
+    project_id = validate_scope(session, scope)
+    item = repository.get_scoped_capture(session, item_id, project_id, lock=True)
+    if item is None:
+        raise CaptureNotFoundError
+    if item.state == "processed":
+        if revision not in {item.revision - 1, item.revision}:
+            raise CaptureRevisionConflictError(_project(item))
+        if item.resulting_source_id is None:
+            raise CaptureSourceInvalidError
+        source = get_source_for_scope(session, item.resulting_source_id, project_id)
+        if source is None:
+            raise CaptureSourceInvalidError
+        return CaptureConversionResult(_project(item), source)
+    if item.revision != revision:
+        raise CaptureRevisionConflictError(_project(item))
+    if item.state != "pending":
+        raise CaptureTransitionConflictError
+
+    source = source_repository.create_source(
+        session,
+        SourceCreate(
+            source_type="capture",
+            name=f"Capture {item.id}",
+            reference=None,
+            checksum=hash_chunk(item.content),
+        ),
+    )
+    source_repository.upsert_text_document(
+        session,
+        source_id=source.id,
+        normalized_text=item.content,
+        original_filename=None,
+        chunks=chunk_text(item.content, 2000, 200),
+        extracted_at=datetime.now(UTC),
+    )
+    now = datetime.now(UTC)
+    item.resulting_source_id = source.id
+    item.processed_at = now
+    item.state = "processed"
+    item.revision += 1
+    item.updated_at = now
+    session.flush()
+    return CaptureConversionResult(_project(item), source)
+
+
+def resolve_capture_source(
+    session: Session, item_id: uuid.UUID, scope: CaptureScope
+) -> CaptureConversionResult:
+    project_id = validate_scope(session, scope)
+    item = repository.get_scoped_capture(session, item_id, project_id)
+    if item is None:
+        raise CaptureNotFoundError
+    if item.state != "processed" or item.resulting_source_id is None:
+        raise CaptureTransitionConflictError
+    source = get_source_for_scope(session, item.resulting_source_id, project_id)
+    if source is None:
+        raise CaptureSourceInvalidError
+    return CaptureConversionResult(_project(item), source)
 
 
 def create_capture(session: Session, request: CaptureCreate) -> CaptureCreateResult:

@@ -487,6 +487,8 @@ def test_memory_paths_and_existing_endpoints_are_registered(
         "/capture-items/{item_id}/reassign",
         "/capture-items/{item_id}/discard",
         "/capture-items/{item_id}/restore",
+        "/capture-items/{item_id}/convert-to-source",
+        "/capture-items/{item_id}/source",
         "/agent-runs",
         "/agent-runs/{run_id}",
         "/agent-runs/{run_id}/cancel",

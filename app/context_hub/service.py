@@ -53,6 +53,7 @@ from app.models.source import Source
 from app.models.source_chunk import SourceChunk
 from app.models.source_document import SourceDocument
 from app.schemas.connector import NumberedExternalContent, RepositoryExternalContent
+from app.sources.scope import source_access_clause
 
 
 class ContextNotFoundError(Exception):
@@ -106,6 +107,7 @@ def _local_items(
         .where(
             SourceDocument.ingestion_status == "extracted",
             _scope_clause(Memory.project_id, request.scope),
+            source_access_clause(request.scope.project_id),
         )
         .distinct()
     )
@@ -476,6 +478,7 @@ def reopen_context(
                 SourceChunk.content_hash == provenance.content_hash,
                 SourceDocument.ingestion_status == "extracted",
                 _scope_clause(Memory.project_id, scope),
+                source_access_clause(scope.project_id),
             )
             .distinct()
         ).one_or_none()
