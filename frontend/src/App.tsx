@@ -14,6 +14,7 @@ import { AgentRunDetail, AgentRuns } from "./Agents";
 import { AutomationCreate, AutomationDetail, Automations, NotificationInbox } from "./Automations";
 import { CalendarContext, CalendarContextDetail, ConnectorScheduleControls, ExternalContext, ExternalContextDetail } from "./ExternalContext";
 import { ContextHub } from "./ContextHub";
+import { CaptureInbox, CaptureLauncher } from "./Capture";
 
 const navigation = [
   ["/", "Dashboard"],
@@ -27,6 +28,7 @@ const navigation = [
   ["/automations", "Automations"],
   ["/external-context", "External Context"],
   ["/context-hub", "Context Hub"],
+  ["/inbox", "Inbox"],
   ["/settings", "Settings"],
 ] as const;
 
@@ -124,6 +126,7 @@ export function App() {
           </ul>
         </nav>
         <p className="sidebar__note">Local-first workspace</p>
+        <CaptureLauncher />
       </aside>
       <main className="main-content">
         <Routes>
@@ -150,6 +153,7 @@ export function App() {
           <Route path="/external-context/calendar/:itemId" element={<CalendarContextDetail />} />
           <Route path="/external-context/:accountId/:itemId" element={<ExternalContextDetail />} />
           <Route path="/context-hub" element={<ContextHub />} />
+          <Route path="/inbox" element={<CaptureInbox />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

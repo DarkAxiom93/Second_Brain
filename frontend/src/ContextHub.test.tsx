@@ -30,7 +30,7 @@ describe("Context Hub", () => {
     await screen.findByRole("option", { name: "Alpha" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole("button", { name: "Search context" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Select one Project or explicit unassigned scope");
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("Select one Project or explicit unassigned scope");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

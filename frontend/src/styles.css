@@ -200,6 +200,16 @@ fieldset input { width: auto; }
 .context-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
 .context-list li { min-width: 0; padding: 1rem; border-radius: .65rem; background: #f2f6f0; overflow: hidden; }
 .hostile-text { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; unicode-bidi: isolate; }
+.capture-launcher { width: 100%; background: #d8f3e5; color: #123229; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; background: rgb(4 18 14 / .72); }
+.capture-modal { width: min(36rem, 100%); max-height: calc(100vh - 2rem); overflow: auto; border-radius: .75rem; padding: 1.5rem; background: #fff; color: #17221e; box-shadow: 0 1rem 4rem rgb(0 0 0 / .35); }
+.capture-modal h2 { margin-top: 0; }
+.button-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.capture-status { min-height: 1.5rem; }
+.capture-list { display: grid; gap: .75rem; padding: 0; list-style: none; }
+.capture-list button { width: 100%; text-align: left; }
+.capture-list small { display: block; margin-top: .4rem; }
+.capture-detail textarea { min-height: 10rem; }
 .context-disclosure { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: .75rem; margin: 1rem 0; }
 .context-disclosure div { min-width: 0; }
 .context-disclosure dt { color: #59665f; font-size: .8rem; }

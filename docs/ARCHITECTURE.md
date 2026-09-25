@@ -24,6 +24,21 @@ preserves legacy/unbound behavior while requiring that immutable exact scope on
 all Source/document/chunk paths; global Source APIs omit or reject capture-bound
 data. Project export remains version 1 and excludes the Capture binding.
 
+Checkpoint 120 adds the frontend-only Capture boundary. The application shell
+provides a persistent `+ Capture` action and application-local `Ctrl+Shift+C`
+shortcut, opening a labelled focus-trapped modal whose visible default is
+explicit Unassigned. One logical submission keeps a strong idempotency key only
+in memory and reuses it solely for an unchanged ambiguous retry. `/inbox`
+browses one exact Project or explicit-unassigned scope and one closed state at a
+time with submitted lexical search, 25-item pages, and memory-only opaque cursor
+history. Detail and every mutation re-send the observed exact scope and positive
+revision. Valid revision conflicts replace stale UI data but never replay an
+action. Capture text is inert React text with bidi isolation and overflow
+containment. Processed Sources are resolved through the scoped Capture resolver
+and displayed in-page from that authorized projection; the unscoped Source
+screen is never used for a capture-bound Source. There is no polling, browser
+persistence, backend contract change, migration, or additional authority.
+
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
 The stable recovery architecture is released as `v1.0.0` at commit

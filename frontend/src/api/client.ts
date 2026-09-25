@@ -214,6 +214,17 @@ export type ContextHubPage = { contract_version: "context-hub-v1"; groups: Array
 export type ContextFacetBucket = { value: string; count: number };
 export type ContextHubFacets = { contract_version: "context-hub-v1"; observed_at: string; families: ContextFacetBucket[]; kinds: ContextFacetBucket[]; trust: ContextFacetBucket[]; states: ContextFacetBucket[] };
 
+export type CaptureState = "pending" | "processed" | "discarded";
+export type CaptureScope = { project_id: string } | { unassigned: true };
+export type CaptureItem = {
+  id: string; project_id: string | null; content: string; state: CaptureState;
+  revision: number; created_at: string; updated_at: string;
+  processed_at: string | null; resulting_source_id: string | null;
+};
+export type CapturePage = { items: CaptureItem[]; next_cursor: string | null };
+export type CaptureQuery = { scope: CaptureScope; states: CaptureState[]; query?: string; page_size: number; cursor?: string };
+export type CaptureConversion = { capture: CaptureItem; source: SourceRead };
+
 export class SafeApiError extends Error {
   constructor() {
     super("The local API is unavailable or returned an unexpected response.");
@@ -246,6 +257,12 @@ export class SearchProviderError extends Error { constructor(message: string) { 
 export class AnswerProviderError extends Error { constructor(message: string) { super(message); this.name = "AnswerProviderError"; } }
 export class ImportConflictError extends Error { constructor() { super("The bundle now conflicts with the target or its confirmation is stale."); this.name = "ImportConflictError"; } }
 export class ContextFacetLimitError extends Error { constructor() { super("Counts unavailable for this request."); this.name = "ContextFacetLimitError"; } }
+export class CaptureRevisionConflictError extends Error {
+  constructor(public readonly item: CaptureItem) {
+    super("This item changed; refreshed.");
+    this.name = "CaptureRevisionConflictError";
+  }
+}
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE;
@@ -716,6 +733,56 @@ function isSource(value: unknown): value is SourceRead {
     (record.checksum === null || record.checksum.length <= 64) &&
     isTimestamp(record.created_at) && isTimestamp(record.updated_at);
 }
+
+function isCaptureItem(value: unknown): value is CaptureItem {
+  if (!objectRecord(value) || !exactKeys(value, ["id", "project_id", "content", "state", "revision", "created_at", "updated_at", "processed_at", "resulting_source_id"])) return false;
+  if (typeof value.id !== "string" || !isProjectId(value.id) || !nullableUuid(value.project_id) ||
+      typeof value.content !== "string" || !["pending", "processed", "discarded"].includes(String(value.state)) ||
+      !Number.isInteger(value.revision) || (value.revision as number) <= 0 || !isTimestamp(value.created_at) ||
+      !isTimestamp(value.updated_at) || !nullableTimestamp(value.processed_at) || !nullableUuid(value.resulting_source_id)) return false;
+  const scalars = Array.from(value.content);
+  if (scalars.length < 1 || scalars.length > 8_000 || !/\S/u.test(value.content) ||
+      value.content.includes("\u0000") || value.content.includes("\r") ||
+      scalars.some(char => { const code = char.codePointAt(0)!; return code >= 0xd800 && code <= 0xdfff; }) ||
+      new TextEncoder().encode(value.content).byteLength > 32_000) return false;
+  const hasProvenance = value.processed_at !== null && value.resulting_source_id !== null;
+  return value.state === "processed" ? hasProvenance : value.processed_at === null && value.resulting_source_id === null;
+}
+
+function isCapturePage(value: unknown): value is CapturePage {
+  return objectRecord(value) && exactKeys(value, ["items", "next_cursor"]) && Array.isArray(value.items) &&
+    value.items.length <= 50 && value.items.every(isCaptureItem) && (value.next_cursor === null || typeof value.next_cursor === "string");
+}
+
+async function captureRequest<T>(path: string, validate: (value: unknown) => value is T, body: unknown, signal?: AbortSignal, headers?: Record<string, string>, revisionConflict = false, method: "POST" | "PATCH" = "POST"): Promise<T> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBase()}${path}`, { method, headers: { Accept: "application/json", "Content-Type": "application/json", ...headers }, body: JSON.stringify(body), signal: controller.signal, credentials: "same-origin" });
+  } catch { window.clearTimeout(timeout); signal?.removeEventListener("abort", abort); throw new SafeApiError(); }
+  let value: unknown;
+  try { value = await response.json(); } catch { window.clearTimeout(timeout); signal?.removeEventListener("abort", abort); throw new SafeApiError(); }
+  window.clearTimeout(timeout); signal?.removeEventListener("abort", abort);
+  if (response.status === 409 && revisionConflict && objectRecord(value) && exactKeys(value, ["detail"]) && objectRecord(value.detail) && exactKeys(value.detail, ["error", "item"]) && value.detail.error === "capture revision conflict" && isCaptureItem(value.detail.item)) {
+    throw new CaptureRevisionConflictError(value.detail.item);
+  }
+  if (!response.ok || !validate(value)) throw new SafeApiError();
+  return value;
+}
+
+export function createCapture(content: string, scope: CaptureScope, idempotencyKey: string, signal?: AbortSignal) {
+  return captureRequest("/capture-items", isCaptureItem, { content, ...scope }, signal, { "Idempotency-Key": idempotencyKey });
+}
+export function queryCaptures(body: CaptureQuery, signal?: AbortSignal) { return captureRequest("/capture-items/query", isCapturePage, body, signal); }
+export function detailCapture(id: string, scope: CaptureScope, signal?: AbortSignal) { return captureRequest(`/capture-items/${id}/detail`, isCaptureItem, { scope }, signal); }
+export function editCapture(id: string, scope: CaptureScope, revision: number, content: string, signal?: AbortSignal) { return captureRequest(`/capture-items/${id}`, isCaptureItem, { scope, revision, content }, signal, undefined, true, "PATCH"); }
+export function reassignCapture(id: string, scope: CaptureScope, target_scope: CaptureScope, revision: number, signal?: AbortSignal) { return captureRequest(`/capture-items/${id}/reassign`, isCaptureItem, { scope, target_scope, revision }, signal, undefined, true); }
+export function transitionCapture(id: string, action: "discard" | "restore", scope: CaptureScope, revision: number, signal?: AbortSignal) { return captureRequest(`/capture-items/${id}/${action}`, isCaptureItem, { scope, revision }, signal, undefined, true); }
+export function convertCapture(id: string, scope: CaptureScope, revision: number, signal?: AbortSignal) { return captureRequest(`/capture-items/${id}/convert-to-source`, (v): v is CaptureConversion => objectRecord(v) && exactKeys(v, ["capture", "source"]) && isCaptureItem(v.capture) && isSource(v.source), { scope, revision }, signal, undefined, true); }
+export function resolveCaptureSource(id: string, scope: CaptureScope, signal?: AbortSignal) { return captureRequest(`/capture-items/${id}/source`, isSource, { scope }, signal); }
 
 function isSourceList(value: unknown): value is SourceRead[] {
   return Array.isArray(value) && value.every(isSource);
