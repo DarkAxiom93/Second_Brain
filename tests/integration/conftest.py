@@ -34,6 +34,9 @@ def pytest_collection_modifyitems(
     config._cp113_security_selected = any(  # type: ignore[attr-defined]
         item.get_closest_marker("cp113_security") is not None for item in items
     )
+    config._cp121_security_selected = any(  # type: ignore[attr-defined]
+        item.get_closest_marker("cp121_security") is not None for item in items
+    )
 
 
 @pytest.fixture(scope="session")
@@ -45,6 +48,11 @@ def test_database_url(pytestconfig: pytest.Config) -> str:
         if getattr(pytestconfig, "_cp113_security_selected", False):
             pytest.fail(
                 "CP113 security tests require TEST_DATABASE_URL=second_brain_test",
+                pytrace=False,
+            )
+        if getattr(pytestconfig, "_cp121_security_selected", False):
+            pytest.fail(
+                "CP121 security tests require TEST_DATABASE_URL=second_brain_test",
                 pytrace=False,
             )
         pytest.skip("TEST_DATABASE_URL is required for PostgreSQL integration tests")

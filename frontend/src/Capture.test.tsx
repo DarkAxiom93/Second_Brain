@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -55,11 +55,11 @@ describe("Checkpoint 120 capture UI", () => {
   it("invalidates cursors for scope, state, submitted query, and Clear changes", async () => {
     const requests: Array<{ body: Record<string, unknown>; resolve: (value: Response) => void }> = [];
     const fetchMock = vi.fn((url: string, init?: RequestInit) => url.includes("/projects?") ? Promise.resolve(response(projects)) : new Promise<Response>(resolve => requests.push({ body: body([url, init!]), resolve })));
-    renderInbox(fetchMock); await waitFor(() => expect(requests).toHaveLength(1)); requests[0].resolve(response({ items: [item()], next_cursor: "cursor-1" })); await screen.findByRole("button", { name: "Next page" });
-    await userEvent.selectOptions(screen.getByLabelText("Exact scope"), projectId); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(2)); expect(requests[1].body).not.toHaveProperty("cursor"); requests[1].resolve(response({ items: [item({ project_id: projectId })], next_cursor: "cursor-2" })); await screen.findByRole("button", { name: "Next page" });
-    await userEvent.selectOptions(screen.getByLabelText("State"), "discarded"); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(3)); expect(requests[2].body).not.toHaveProperty("cursor"); requests[2].resolve(response({ items: [item({ project_id: projectId, state: "discarded" })], next_cursor: "cursor-3" })); await screen.findByRole("button", { name: "Next page" });
-    await userEvent.type(screen.getByLabelText("Lexical search"), "new query"); await userEvent.click(screen.getByRole("button", { name: "Search" })); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(4)); expect(requests[3].body).toMatchObject({ query: "new query" }); expect(requests[3].body).not.toHaveProperty("cursor"); requests[3].resolve(response({ items: [], next_cursor: "cursor-4" })); await screen.findByRole("button", { name: "Next page" });
-    await userEvent.click(screen.getByRole("button", { name: "Clear search" })); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(5)); expect(requests[4].body).not.toHaveProperty("query"); expect(requests[4].body).not.toHaveProperty("cursor"); requests[4].resolve(response({ items: [], next_cursor: null }));
+    renderInbox(fetchMock); await waitFor(() => expect(requests).toHaveLength(1)); await act(async () => requests[0].resolve(response({ items: [item()], next_cursor: "cursor-1" }))); await screen.findByRole("button", { name: "Next page" });
+    await userEvent.selectOptions(screen.getByLabelText("Exact scope"), projectId); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(2)); expect(requests[1].body).not.toHaveProperty("cursor"); await act(async () => requests[1].resolve(response({ items: [item({ project_id: projectId })], next_cursor: "cursor-2" }))); await screen.findByRole("button", { name: "Next page" });
+    await userEvent.selectOptions(screen.getByLabelText("State"), "discarded"); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(3)); expect(requests[2].body).not.toHaveProperty("cursor"); await act(async () => requests[2].resolve(response({ items: [item({ project_id: projectId, state: "discarded" })], next_cursor: "cursor-3" }))); await screen.findByRole("button", { name: "Next page" });
+    fireEvent.change(screen.getByLabelText("Lexical search"), { target: { value: "new query" } }); await userEvent.click(screen.getByRole("button", { name: "Search" })); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(4)); expect(requests[3].body).toMatchObject({ query: "new query" }); expect(requests[3].body).not.toHaveProperty("cursor"); await act(async () => requests[3].resolve(response({ items: [], next_cursor: "cursor-4" }))); await screen.findByRole("button", { name: "Next page" });
+    await userEvent.click(screen.getByRole("button", { name: "Clear search" })); expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument(); await waitFor(() => expect(requests).toHaveLength(5)); expect(requests[4].body).not.toHaveProperty("query"); expect(requests[4].body).not.toHaveProperty("cursor"); await act(async () => requests[4].resolve(response({ items: [], next_cursor: null }))); await screen.findByText("No captures in this exact view.");
   });
 
   it("fences an older delayed page so it cannot overwrite a newer exact view", async () => {
@@ -73,6 +73,27 @@ describe("Checkpoint 120 capture UI", () => {
     const hostile = `<script>alert(1)</script> [go](javascript:x) \u202e Settings\n${"x".repeat(1200)}`; let patchCalls = 0;
     const revisions: number[] = []; const fetchMock = vi.fn(async (url: string, init?: RequestInit) => { if (url.includes("/projects?")) return response(projects); if (url.endsWith("/query")) return response({ items: [item({ content: hostile })], next_cursor: null }); if (url.endsWith("/detail")) return response(item({ content: hostile })); if ((init?.method) === "PATCH") { patchCalls += 1; revisions.push(body([url, init!]).revision as number); return patchCalls === 1 ? response({ detail: { error: "capture revision conflict", item: item({ content: "authoritative", revision: 2 }) } }, 409) : response(item({ content: "retried", revision: 3 })); } return response({}); }); renderInbox(fetchMock); const open = await screen.findByRole("button", { name: new RegExp("script") }); await userEvent.click(open); expect(document.querySelector("script")).toBeNull(); expect(screen.queryByRole("link", { name: "go" })).not.toBeInTheDocument();
     const edit = screen.getByLabelText("Edit plain text"); await userEvent.clear(edit); await userEvent.type(edit, "stale change"); await userEvent.click(screen.getByRole("button", { name: "Save edit" })); expect(await screen.findByText(/item changed; refreshed/i)).toBeInTheDocument(); expect(screen.getAllByText("authoritative").length).toBeGreaterThan(0); expect(patchCalls).toBe(1); await userEvent.click(screen.getByRole("button", { name: "Save edit" })); await waitFor(() => expect(patchCalls).toBe(2)); expect(revisions).toEqual([1, 2]);
+  });
+
+  it("contains the complete hostile rendering corpus without execution navigation or control spoofing", async () => {
+    const hostile = `<script>globalThis.cp121=true</script><svg onload="globalThis.cp121=true"></svg> [markdown](javascript:alert(1)) data:text/html,boom \u202eSettings\u202c cÐ¾nfusable\nline two\t${"x".repeat(4000)}`;
+    const fetchMock = vi.fn(async (url: string) => url.includes("/projects?") ? response(projects) : url.endsWith("/query") ? response({ items: [item({ content: hostile })], next_cursor: null }) : response(item({ content: hostile })));
+    renderInbox(fetchMock);
+    const open = await screen.findByRole("button", { name: /script/ });
+    const text = open.querySelector(".hostile-text");
+    expect(text).toHaveTextContent(hostile, { normalizeWhitespace: false });
+    expect(text).toHaveAttribute("dir", "auto");
+    expect(document.querySelector("script, svg")).toBeNull();
+    expect(screen.queryByRole("link", { name: /markdown|javascript|data/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument();
+    await userEvent.click(open);
+    const detail = await screen.findByRole("heading", { name: "Capture detail" });
+    expect(detail).toBeInTheDocument();
+    const detailText = detail.closest("section")!.querySelector(".hostile-text")!;
+    expect(detailText.textContent).toBe(hostile);
+    expect(detailText).toHaveClass("hostile-text");
+    expect(detailText).toHaveAttribute("dir", "auto");
+    expect(screen.getByRole("button", { name: "Save edit" })).toBeEnabled();
   });
 
   it("uses the scoped resolver before showing a processed Source and never fetches it unscoped", async () => {

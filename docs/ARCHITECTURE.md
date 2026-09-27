@@ -39,6 +39,16 @@ and displayed in-page from that authorized projection; the unscoped Source
 screen is never used for a capture-bound Source. There is no polling, browser
 persistence, backend contract change, migration, or additional authority.
 
+Checkpoint 121 adds test/evaluation evidence only. One code-owned, ordered
+CAP01-CAP18 manifest maps exactly 44 unique executable nodes and rejects missing,
+renamed, duplicate, non-assertive, skipped, xfailed, todo, or conditionally
+skipped coverage. Marked PostgreSQL evidence fails closed unless the live target
+is exactly `second_brain_test`; deterministic Capture isolation, replay,
+transitions, conversion rollback/concurrency, stale updates, hostile input,
+privacy, resource bounds, external and authority omission, export, protected
+backup/recovery, reassignment, destructive-loss protection, and provenance are
+evaluated without adding production capability or authority.
+
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
 The stable recovery architecture is released as `v1.0.0` at commit

@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, event, func, select
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.agent_tools.dispatch import (
@@ -35,6 +35,8 @@ from app.ingestion.text import chunk_text
 from app.main import create_app
 from app.models.capture_item import CaptureItem
 from app.models.memory import Memory
+from app.models.memory_embedding import MemoryEmbedding
+from app.models.memory_proposal import MemoryProposal
 from app.models.memory_source import MemorySource
 from app.models.project import Project
 from app.models.source import Source
@@ -48,6 +50,7 @@ from app.repositories import (
 from app.research.service import _in_scope
 from app.schemas.capture import CaptureScope
 from app.schemas.memory_proposal import MemoryProposalFilters
+from app.sources.scope import get_source_for_scope
 from tests.integration.conftest import verify_connected_test_database
 
 pytestmark = pytest.mark.usefixtures("migrated_test_database")
@@ -222,6 +225,7 @@ def _seed_source(project_id: object) -> uuid.UUID:
 _LEGACY = object()
 
 
+@pytest.mark.cp121_security
 def test_proposal_generation_distinguishes_omitted_null_and_project_scope() -> None:
     project_id = _project()
     other_id = _project()
@@ -254,6 +258,7 @@ def test_proposal_generation_distinguishes_omitted_null_and_project_scope() -> N
     ] == [404, 404, 404, 200]
 
 
+@pytest.mark.cp121_security
 def test_proposal_read_review_and_promotion_fail_after_binding_scope_mismatch() -> None:
     project_id, wrong_id = _project(), _project()
     source_id = _seed_source(project_id)
@@ -292,6 +297,7 @@ def test_proposal_read_review_and_promotion_fail_after_binding_scope_mismatch() 
 
 
 @pytest.mark.parametrize("assigned", [False, True])
+@pytest.mark.cp121_security
 def test_conversion_persists_exact_text_metadata_chunks_and_capture(
     assigned: bool,
 ) -> None:
@@ -357,6 +363,7 @@ def test_conversion_persists_exact_text_metadata_chunks_and_capture(
         ]
 
 
+@pytest.mark.cp121_security
 def test_conversion_scope_state_identity_and_stale_fail_without_writes() -> None:
     client = _client()
     project_id, other_id = _project(), _project()
@@ -408,6 +415,7 @@ def test_conversion_scope_state_identity_and_stale_fail_without_writes() -> None
 
 
 @pytest.mark.parametrize("assigned", [False, True])
+@pytest.mark.cp121_security
 def test_processed_replay_accepts_only_original_and_current_revision(
     assigned: bool,
 ) -> None:
@@ -443,6 +451,7 @@ def test_processed_replay_accepts_only_original_and_current_revision(
 
 
 @pytest.mark.parametrize("assigned", [False, True])
+@pytest.mark.cp121_security
 def test_source_resolver_is_scoped_safe_and_read_only(assigned: bool) -> None:
     client = _client()
     project_id = _project() if assigned else None
@@ -467,6 +476,7 @@ def test_source_resolver_is_scoped_safe_and_read_only(assigned: bool) -> None:
     assert detail.json() == before
 
 
+@pytest.mark.cp121_security
 def test_source_resolver_rejects_pending_discarded_missing_and_broken_binding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -638,6 +648,7 @@ def test_source_resolver_rejects_pending_discarded_missing_and_broken_binding(
         ) == graph_counts
 
 
+@pytest.mark.cp121_security
 def test_unscoped_source_document_ingestion_and_link_boundaries_fail_closed() -> None:
     client = _client()
     project_id, wrong_id = _project(), _project()
@@ -701,6 +712,7 @@ def test_unscoped_source_document_ingestion_and_link_boundaries_fail_closed() ->
     assert legacy.status_code == 200
 
 
+@pytest.mark.cp121_security
 def test_tools_hub_research_and_export_use_their_authoritative_project_scope() -> None:
     client = _client()
     project_id, wrong_id = _project(), _project()
@@ -785,6 +797,7 @@ def test_tools_hub_research_and_export_use_their_authoritative_project_scope() -
         assert list(project_exports.sources(session, wrong_id)) == []
 
 
+@pytest.mark.cp121_security
 def test_concurrent_conversion_serializes_to_one_graph(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -897,6 +910,338 @@ def test_concurrent_conversion_serializes_to_one_graph(
         ) == len(chunk_text(item["content"], 2000, 200))
 
 
+@pytest.mark.cp121_security
+def test_cap16_reassignment_conversion_race_freezes_one_complete_scope() -> None:
+    from app.captures.service import (
+        CaptureNotFoundError,
+        CaptureRevisionConflictError,
+        convert_capture,
+        reassign_capture,
+    )
+
+    project_a, project_b = _project(), _project()
+    client = _client()
+    item = _create(client, "race frozen scope", project_a)
+    barrier = threading.Barrier(2)
+
+    def move() -> str:
+        with get_session_factory()() as session:
+            barrier.wait(timeout=10)
+            try:
+                reassign_capture(
+                    session,
+                    uuid.UUID(item["id"]),
+                    CaptureScope(project_id=project_a),
+                    CaptureScope(project_id=project_b),
+                    1,
+                )
+                session.commit()
+                return "moved"
+            except (CaptureNotFoundError, CaptureRevisionConflictError):
+                session.rollback()
+                return "lost"
+
+    def convert() -> str:
+        with get_session_factory()() as session:
+            barrier.wait(timeout=10)
+            try:
+                convert_capture(
+                    session,
+                    uuid.UUID(item["id"]),
+                    CaptureScope(project_id=project_a),
+                    1,
+                )
+                session.commit()
+                return "converted"
+            except (CaptureNotFoundError, CaptureRevisionConflictError):
+                session.rollback()
+                return "lost"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(move), pool.submit(convert)]
+        results = [future.result() for future in futures]
+    assert results.count("lost") == 1
+    with Session(get_engine()) as session:
+        capture = session.get(CaptureItem, uuid.UUID(item["id"]))
+        assert capture is not None and capture.revision == 2
+        assert capture.project_id in {project_a, project_b}
+        if "converted" in results:
+            assert capture.state == "processed" and capture.project_id == project_a
+            assert capture.resulting_source_id is not None
+            assert get_source_for_scope(session, capture.resulting_source_id, project_a)
+            assert (
+                get_source_for_scope(session, capture.resulting_source_id, project_b)
+                is None
+            )
+        else:
+            assert capture.state == "pending" and capture.project_id == project_b
+            assert capture.resulting_source_id is None
+
+
+@pytest.mark.cp121_security
+def test_cap16_conversion_win_closes_old_new_visibility_and_downstream_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.captures.service import (
+        CaptureNotFoundError,
+        CaptureRevisionConflictError,
+        convert_capture,
+        reassign_capture,
+    )
+
+    project_a, project_b = _project(), _project()
+    item = _create(_client(), "deterministic frozen path", project_a)
+    conversion_locked = threading.Event()
+    reassignment_entered = threading.Event()
+    real_get = capture_service.repository.get_scoped_capture
+    worker_context = threading.local()
+
+    def hold_conversion_lock(*args: Any, **kwargs: Any) -> CaptureItem | None:
+        capture = real_get(*args, **kwargs)
+        if getattr(worker_context, "operation", None) == "convert" and kwargs.get(
+            "lock"
+        ):
+            conversion_locked.set()
+            assert reassignment_entered.wait(timeout=10)
+        return capture
+
+    monkeypatch.setattr(
+        capture_service.repository, "get_scoped_capture", hold_conversion_lock
+    )
+
+    def convert_worker() -> str:
+        worker_context.operation = "convert"
+        with get_session_factory()() as session:
+            convert_capture(
+                session,
+                uuid.UUID(item["id"]),
+                CaptureScope(project_id=project_a),
+                1,
+            )
+            session.commit()
+        return "converted"
+
+    def reassign_worker() -> str:
+        assert conversion_locked.wait(timeout=10)
+        worker_context.operation = "reassign"
+        with get_session_factory()() as session:
+            reassignment_entered.set()
+            try:
+                reassign_capture(
+                    session,
+                    uuid.UUID(item["id"]),
+                    CaptureScope(project_id=project_a),
+                    CaptureScope(project_id=project_b),
+                    1,
+                )
+                session.commit()
+                return "moved"
+            except (CaptureNotFoundError, CaptureRevisionConflictError):
+                session.rollback()
+                return "lost"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        converted = pool.submit(convert_worker)
+        reassigned = pool.submit(reassign_worker)
+        assert converted.result() == "converted"
+        assert reassigned.result() == "lost"
+
+    client = _client()
+    old_scope = _scope(project_a)
+    new_scope = _scope(project_b)
+    detail = client.post(
+        f"/capture-items/{item['id']}/detail", json={"scope": old_scope}
+    )
+    assert detail.status_code == 200
+    assert detail.json()["state"] == "processed"
+    source_id = uuid.UUID(detail.json()["resulting_source_id"])
+    assert (
+        client.post(
+            f"/capture-items/{item['id']}/detail", json={"scope": new_scope}
+        ).status_code
+        == 404
+    )
+    old_query = client.post(
+        "/capture-items/query", json={"scope": old_scope, "states": ["processed"]}
+    )
+    new_query = client.post(
+        "/capture-items/query", json={"scope": new_scope, "states": ["processed"]}
+    )
+    assert [row["id"] for row in old_query.json()["items"]] == [item["id"]]
+    assert new_query.json()["items"] == []
+    for method, path, payload, expected in (
+        ("patch", "", {"content": "secondary"}, 409),
+        ("post", "/discard", {}, 409),
+    ):
+        assert (
+            getattr(client, method)(
+                f"/capture-items/{item['id']}{path}",
+                json={"scope": old_scope, "revision": 2, **payload},
+            ).status_code
+            == expected
+        )
+        assert (
+            getattr(client, method)(
+                f"/capture-items/{item['id']}{path}",
+                json={"scope": new_scope, "revision": 2, **payload},
+            ).status_code
+            == 404
+        )
+    assert (
+        client.post(
+            f"/capture-items/{item['id']}/source", json={"scope": old_scope}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/capture-items/{item['id']}/source", json={"scope": new_scope}
+        ).status_code
+        == 404
+    )
+
+    with Session(get_engine()) as session:
+        document = session.scalar(
+            select(SourceDocument).where(SourceDocument.source_id == source_id)
+        )
+        assert document is not None
+        chunks = session.scalars(
+            select(SourceChunk).where(SourceChunk.document_id == document.id)
+        ).all()
+        assert chunks
+        memory = Memory(content="explicit downstream link", project_id=project_a)
+        session.add(memory)
+        session.flush()
+        session.add(MemorySource(memory_id=memory.id, source_id=source_id))
+        session.commit()
+        request = ContextHubQuery(
+            scope=ContextScope(project_id=project_a),
+            families=(ContextFamily.LOCAL_SOURCE,),
+            query="deterministic frozen path",
+        )
+        local_items = query_context(session, request).groups[0].items
+        assert local_items
+        assert {row.provenance.document_id for row in local_items} == {document.id}
+        assert {row.provenance.chunk_id for row in local_items}.issubset(
+            {chunk.id for chunk in chunks}
+        )
+        for row in local_items:
+            assert (
+                reopen_context(session, request.scope, row.provenance).text == row.text
+            )
+            with pytest.raises(ContextNotFoundError):
+                reopen_context(
+                    session, ContextScope(project_id=project_b), row.provenance
+                )
+        with pytest.raises(IntegrityError):
+            session.execute(delete(Project).where(Project.id == project_a))
+            session.commit()
+        session.rollback()
+        persisted = session.get(CaptureItem, uuid.UUID(item["id"]))
+        assert persisted is not None
+        assert persisted.project_id == project_a
+        assert persisted.resulting_source_id == source_id
+
+
+@pytest.mark.cp121_security
+def test_cap18_equal_content_has_distinct_stable_write_once_provenance() -> None:
+    with Session(get_engine()) as session:
+        protected_before = (
+            session.scalar(select(func.count(Memory.id))),
+            session.scalar(select(func.count(MemoryProposal.id))),
+            session.scalar(select(func.count(MemoryEmbedding.id))),
+        )
+    client = _client()
+    project_id, wrong_id = _project(), _project()
+    content = "equal provenance content " + "x" * 2200
+    first = _create(client, content, project_id)
+    second = _create(client, content, project_id)
+    first_result = _convert(client, first, project_id).json()
+    second_result = _convert(client, second, project_id).json()
+    assert first["id"] != second["id"]
+    assert first_result["source"]["id"] != second_result["source"]["id"]
+    first_time = first_result["capture"]["processed_at"]
+    replay = _convert(client, first, project_id).json()
+    assert replay["source"]["id"] == first_result["source"]["id"]
+    assert replay["capture"]["processed_at"] == first_time
+    with Session(get_engine()) as session:
+        captures = session.scalars(
+            select(CaptureItem).where(
+                CaptureItem.id.in_((uuid.UUID(first["id"]), uuid.UUID(second["id"])))
+            )
+        ).all()
+        assert len(captures) == 2
+        assert len({row.resulting_source_id for row in captures}) == 2
+        for row in captures:
+            assert row.state == "processed" and row.project_id == project_id
+            document = session.scalar(
+                select(SourceDocument).where(
+                    SourceDocument.source_id == row.resulting_source_id
+                )
+            )
+            assert document is not None and document.extracted_text == content
+            chunks = session.scalars(
+                select(SourceChunk)
+                .where(SourceChunk.document_id == document.id)
+                .order_by(SourceChunk.chunk_index)
+            ).all()
+            assert [chunk.content for chunk in chunks] == [
+                chunk.content for chunk in chunk_text(content, 2000, 200)
+            ]
+        assert (
+            session.scalar(select(func.count(Memory.id))),
+            session.scalar(select(func.count(MemoryProposal.id))),
+            session.scalar(select(func.count(MemoryEmbedding.id))),
+        ) == protected_before
+
+        for source_id in (
+            uuid.UUID(first_result["source"]["id"]),
+            uuid.UUID(second_result["source"]["id"]),
+        ):
+            memory = Memory(content="explicit lifecycle link", project_id=project_id)
+            session.add(memory)
+            session.flush()
+            session.add(MemorySource(memory_id=memory.id, source_id=source_id))
+        session.commit()
+
+        request = ContextHubQuery(
+            scope=ContextScope(project_id=project_id),
+            families=(ContextFamily.LOCAL_SOURCE,),
+            query="equal provenance content",
+        )
+        local_items = query_context(session, request).groups[0].items
+        expected_source_ids = {
+            uuid.UUID(first_result["source"]["id"]),
+            uuid.UUID(second_result["source"]["id"]),
+        }
+        assert {
+            item.provenance.source_id for item in local_items
+        } == expected_source_ids
+        for item in local_items:
+            reopened = reopen_context(session, request.scope, item.provenance)
+            assert reopened.provenance == item.provenance
+            assert reopened.text == item.text
+            with pytest.raises(ContextNotFoundError):
+                reopen_context(
+                    session, ContextScope(project_id=wrong_id), item.provenance
+                )
+
+    resolved = client.post(
+        f"/capture-items/{first['id']}/source",
+        json={"scope": _scope(project_id)},
+    )
+    assert resolved.status_code == 200
+    assert resolved.json()["id"] == first_result["source"]["id"]
+    assert (
+        client.post(
+            f"/capture-items/{first['id']}/source",
+            json={"scope": _scope(wrong_id)},
+        ).status_code
+        == 404
+    )
+
+
+@pytest.mark.cp121_security
 def test_failure_after_document_sql_rolls_back_entire_conversion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -932,6 +1277,125 @@ def test_failure_after_document_sql_rolls_back_entire_conversion(
         assert session.scalar(select(func.count(SourceChunk.id))) == 0
 
 
+@pytest.mark.parametrize("stage", ["source", "document", "final_flush", "commit"])
+@pytest.mark.cp121_security
+def test_cap05_fault_boundaries_rollback_and_clean_retry_once(stage: str) -> None:
+    client = _client()
+    item = _create(client, f"atomic fault {stage} " + "x" * 2500)
+    with pytest.MonkeyPatch.context() as patch:
+        if stage == "source":
+            real = capture_service.source_repository.create_source
+
+            def fail_source(*args: Any, **kwargs: Any) -> Any:
+                real(*args, **kwargs)
+                raise OperationalError("controlled", {}, Exception("controlled"))
+
+            patch.setattr(
+                capture_service.source_repository, "create_source", fail_source
+            )
+        elif stage == "document":
+            real = capture_service.source_repository.upsert_text_document
+
+            def fail_document(*args: Any, **kwargs: Any) -> Any:
+                real(*args, **kwargs)
+                raise OperationalError("controlled", {}, Exception("controlled"))
+
+            patch.setattr(
+                capture_service.source_repository,
+                "upsert_text_document",
+                fail_document,
+            )
+        elif stage == "final_flush":
+            real_flush = Session.flush
+
+            def fail_final_flush(session: Session, *args: Any, **kwargs: Any) -> Any:
+                if any(
+                    isinstance(row, CaptureItem) and row.state == "processed"
+                    for row in session.dirty
+                ):
+                    raise OperationalError("controlled", {}, Exception("controlled"))
+                return real_flush(session, *args, **kwargs)
+
+            patch.setattr(Session, "flush", fail_final_flush)
+        else:
+            real_commit = Session.commit
+            commit_calls = 0
+
+            def fail_commit(session: Session) -> Any:
+                nonlocal commit_calls
+                commit_calls += 1
+                if commit_calls == 1:
+                    raise OperationalError("controlled", {}, Exception("controlled"))
+                return real_commit(session)
+
+            patch.setattr(Session, "commit", fail_commit)
+        failed = _convert(client, item, None)
+        assert failed.status_code == 503
+    with Session(get_engine()) as session:
+        capture = session.get(CaptureItem, uuid.UUID(item["id"]))
+        assert capture is not None and capture.state == "pending"
+        assert capture.revision == 1 and capture.resulting_source_id is None
+        assert (
+            session.scalar(
+                select(func.count(Source.id)).where(Source.source_type == "capture")
+            )
+            == 0
+        )
+        assert session.scalar(select(func.count(SourceDocument.id))) == 0
+        assert session.scalar(select(func.count(SourceChunk.id))) == 0
+    retried = _convert(client, item, None)
+    assert retried.status_code == 200
+    source_id = uuid.UUID(retried.json()["source"]["id"])
+    with Session(get_engine()) as session:
+        capture = session.get(CaptureItem, uuid.UUID(item["id"]))
+        documents = session.scalars(
+            select(SourceDocument).where(SourceDocument.source_id == source_id)
+        ).all()
+        assert capture is not None and capture.resulting_source_id == source_id
+        assert capture.state == "processed" and capture.revision == 2
+        assert len(documents) == 1
+        chunks = session.scalars(
+            select(SourceChunk)
+            .where(SourceChunk.document_id == documents[0].id)
+            .order_by(SourceChunk.chunk_index)
+        ).all()
+        expected_chunks = chunk_text(str(item["content"]), 2000, 200)
+        assert [(row.chunk_index, row.content) for row in chunks] == [
+            (row.chunk_index, row.content) for row in expected_chunks
+        ]
+        graph_snapshot = (
+            capture.resulting_source_id,
+            documents[0].id,
+            tuple((row.id, row.content_hash) for row in chunks),
+        )
+    replay = _convert(client, item, None)
+    assert replay.status_code == 200
+    assert replay.json()["source"]["id"] == retried.json()["source"]["id"]
+    with Session(get_engine()) as session:
+        assert (
+            session.scalar(
+                select(func.count(Source.id)).where(Source.source_type == "capture")
+            )
+            == 1
+        )
+        documents = session.scalars(
+            select(SourceDocument).where(SourceDocument.source_id == source_id)
+        ).all()
+        assert len(documents) == 1
+        chunks = session.scalars(
+            select(SourceChunk)
+            .where(SourceChunk.document_id == documents[0].id)
+            .order_by(SourceChunk.chunk_index)
+        ).all()
+        capture = session.get(CaptureItem, uuid.UUID(item["id"]))
+        assert capture is not None
+        assert (
+            capture.resulting_source_id,
+            documents[0].id,
+            tuple((row.id, row.content_hash) for row in chunks),
+        ) == graph_snapshot
+
+
 @pytest.mark.parametrize(
     ("assigned", "operation", "expected"),
     [
@@ -945,6 +1409,7 @@ def test_failure_after_document_sql_rolls_back_entire_conversion(
         (True, "resolve", 3),
     ],
 )
+@pytest.mark.cp121_security
 def test_cp119_statement_ceilings(
     assigned: bool, operation: str, expected: int
 ) -> None:

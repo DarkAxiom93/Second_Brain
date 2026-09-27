@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -103,7 +103,7 @@ describe("Agent Runs list and creation", () => {
     const first = renderList();
     await screen.findByText("No Agent Runs found.");
     expect(screen.getByLabelText("Explicitly unassigned")).toBeChecked();
-    await userEvent.type(screen.getByLabelText("Goal summary"), "Review local evidence");
+    fireEvent.change(screen.getByLabelText("Goal summary"), { target: { value: "Review local evidence" } });
     await userEvent.click(screen.getByRole("button", { name: "Create Run" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     let init = fetchMock.mock.calls[1][1] as RequestInit;
@@ -112,9 +112,9 @@ describe("Agent Runs list and creation", () => {
     first.unmount();
     renderList();
     await screen.findByText("No Agent Runs found.");
-    await userEvent.type(screen.getByLabelText("Goal summary"), "Project goal");
+    fireEvent.change(screen.getByLabelText("Goal summary"), { target: { value: "Project goal" } });
     await userEvent.click(screen.getByLabelText("Exact Project"));
-    await userEvent.type(screen.getByLabelText("Exact Project UUID"), project);
+    fireEvent.change(screen.getByLabelText("Exact Project UUID"), { target: { value: project } });
     await userEvent.click(screen.getByRole("button", { name: "Create Run" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
     init = fetchMock.mock.calls[3][1] as RequestInit;

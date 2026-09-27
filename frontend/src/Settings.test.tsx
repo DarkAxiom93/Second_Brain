@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -136,7 +136,7 @@ describe("settings operations dashboard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Validate bundle" }));
     expect(await screen.findByRole("heading", { name: "Import plan: Importable" })).toHaveFocus();
     const execute = screen.getByRole("button", { name: "Execute controlled import" }); expect(execute).toBeDisabled();
-    await userEvent.type(screen.getByLabelText(/exact manifest Project UUID/), projectId);
+    fireEvent.change(screen.getByLabelText(/exact manifest Project UUID/), { target: { value: projectId } });
     await userEvent.click(screen.getByLabelText(/explicitly confirm/)); expect(execute).toBeEnabled();
     await userEvent.click(execute); const success = await screen.findByText(/Project imported successfully/); await waitFor(() => expect(success).toHaveFocus());
     const call = fetchMock.mock.calls[5]; expect(String(call[0])).toContain(`expected_project_id=${projectId}`); expect(String(call[0])).toContain(`expected_bundle_sha256=${"a".repeat(64)}`); expect((call[1] as RequestInit).body).toBe(file);

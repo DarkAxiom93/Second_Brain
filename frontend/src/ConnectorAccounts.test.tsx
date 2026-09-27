@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -23,9 +23,9 @@ describe("connector account settings flow", () => {
       .mockResolvedValueOnce(response([account()]))
       .mockResolvedValueOnce(response(null));
     vi.stubGlobal("fetch", fetchMock); render(<ConnectorAccounts />);
-    await userEvent.type(screen.getByLabelText(/External account identity/), "operator-account");
-    await userEvent.type(screen.getByLabelText("Opaque credential reference"), reference);
-    await userEvent.type(screen.getByLabelText(/Repository allowlist/), "owner/repository");
+    fireEvent.change(screen.getByLabelText(/External account identity/), { target: { value: "operator-account" } });
+    fireEvent.change(screen.getByLabelText("Opaque credential reference"), { target: { value: reference } });
+    fireEvent.change(screen.getByLabelText(/Repository allowlist/), { target: { value: "owner/repository" } });
     await userEvent.click(screen.getByRole("button", { name: "Create disabled GitHub account" }));
     expect(await screen.findByText(/credential reference was cleared/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Opaque credential reference")).toHaveValue("");

@@ -1,5 +1,6 @@
 """Focused real-PostgreSQL API evidence for Checkpoint 118."""
 
+import inspect
 import threading
 import uuid
 from collections.abc import Generator
@@ -19,6 +20,7 @@ from app.main import create_app
 from app.models.capture_item import CaptureItem
 from app.models.project import Project
 from app.models.source import Source
+from app.repositories import capture_items as capture_repository
 from app.schemas.capture import CaptureScope
 from tests.integration.conftest import verify_connected_test_database
 
@@ -103,6 +105,7 @@ def _seed_item(
         return item
 
 
+@pytest.mark.cp121_security
 def test_create_replay_scope_and_private_projection() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52118))
     project_id = _project()
@@ -325,6 +328,7 @@ def test_query_rejects_raw_nul_c0_and_c1_controls(value: str) -> None:
     assert response.status_code == 422
 
 
+@pytest.mark.cp121_security
 def test_query_normalization_character_utf8_and_page_cursor_boundaries() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52125))
     _create(client, "needle")
@@ -358,6 +362,54 @@ def test_query_normalization_character_utf8_and_page_cursor_boundaries() -> None
         )
 
 
+@pytest.mark.cp121_security
+def test_query_closed_shape_result_cap_and_bounded_sql() -> None:
+    client = TestClient(create_app(), client=("127.0.0.1", 52185))
+    for index in range(55):
+        _seed_item(content=f"bounded query {index}")
+    statements: list[str] = []
+
+    def capture_sql(*args: Any) -> None:
+        statement = str(args[2]).strip().upper()
+        if not statement.startswith(("BEGIN", "COMMIT", "ROLLBACK")):
+            statements.append(statement)
+
+    event.listen(get_engine(), "before_cursor_execute", capture_sql)
+    try:
+        response = client.post(
+            "/capture-items/query",
+            json={"scope": {"unassigned": True}, "page_size": 50},
+        )
+    finally:
+        event.remove(get_engine(), "before_cursor_execute", capture_sql)
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 50
+    assert response.json()["next_cursor"] is not None
+    sql = "\n".join(statements)
+    assert " LIMIT " in sql and "OFFSET" not in sql
+    assert all(token not in sql for token in ("COUNT(", "FACET", "<=>", "EMBEDDING"))
+    for unsupported in (
+        {"page_size": 51},
+        {"offset": 1},
+        {"count": True},
+        {"facets": ["state"]},
+        {"semantic": True},
+        {"query_vector": [0.1]},
+    ):
+        rejected = client.post(
+            "/capture-items/query",
+            json={"scope": {"unassigned": True}, **unsupported},
+        )
+        assert rejected.status_code == 422
+    implementation = inspect.getsource(capture_repository.query_captures).lower()
+    assert ".offset(" not in implementation
+    assert all(
+        token not in implementation for token in ("count(", "facet", "embedding", "<=>")
+    )
+    assert "statement.limit(page_size + 1)" in implementation
+
+
+@pytest.mark.cp121_security
 def test_public_creation_header_and_scope_matrix() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52126))
     project_id = _project()
@@ -407,6 +459,7 @@ def test_public_creation_header_and_scope_matrix() -> None:
     assert forged.status_code == 404
 
 
+@pytest.mark.cp121_security
 def test_state_filters_default_all_combinations_and_bounds() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52127))
     expected: dict[str, str] = {}
@@ -459,6 +512,7 @@ def test_browse_and_lexical_ordering_with_deterministic_ties() -> None:
     assert [row["id"] for row in lexical[1:]] == [str(high_id), str(low_id)]
 
 
+@pytest.mark.cp121_security
 def test_cursor_all_bindings_malformed_canonical_and_stable_browse_pages() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52129))
     project_id = _project()
@@ -548,6 +602,7 @@ def test_cursor_ordering_version_mismatch_fails_closed(
     )
 
 
+@pytest.mark.cp121_security
 def test_scope_isolation_across_detail_and_every_mutation() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52131))
     project_a, project_b = _project(), _project()
@@ -611,6 +666,7 @@ def test_scope_isolation_across_detail_and_every_mutation() -> None:
     )
 
 
+@pytest.mark.cp121_security
 def test_reassignment_directions_stale_conflicts_and_timestamps() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52132))
     project_a, project_b = _project(), _project()
@@ -682,6 +738,7 @@ def test_reassignment_directions_stale_conflicts_and_timestamps() -> None:
     assert stale_reassign.json()["detail"]["item"]["revision"] == 4
 
 
+@pytest.mark.cp121_security
 def test_stale_discard_restore_and_complete_state_action_matrix() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52133))
     pending = _create(client, "pending")
@@ -733,6 +790,7 @@ def test_stale_discard_restore_and_complete_state_action_matrix() -> None:
 
 
 @pytest.mark.parametrize("kind", ["edit", "reassign", "discard", "restore"])
+@pytest.mark.cp121_security
 def test_concurrent_same_revision_mutations_correlate_persisted_winner(
     kind: str,
 ) -> None:
@@ -813,6 +871,7 @@ def test_concurrent_same_revision_mutations_correlate_persisted_winner(
             assert persisted.state == "pending"
 
 
+@pytest.mark.cp121_security
 def test_reassignment_vs_old_scope_edit_has_one_correlated_winner() -> None:
     from app.captures.service import (
         CaptureNotFoundError,
@@ -871,6 +930,7 @@ def test_reassignment_vs_old_scope_edit_has_one_correlated_winner() -> None:
             assert persisted.project_id is None and persisted.content == "edited"
 
 
+@pytest.mark.cp121_security
 def test_normal_success_statement_ceilings() -> None:
     client = TestClient(create_app(), client=("127.0.0.1", 52123))
     project_a, project_b = _project(), _project()

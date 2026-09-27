@@ -65,6 +65,7 @@ def _data_files(path: Path) -> dict[str, bytes]:
         CURRENT_DATABASE_REVISION,
     ],
 )
+@pytest.mark.cp121_security
 def test_import_preserves_fields_vector_search_and_round_trip(
     clean_import_database: None,
     test_database_url: str,

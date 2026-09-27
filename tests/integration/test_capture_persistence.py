@@ -55,6 +55,7 @@ def _valid_capture(
     )
 
 
+@pytest.mark.cp121_security
 def test_schema_indexes_defaults_and_generated_search_vector() -> None:
     with get_session_factory()() as session:
         inspector = inspect(session.connection())
@@ -195,6 +196,7 @@ def test_assigned_unassigned_replay_and_conflicts() -> None:
         _create(CaptureCreate("note", f"missing-{uuid.uuid4()}", uuid.uuid4()))
 
 
+@pytest.mark.cp121_security
 def test_database_constraints_and_delete_restrictions() -> None:
     project_id = _create_project()
     created = _create(CaptureCreate("note", f"constraint-{uuid.uuid4()}", project_id))
@@ -248,6 +250,7 @@ def test_resulting_source_is_unique() -> None:
             session.flush()
 
 
+@pytest.mark.cp121_security
 def test_only_key_digest_is_persisted() -> None:
     raw_key = f"private-key-{uuid.uuid4()}"
     result = _create(CaptureCreate("private note", raw_key))
@@ -266,6 +269,7 @@ def test_only_key_digest_is_persisted() -> None:
 
 
 @pytest.mark.parametrize("conflicting", [False, True])
+@pytest.mark.cp121_security
 def test_concurrent_same_key_creation_has_one_winner(conflicting: bool) -> None:
     barrier = threading.Barrier(2)
     key = f"concurrent-{uuid.uuid4()}"
