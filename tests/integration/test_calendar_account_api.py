@@ -3,6 +3,8 @@
 import uuid
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import FastAPI
@@ -31,6 +33,16 @@ from tests.integration.conftest import verify_connected_test_database
 
 REFERENCE = "sbcred:v1:12345678-1234-4123-8123-123456789abc"
 FINGERPRINT = "a" * 64
+CALENDAR_TEST_ANCHOR = datetime.now(UTC).replace(
+    hour=12, minute=0, second=0, microsecond=0
+)
+CALENDAR_TEST_START = (
+    CALENDAR_TEST_ANCHOR.astimezone(ZoneInfo("Asia/Jerusalem")) + timedelta(days=1)
+).replace(hour=10, minute=0, second=0, microsecond=0)
+
+
+def _timestamp(value: datetime) -> str:
+    return value.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 class FakeBoundary:
@@ -405,13 +417,13 @@ def test_observation_equal_replay_stale_resurrection_and_local_browsing(
         "summary": "<script>alert(1)</script> [link](javascript:bad) \u202e",
         "visibility": "default",
         "etag": '"one"',
-        "updated": "2026-09-03T10:00:00Z",
+        "updated": _timestamp(CALENDAR_TEST_ANCHOR - timedelta(hours=1)),
         "start": {
-            "dateTime": "2026-09-04T10:00:00+03:00",
+            "dateTime": _timestamp(CALENDAR_TEST_START),
             "timeZone": "Asia/Jerusalem",
         },
         "end": {
-            "dateTime": "2026-09-04T11:00:00+03:00",
+            "dateTime": _timestamp(CALENDAR_TEST_START + timedelta(hours=1)),
             "timeZone": "Asia/Jerusalem",
         },
     }

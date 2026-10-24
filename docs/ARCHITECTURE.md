@@ -49,6 +49,14 @@ privacy, resource bounds, external and authority omission, export, protected
 backup/recovery, reassignment, destructive-loss protection, and provenance are
 evaluated without adding production capability or authority.
 
+Checkpoint 122 adds joined acceptance evidence only. One real-route,
+real-service, real-PostgreSQL journey proves the three exact Capture scopes,
+Inbox lifecycle and conflict projection, idempotent conversion/replay, frozen
+scoped Source reopening, explicit reviewed proposal/approval/promotion, and
+restart persistence. The existing Capture frontend suite now also drives one
+coherent Quick Capture-to-scoped-Source journey with hostile inert text. No
+production code, API, schema, migration, dependency, or authority changes.
+
 Local V1 operation is defined by `LOCAL_V1_RUNBOOK.md`, with capability evidence
 in `LOCAL_V1_ACCEPTANCE.md` and explicit deferrals in `KNOWN_LIMITATIONS.md`.
 The stable recovery architecture is released as `v1.0.0` at commit

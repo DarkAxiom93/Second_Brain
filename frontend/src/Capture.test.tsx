@@ -152,4 +152,39 @@ describe("Checkpoint 120 capture UI", () => {
   it("uses no polling interval or browser persistence during Inbox operation", async () => {
     const interval = vi.spyOn(window, "setInterval"); renderInbox(); await act(async () => { await Promise.resolve(); await Promise.resolve(); }); expect(screen.getByText("plain note")).toBeInTheDocument(); expect(interval).not.toHaveBeenCalled(); expect(localStorage.length).toBe(0); expect(sessionStorage.length).toBe(0);
   });
+
+  it("drives the joined CP122 Quick Capture, Inbox lifecycle, conflict, conversion, and scoped reopen journey", async () => {
+    const hostile = `<script>cp122()</script> [link](javascript:x) \u202eSettings\u202c\n${"x".repeat(200)}`;
+    let current = item({ content: hostile }); let editCalls = 0; let cursorUsed = false;
+    const urls: string[] = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      urls.push(url);
+      if (url.includes("/projects?")) return response(projects);
+      if (url.endsWith("/capture-items")) { current = item({ content: hostile }); return response(current, 201); }
+      if (url.endsWith("/query")) { const request = body([url, init!]); if (request.cursor) cursorUsed = true; const requestedScope = request.scope as Record<string, unknown>; const requestedState = (request.states as string[])[0]; const visible = requestedState === current.state && (requestedScope.project_id ?? null) === current.project_id; return response({ items: visible ? [current] : [], next_cursor: !request.cursor && !request.query ? "cp122-opaque" : null }); }
+      if (url.endsWith("/detail")) return response(current);
+      if (init?.method === "PATCH") { editCalls += 1; if (editCalls === 1) { current = item({ content: hostile + " authoritative", revision: 2 }); return response({ detail: { error: "capture revision conflict", item: current } }, 409); } current = item({ content: hostile + " edited", revision: 3 }); return response(current); }
+      if (url.endsWith("/reassign")) { current = item({ content: hostile + " edited", project_id: projectId, revision: 4 }); return response(current); }
+      if (url.endsWith("/discard")) { current = item({ content: hostile + " edited", project_id: projectId, state: "discarded", revision: 5 }); return response(current); }
+      if (url.endsWith("/restore")) { current = item({ content: hostile + " edited", project_id: projectId, revision: 6 }); return response(current); }
+      if (url.endsWith("/convert-to-source")) { current = item({ content: hostile + " edited", project_id: projectId, state: "processed", revision: 7, processed_at: "2026-09-19T09:00:00Z", resulting_source_id: sourceId }); return response({ capture: current, source }); }
+      if (url.endsWith("/source")) return response(source);
+      return response({}, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MemoryRouter initialEntries={["/inbox"]}><App /></MemoryRouter>);
+    const launcher = screen.getByRole("button", { name: "+ Capture" });
+    await userEvent.click(launcher); expect(within(screen.getByRole("dialog")).getByLabelText("Exact scope")).toHaveValue("unassigned");
+    fireEvent.change(screen.getByLabelText("Capture text"), { target: { value: hostile } }); await userEvent.click(screen.getByRole("button", { name: "Save capture" }));
+    await waitFor(() => expect(launcher).toHaveFocus()); expect(screen.getByText("Capture saved.")).toBeInTheDocument();
+    await screen.findByRole("button", { name: /script/ }); expect(document.querySelector("script")).toBeNull(); expect(screen.queryByRole("link", { name: "link" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Lexical search"), { target: { value: "script" } }); await userEvent.click(screen.getByRole("button", { name: "Search" })); await screen.findByRole("button", { name: /script/ }); await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Next page" })); await waitFor(() => expect(cursorUsed).toBe(true));
+    await userEvent.click(await screen.findByRole("button", { name: /script/ })); const edit = screen.getByLabelText("Edit plain text"); fireEvent.change(edit, { target: { value: hostile + " edited" } }); await userEvent.click(screen.getByRole("button", { name: "Save edit" })); expect(await screen.findByText(/item changed; refreshed/i)).toBeInTheDocument(); fireEvent.change(edit, { target: { value: hostile + " edited" } }); await userEvent.click(screen.getByRole("button", { name: "Save edit" })); await waitFor(() => expect(editCalls).toBe(2));
+    await userEvent.selectOptions(screen.getByLabelText("Reassign to"), projectId); await userEvent.click(screen.getByRole("button", { name: "Reassign" })); await userEvent.selectOptions(screen.getByLabelText("Exact scope"), projectId);
+    await userEvent.click(await screen.findByRole("button", { name: /script/ })); await userEvent.click(screen.getByRole("button", { name: "Discard" })); await userEvent.selectOptions(screen.getByLabelText("State"), "discarded"); await userEvent.click(await screen.findByRole("button", { name: /script/ })); await userEvent.click(screen.getByRole("button", { name: "Restore" }));
+    await userEvent.selectOptions(screen.getByLabelText("State"), "pending"); await userEvent.click(await screen.findByRole("button", { name: /script/ })); await userEvent.click(screen.getByRole("button", { name: "Convert to Source" })); expect(await screen.findByRole("heading", { name: "Authorized Source" })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("State"), "processed"); await userEvent.click(await screen.findByRole("button", { name: /script/ })); await userEvent.click(screen.getByRole("button", { name: "Reopen scoped Source" }));
+    expect(urls.some(url => url.endsWith(`/capture-items/${captureId}/source`))).toBe(true); expect(urls.some(url => url.includes(`/sources/${sourceId}`))).toBe(false); expect(localStorage.length).toBe(0); expect(sessionStorage.length).toBe(0); expect(document.body).not.toHaveTextContent("cp122-opaque");
+  });
 });

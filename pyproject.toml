@@ -51,6 +51,7 @@ files = ["app"]
 markers = [
     "cp113_security: requires the exact CP113 PostgreSQL security gate",
     "cp121_security: requires the exact CP121 PostgreSQL security gate",
+    "cp122_acceptance: requires the exact CP122 PostgreSQL acceptance database",
 ]
 testpaths = ["tests"]
 addopts = "-ra"

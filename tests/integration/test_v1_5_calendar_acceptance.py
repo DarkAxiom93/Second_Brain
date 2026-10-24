@@ -7,6 +7,7 @@ import zipfile
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import jwt
 import pytest
@@ -55,6 +56,16 @@ SUBJECT = "cp107-approved-synthetic-subject"
 EXCLUDED_CANARY = "cp107-excluded-private-provider-content"
 HOSTILE = "<script>alert(107)</script> [link](javascript:alert(1)) \u202e"
 CONTROL_CANARY = "cp107-control-\u0007-canary"
+CALENDAR_TEST_ANCHOR = datetime.now(UTC).replace(
+    hour=12, minute=0, second=0, microsecond=0
+)
+CALENDAR_TEST_START = (
+    CALENDAR_TEST_ANCHOR.astimezone(ZoneInfo("Asia/Jerusalem")) + timedelta(days=1)
+).replace(hour=10, minute=0, second=0, microsecond=0)
+
+
+def _timestamp(value: datetime) -> str:
+    return value.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 class _Callback:
@@ -169,12 +180,15 @@ def _event(event_id: str, **changes: object) -> dict[str, object]:
         "summary": f"CP107 {event_id}",
         "visibility": "default",
         "etag": f'"{event_id}-one"',
-        "updated": "2026-09-05T08:00:00Z",
+        "updated": _timestamp(CALENDAR_TEST_ANCHOR - timedelta(hours=1)),
         "start": {
-            "dateTime": "2026-09-06T10:00:00+03:00",
+            "dateTime": _timestamp(CALENDAR_TEST_START),
             "timeZone": "Asia/Jerusalem",
         },
-        "end": {"dateTime": "2026-09-06T11:00:00+03:00", "timeZone": "Asia/Jerusalem"},
+        "end": {
+            "dateTime": _timestamp(CALENDAR_TEST_START + timedelta(hours=1)),
+            "timeZone": "Asia/Jerusalem",
+        },
     }
     value.update(changes)
     return value
@@ -187,7 +201,11 @@ def _events(
         "ordinary",
         summary="CP107 changed" if changed else HOSTILE,
         etag='"ordinary-two"' if changed else '"ordinary-one"',
-        updated="2026-09-05T09:00:00Z" if changed else "2026-09-05T08:00:00Z",
+        updated=_timestamp(
+            CALENDAR_TEST_ANCHOR
+            if changed
+            else CALENDAR_TEST_ANCHOR - timedelta(hours=1)
+        ),
     )
     values = [ordinary]
     if not omit_recurring:
@@ -195,13 +213,19 @@ def _events(
             _event(
                 "recurring-exception",
                 recurringEventId="series-107",
-                originalStartTime={"dateTime": "2026-09-07T10:00:00+03:00"},
+                originalStartTime={
+                    "dateTime": _timestamp(CALENDAR_TEST_START + timedelta(days=1))
+                },
                 start={
-                    "dateTime": "2026-09-07T12:00:00+03:00",
+                    "dateTime": _timestamp(
+                        CALENDAR_TEST_START + timedelta(days=1, hours=2)
+                    ),
                     "timeZone": "Asia/Jerusalem",
                 },
                 end={
-                    "dateTime": "2026-09-07T13:00:00+03:00",
+                    "dateTime": _timestamp(
+                        CALENDAR_TEST_START + timedelta(days=1, hours=3)
+                    ),
                     "timeZone": "Asia/Jerusalem",
                 },
             )
@@ -212,8 +236,12 @@ def _events(
             _event("special", eventType="focusTime", summary=EXCLUDED_CANARY),
             _event(
                 "all-day",
-                start={"date": "2026-09-08"},
-                end={"date": "2026-09-09"},
+                start={
+                    "date": (CALENDAR_TEST_START + timedelta(days=2)).date().isoformat()
+                },
+                end={
+                    "date": (CALENDAR_TEST_START + timedelta(days=3)).date().isoformat()
+                },
             ),
         ]
     )

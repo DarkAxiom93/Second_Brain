@@ -254,7 +254,8 @@ external writes, remote/mobile/cloud access, and physical purge/delete.
 - **CP119:** transactional/idempotent audited Source conversion.
 - **CP120:** accessible Quick Capture and Inbox frontend.
 - **CP121:** one-to-one deterministic CAP01-CAP18 security gate.
-- **CP122:** joined real-route/PostgreSQL/frontend acceptance.
+- **CP122:** joined real-route/PostgreSQL/frontend acceptance is implemented and
+  fully verified pending human review.
 - **CP123:** release hardening and evidence. Publication is separate.
 
 Every checkpoint stops for human review; no later checkpoint begins implicitly.

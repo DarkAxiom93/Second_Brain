@@ -269,7 +269,8 @@ conversion, CP120 frontend, CP121 security gate, CP122 joined acceptance, and
 CP123 release hardening. Publication remains separate. CP116 begins no
 implementation. CP117 adds only `0017_capture_items` plus internal validated
 idempotent creation and focused tests; it is awaiting human review. CP118-CP123
-have not started.
+were subsequently implemented through CP122. CP122 is fully verified pending
+human review. CP123 has not started.
 
 ## Standard lifecycle
 

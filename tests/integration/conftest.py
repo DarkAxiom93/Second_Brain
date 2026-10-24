@@ -37,6 +37,9 @@ def pytest_collection_modifyitems(
     config._cp121_security_selected = any(  # type: ignore[attr-defined]
         item.get_closest_marker("cp121_security") is not None for item in items
     )
+    config._cp122_acceptance_selected = any(  # type: ignore[attr-defined]
+        item.get_closest_marker("cp122_acceptance") is not None for item in items
+    )
 
 
 @pytest.fixture(scope="session")
@@ -55,6 +58,11 @@ def test_database_url(pytestconfig: pytest.Config) -> str:
                 "CP121 security tests require TEST_DATABASE_URL=second_brain_test",
                 pytrace=False,
             )
+        if getattr(pytestconfig, "_cp122_acceptance_selected", False):
+            pytest.fail(
+                "CP122 acceptance requires TEST_DATABASE_URL=second_brain_test",
+                pytrace=False,
+            )
         pytest.skip("TEST_DATABASE_URL is required for PostgreSQL integration tests")
     return validate_test_database_url(value)
 
@@ -62,7 +70,7 @@ def test_database_url(pytestconfig: pytest.Config) -> str:
 def verify_connected_test_database(database_url: str) -> None:
     """Verify server identity immediately before destructive migration work."""
 
-    engine = create_engine(database_url)
+    engine = create_engine(validate_test_database_url(database_url))
     try:
         with engine.connect() as connection:
             database_name = connection.scalar(text("SELECT current_database()"))

@@ -345,4 +345,5 @@ Agents, Tools, and Automations. Project export remains version 1 and excludes
 CaptureItems. CP116 is approved and complete. CP117 implements the migration,
 inert persistence model, deterministic normalization/fingerprinting, and
 concurrency-safe internal create/replay primitive and is awaiting human review.
-CP118-CP123 have not started.
+CP118-CP121 are implemented. CP122 joined acceptance is implemented and fully
+verified pending human review. CP123 has not started.
