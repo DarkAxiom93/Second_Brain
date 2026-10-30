@@ -297,8 +297,8 @@ def _seed_scope(
     calendar_run.items_written = 1
     calendar_run.status = "succeeded"
     calendar_run.completeness = "complete"
-    calendar_run.started_at = now
-    calendar_run.completed_at = now
+    calendar_run.started_at = calendar_run.created_at
+    calendar_run.completed_at = calendar_run.created_at
     mark_observation_evidence_complete(session, calendar_run)
     session.flush()
     external_item_id = session.scalar(
